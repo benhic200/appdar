@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base theme for widget configuration activity (if any) -->
+    <style name="Theme.NearbyAppsWidget" parent="Theme.Material3.DayNight">
+        <!-- Customize your theme here -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorOnPrimary">@color/on_primary</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/on_surface</item>
+        <item name="colorOnSurfaceVariant">@color/on_surface_variant</item>
+        <item name="colorOutlineVariant">@color/outline_variant</item>
+    </style>
+
+    <!-- Widget-specific theme attributes -->
+    <style name="Widget.NearbyAppsWidget.Container">
+        <item name="android:background">?android:attr/colorBackground</item>
+        <item name="android:padding">@dimen/widget_padding</item>
+    </style>
+
+    <style name="Widget.NearbyAppsWidget.Item">
+        <item name="android:minHeight">@dimen/widget_item_min_height</item>
+        <item name="android:paddingVertical">@dimen/widget_item_vertical_padding</item>
+    </style>
+
+    <style name="Widget.NearbyAppsWidget.Button">
+        <item name="android:minWidth">@dimen/button_min_width</item>
+        <item name="android:minHeight">@dimen/button_min_height</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+    </style>
+</resources>

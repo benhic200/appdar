@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application theme. -->
+    <style name="Theme.NearbyAppsWidget" parent="Theme.Material3.DayNight">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/purple_500</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <!-- Surface colors -->
+        <item name="colorSurface">@color/white</item>
+        <item name="colorOnSurface">@color/black</item>
+        <item name="colorOnSurfaceVariant">@color/grey_600</item>
+        <!-- Outline variant -->
+        <item name="colorOutlineVariant">@color/grey_300</item>
+        <!-- Widget style -->
+        <item name="selectableItemBackground">?android:attr/selectableItemBackground</item>
+    </style>
+
+    <!-- Widget style -->
+    <style name="Widget.NearbyAppsWidget" parent="android:Widget">
+        <item name="android:background">@android:color/transparent</item>
+    </style>
+
+    <!-- Color definitions (placeholder) -->
+    <color name="purple_500">#6200EE</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="grey_600">#757575</color>
+    <color name="grey_300">#E0E0E0</color>
+</resources>

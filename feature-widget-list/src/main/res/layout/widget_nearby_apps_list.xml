@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Non-collection widget layout used on API 31+ (Android 12+).
+    Title is hidden; controls fill the header row and adapt to any width.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="?android:attr/colorBackground">
+
+    <!-- Header row: pagination controls + settings + refresh (no title) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <!-- Hidden title kept so code can set text when needed without crashing -->
+        <TextView
+            android:id="@+id/widget_header"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:visibility="gone"
+            android:text="@string/nearby_apps"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textColor="?android:attr/textColorPrimary" />
+
+        <ImageView
+            android:id="@+id/btn_prev_page"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@android:drawable/ic_media_previous"
+            android:contentDescription="Previous page"
+            android:padding="4dp"
+            android:tint="@android:color/holo_blue_dark"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground" />
+
+        <TextView
+            android:id="@+id/tv_page_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="2dp"
+            android:paddingEnd="2dp"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textColor="?android:attr/textColorSecondary" />
+
+        <ImageView
+            android:id="@+id/btn_next_page"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@android:drawable/ic_media_next"
+            android:contentDescription="Next page"
+            android:padding="4dp"
+            android:tint="@android:color/holo_blue_dark"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground" />
+
+        <!-- Flexible space pushes settings + refresh to the right -->
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <ImageView
+            android:id="@+id/settings_icon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_settings_gear"
+            android:contentDescription="Settings"
+            android:padding="4dp"
+            android:tint="@android:color/holo_blue_dark"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground" />
+
+        <ImageView
+            android:id="@+id/refresh_icon"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:src="@android:drawable/ic_menu_rotate"
+            android:contentDescription="@string/refresh"
+            android:padding="4dp"
+            android:tint="@android:color/holo_blue_dark"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground" />
+    </LinearLayout>
+
+    <!-- Items added dynamically via RemoteViews.addView() -->
+    <LinearLayout
+        android:id="@+id/items_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="8dp" />
+
+</LinearLayout>

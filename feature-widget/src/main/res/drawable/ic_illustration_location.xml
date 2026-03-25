@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Pin -->
+    <path
+        android:fillColor="?attr/colorPrimary"
+        android:pathData="M60,10c13.81,0 25,11.19 25,25 0,18.75 -25,50 -25,50S35,53.75 35,35C35,21.19 46.19,10 60,10zM60,15c-11.05,0 -20,8.95 -20,20 0,14.25 20,40 20,40s20,-25.75 20,-40c0,-11.05 -8.95,-20 -20,-20z" />
+    <path
+        android:fillColor="?attr/colorPrimary"
+        android:pathData="M60,40c2.76,0 5,2.24 5,5s-2.24,5 -5,5 -5,-2.24 -5,-5 2.24,-5 5,-5z" />
+    <!-- App icons around pin -->
+    <path
+        android:fillColor="?attr/colorSecondary"
+        android:pathData="M20,50h15v15H20z" />
+    <path
+        android:fillColor="?attr/colorSecondary"
+        android:pathData="M85,50h15v15H85z" />
+    <path
+        android:fillColor="?attr/colorSecondary"
+        android:pathData="M50,20h15v15H50z" />
+    <path
+        android:fillColor="?attr/colorSecondary"
+        android:pathData="M50,85h15v15H50z" />
+</vector>

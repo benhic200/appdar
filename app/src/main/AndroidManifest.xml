@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Required for Android 10+ (API 29+) to receive geofence transitions when app is in background -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- Required for foreground service (Android 9+ API 28+) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Required for foreground service with location type (Android 14+ API 34+) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+    <!-- Required for Android 11+ package visibility: allows querying whether business apps are installed -->
+    <queries>
+        <package android:name="com.tesco.grocery.view" />
+        <package android:name="com.mcdonalds.app.uk" />
+        <package android:name="com.mobile5.greggs" />
+        <package android:name="uk.co.club.costa.costa" />
+        <package android:name="com.asda.rewards" />
+        <package android:name="com.lidl.eci.lidlplus" />
+        <package android:name="com.whitbread.premierinn" />
+        <package android:name="com.starbucks.mobilecard" />
+        <package android:name="com.boots" />
+        <package android:name="com.whsmith.android" />
+        <!-- Allow querying any app that has a launcher intent (catches dynamically added businesses) -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".NearbyAppsApplication"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.NearbyAppsWidget"
+        tools:targetApi="31">
+
+        <!-- Launcher activity (for app icon and explanation) -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Widget provider -->
+        <receiver
+            android:name="com.example.nearbyappswidget.feature.widget.NearbyAppsWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/appwidget_provider" />
+        </receiver>
+
+        <!-- Geofence broadcast receiver -->
+        <receiver
+            android:name="com.example.nearbyappswidget.feature.geofencing.GeofenceBroadcastReceiver"
+            android:exported="false" />
+
+        <!-- Foreground service for Android 10+ background location (geofencing) -->
+        <service
+            android:name=".core.foreground.GeofencingForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+    </application>
+
+</manifest>

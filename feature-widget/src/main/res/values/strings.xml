@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget -->
+    <string name="nearby_apps">Nearby Apps</string>
+    <string name="no_nearby_businesses">No nearby businesses detected</string>
+    <string name="app_icon_description">App icon</string>
+    <string name="open">Open</string>
+
+    <!-- Placeholder business names (for mock data) -->
+    <string name="business_lidl">Lidl</string>
+    <string name="business_tesco">Tesco</string>
+    <string name="business_starbucks">Starbucks</string>
+    <string name="business_mcdonalds">McDonald\'s</string>
+    <string name="business_pret">Pret A Manger</string>
+    <string name="business_boots">Boots</string>
+    <string name="business_waterstones">Waterstones</string>
+    <string name="business_apple_store">Apple Store</string>
+    <string name="business_pizza_express">Pizza Express</string>
+    <string name="business_cineworld">Cineworld</string>
+
+    <!-- Distance format -->
+    <string name="distance_format">%1$dm away</string>
+    <string name="distance_km_format">%1$.1fkm away</string>
+
+    <!-- Refresh button -->
+    <string name="refresh">Refresh</string>
+</resources>

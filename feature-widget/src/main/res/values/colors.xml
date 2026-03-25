@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dynamic color references (API 31+) -->
+    <color name="dynamic_primary">?attr/colorPrimary</color>
+    <color name="dynamic_on_primary">?attr/colorOnPrimary</color>
+    <color name="dynamic_surface">?android:attr/colorBackground</color>
+    <color name="dynamic_on_surface">?attr/colorOnSurface</color>
+    <color name="dynamic_on_surface_variant">?attr/colorOnSurfaceVariant</color>
+    <color name="dynamic_outline_variant">?attr/colorOutlineVariant</color>
+
+    <!-- Static fallback palette (pre-API 31) -->
+    <color name="primary">#6750A4</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="surface">#FFFBFE</color>
+    <color name="on_surface">#1C1B1F</color>
+    <color name="on_surface_variant">#49454F</color>
+    <color name="outline_variant">#CAC4D0</color>
+
+    <!-- Widget-specific -->
+    <color name="widget_background">@color/dynamic_surface</color>
+    <color name="widget_text_primary">@color/dynamic_on_surface</color>
+    <color name="widget_text_secondary">@color/dynamic_on_surface_variant</color>
+</resources>

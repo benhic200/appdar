@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Appdar</string>
+    <string name="widget_name">Appdar</string>
+
+    <!-- Foreground service notification strings -->
+    <string name="geofencing_foreground_channel_name">Geofencing Service</string>
+    <string name="geofencing_foreground_channel_description">Keeps geofencing active when app is in background</string>
+    <string name="geofencing_foreground_notification_title">Appdar</string>
+    <string name="geofencing_foreground_notification_text">Geofencing active for nearby business detection</string>
+    
+    <!-- Nearby Apps tab -->
+    <string name="nearby_apps">Nearby Apps</string>
+</resources>

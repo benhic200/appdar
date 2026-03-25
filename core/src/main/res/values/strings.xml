@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Foreground service notification strings -->
+    <string name="geofencing_foreground_channel_name">Geofencing Service</string>
+    <string name="geofencing_foreground_channel_description">Keeps geofencing active when app is in background</string>
+    <string name="geofencing_foreground_notification_title">Nearby Apps Widget</string>
+    <string name="geofencing_foreground_notification_text">Geofencing active for nearby business detection</string>
+    
+    <!-- Legacy string names used by GeofencingForegroundService (keep for compatibility) -->
+    <string name="geofencing_notification_title">Nearby Apps Widget</string>
+    <string name="geofencing_notification_text">Geofencing active for nearby business detection</string>
+</resources>

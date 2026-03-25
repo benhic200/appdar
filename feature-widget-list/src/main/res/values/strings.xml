@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget -->
+    <string name="nearby_apps">Nearby Apps</string>
+    <string name="no_nearby_businesses">No nearby businesses detected</string>
+    <string name="app_icon_description">App icon</string>
+    <string name="open">Open</string>
+    <string name="refresh">Refresh</string>
+    <string name="status_dot_description">App installation status indicator</string>
+
+    <!-- Distance format -->
+    <string name="distance_format">%1$dm away</string>
+    <string name="distance_km_format">%1$.1fkm away</string>
+</resources>

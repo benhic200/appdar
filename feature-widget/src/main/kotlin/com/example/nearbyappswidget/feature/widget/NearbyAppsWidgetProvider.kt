@@ -1,0 +1,689 @@
+package com.example.nearbyappswidget.feature.widget
+
+import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProvider
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.content.res.ColorStateList
+import android.util.Log
+import android.widget.RemoteViews
+import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
+import com.example.nearbyappswidget.data.local.profiles.ProfileId
+import com.example.nearbyappswidget.data.local.settings.WidgetTheme
+import com.example.nearbyappswidget.data.repository.BusinessAppRepository
+import com.example.nearbyappswidget.feature.widget.di.WidgetEntryPoint
+import com.example.nearbyappswidget.feature.widgetlist.NearbyAppsWidgetListService
+import com.example.nearbyappswidget.feature.widgetlist.WidgetClickReceiver
+import com.example.nearbyappswidget.feature.widgetlist.di.WidgetListEntryPoint
+import com.example.nearbyappswidget.feature.widgetlist.util.AppIconLoader
+import com.example.nearbyappswidget.feature.widgetlist.R as WidgetListR
+import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
+
+private const val ACTION_PAGE_CHANGE = "com.example.nearbyappswidget.ACTION_PAGE_CHANGE"
+private const val EXTRA_WIDGET_ID = "widget_id"
+private const val EXTRA_PAGE_DELTA = "page_delta"
+private const val PREFS_NAME = "NearbyAppsWidgetPrefs"
+private const val PAGE_SIZE = 5
+// Tight radius for "am I at this profile location?" — intentionally smaller than the
+// business search radius so a nearby café search can't accidentally trigger home mode.
+private const val PROFILE_MATCH_RADIUS_METERS = 150
+
+private const val TAG = "NearbyAppsWidget"
+
+/**
+ * Widget provider for the Nearby Apps Widget.
+ * Updates the widget with data from the local repository.
+ */
+class NearbyAppsWidgetProvider : AppWidgetProvider() {
+
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        WidgetUpdateScheduler.schedule(context)
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        WidgetUpdateScheduler.cancel(context)
+    }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == ACTION_SCHEDULED_UPDATE) {
+            // Skip auto-update if low power mode is enabled
+            try {
+                val ep = EntryPointAccessors.fromApplication(
+                    context.applicationContext, WidgetListEntryPoint::class.java
+                )
+                val prefs = runBlocking { ep.settingsRepository().getCurrentPreferences() }
+                if (prefs.lowPowerMode) return
+            } catch (_: Exception) { return }
+            val mgr = AppWidgetManager.getInstance(context)
+            val ids = mgr.getAppWidgetIds(
+                android.content.ComponentName(context, NearbyAppsWidgetProvider::class.java)
+            )
+            for (id in ids) updateAppWidget(context, mgr, id)
+            return
+        }
+        if (intent.action == ACTION_PAGE_CHANGE) {
+            val widgetId = intent.getIntExtra(EXTRA_WIDGET_ID, -1)
+            val delta = intent.getIntExtra(EXTRA_PAGE_DELTA, 0)
+            if (widgetId != -1) {
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val current = prefs.getInt("page_$widgetId", 0)
+                prefs.edit().putInt("page_$widgetId", maxOf(0, current + delta)).apply()
+                val mgr = AppWidgetManager.getInstance(context)
+                updateAppWidget(context, mgr, widgetId)
+            }
+            return
+        }
+        super.onReceive(context, intent)
+    }
+
+    override fun onUpdate(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetIds: IntArray
+    ) {
+        Log.d(TAG, "onUpdate called for widget IDs: ${appWidgetIds.joinToString()}")
+        for (appWidgetId in appWidgetIds) {
+            updateAppWidget(context, appWidgetManager, appWidgetId)
+        }
+    }
+
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: android.os.Bundle
+    ) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+        Log.d(TAG, "onAppWidgetOptionsChanged id=$appWidgetId")
+        updateAppWidget(context, appWidgetManager, appWidgetId)
+    }
+
+    companion object {
+        // Width thresholds in dp
+        private const val THRESHOLD_1X1_WIDTH_DP = 80
+        private const val THRESHOLD_2COL_WIDTH_DP = 300  // full-width on most phones → 2-column grid
+
+        public fun updateAppWidget(
+            context: Context,
+            appWidgetManager: AppWidgetManager,
+            appWidgetId: Int
+        ) {
+            val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
+            val minWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
+            Log.d(TAG, "updateAppWidget id=$appWidgetId minWidth=${minWidthDp}dp")
+
+            if (minWidthDp < THRESHOLD_1X1_WIDTH_DP) {
+                updateAs1x1(context, appWidgetManager, appWidgetId)
+            } else {
+                updateAsScrollableList(context, appWidgetManager, appWidgetId, minWidthDp)
+            }
+        }
+
+        private fun updateAs1x1(
+            context: Context,
+            appWidgetManager: AppWidgetManager,
+            appWidgetId: Int
+        ) {
+            Log.d(TAG, "updateAppWidget id=$appWidgetId → 1x1 mode")
+            val views = RemoteViews(context.packageName, R.layout.widget_nearby_apps_1x1)
+            // Tapping the icon opens the host app's main activity
+            val launchAppIntent = context.packageManager
+                .getLaunchIntentForPackage(context.packageName)
+                ?.apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                ?: Intent(Intent.ACTION_MAIN)
+            val pendingIntent = PendingIntent.getActivity(
+                context, appWidgetId, launchAppIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.icon_1x1, pendingIntent)
+            appWidgetManager.updateAppWidget(appWidgetId, views)
+        }
+
+        private fun updateAsScrollableList(
+            context: Context,
+            appWidgetManager: AppWidgetManager,
+            appWidgetId: Int,
+            minWidthDp: Int = 250
+        ) {
+            Log.d(TAG, "updateAppWidget id=$appWidgetId (scrollable)")
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                updateWithRemoteCollectionItems(context, appWidgetManager, appWidgetId, minWidthDp)
+                return
+            }
+
+            // API < 31: use RemoteViewsService + setPendingIntentTemplate fill-in pattern.
+            val views = RemoteViews(context.packageName, WidgetListR.layout.widget_nearby_apps_scrollable)
+
+            runBlocking {
+                try {
+                    val ep = EntryPointAccessors.fromApplication(
+                        context.applicationContext, WidgetListEntryPoint::class.java
+                    )
+                    val settings = ep.settingsRepository()
+                    val prefs = settings.getCurrentPreferences()
+                    val wColors = resolveWidgetColors(context, prefs.widgetTheme)
+                    views.setInt(WidgetListR.id.widget_root, "setBackgroundColor", wColors.background)
+                    views.setTextColor(WidgetListR.id.widget_header, wColors.textPrimary)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        views.setColorStateList(WidgetListR.id.refresh_icon, "setImageTintList", ColorStateList.valueOf(wColors.iconTint))
+                    } else {
+                        views.setInt(WidgetListR.id.refresh_icon, "setColorFilter", wColors.iconTint)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to apply widget theme colors", e)
+                }
+            }
+
+            val serviceIntent = Intent(context, NearbyAppsWidgetListService::class.java).apply {
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                data = android.net.Uri.parse("widget://$appWidgetId")
+            }
+            views.setRemoteAdapter(WidgetListR.id.widget_list, serviceIntent)
+            views.setEmptyView(WidgetListR.id.widget_list, WidgetListR.id.empty_state)
+
+            Log.d(TAG, "Setting pending intent template for widget $appWidgetId")
+            val clickIntent = Intent(WidgetClickReceiver.ACTION_WIDGET_ITEM_CLICK).apply {
+                setPackage(context.packageName)
+            }
+            val clickPendingIntent = PendingIntent.getBroadcast(
+                context, appWidgetId, clickIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+            )
+            views.setPendingIntentTemplate(WidgetListR.id.widget_list, clickPendingIntent)
+            Log.d(TAG, "Pending intent template set")
+
+            val refreshIntent = Intent(context, NearbyAppsWidgetProvider::class.java).apply {
+                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))
+            }
+            val refreshPendingIntent = PendingIntent.getBroadcast(
+                context, appWidgetId, refreshIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(WidgetListR.id.refresh_icon, refreshPendingIntent)
+            appWidgetManager.updateAppWidget(appWidgetId, views)
+        }
+
+        @RequiresApi(Build.VERSION_CODES.S)
+        private fun updateWithRemoteCollectionItems(
+            context: Context,
+            appWidgetManager: AppWidgetManager,
+            appWidgetId: Int,
+            minWidthDp: Int = 250
+        ) {
+            val twoColumn = minWidthDp >= THRESHOLD_2COL_WIDTH_DP
+            Log.d(TAG, "updateWithAddView id=$appWidgetId")
+            // Use a LinearLayout-based layout (not ListView). Items are added via addView()
+            // so each gets setOnClickPendingIntent — the same mechanism as the working refresh
+            // button. MIUI drops collection-widget item clicks but not regular view clicks.
+            val views = RemoteViews(context.packageName, WidgetListR.layout.widget_nearby_apps_list)
+
+            val refreshIntent = Intent(context, NearbyAppsWidgetProvider::class.java).apply {
+                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))
+            }
+            val refreshPendingIntent = PendingIntent.getBroadcast(
+                context, appWidgetId, refreshIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(WidgetListR.id.refresh_icon, refreshPendingIntent)
+
+            val launchAppIntent = context.packageManager
+                .getLaunchIntentForPackage(context.packageName)
+                ?.apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                ?: Intent(Intent.ACTION_MAIN).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+            val settingsPendingIntent = PendingIntent.getActivity(
+                context, appWidgetId + 500, launchAppIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(WidgetListR.id.settings_icon, settingsPendingIntent)
+
+            runBlocking {
+                try {
+                    val ep = EntryPointAccessors.fromApplication(
+                        context.applicationContext, WidgetListEntryPoint::class.java
+                    )
+                    val repo = ep.businessAppRepository()
+                    val settings = ep.settingsRepository()
+                    val calc = ep.distanceCalculator()
+                    val locProvider = ep.locationProvider()
+                    val icons = ep.appIconLoader()
+
+                    val prefs = settings.getCurrentPreferences()
+                    val wColors = resolveWidgetColors(context, prefs.widgetTheme)
+                    views.setInt(WidgetListR.id.widget_root, "setBackgroundColor", wColors.background)
+                    views.setTextColor(WidgetListR.id.tv_page_indicator, wColors.textSecondary)
+                    views.setColorStateList(WidgetListR.id.btn_prev_page, "setImageTintList", ColorStateList.valueOf(wColors.iconTint))
+                    views.setColorStateList(WidgetListR.id.btn_next_page, "setImageTintList", ColorStateList.valueOf(wColors.iconTint))
+                    views.setColorStateList(WidgetListR.id.settings_icon, "setImageTintList", ColorStateList.valueOf(wColors.iconTint))
+                    views.setColorStateList(WidgetListR.id.refresh_icon, "setImageTintList", ColorStateList.valueOf(wColors.iconTint))
+                    repo.initialize()
+                    val mappings = repo.getAllMappings().first()
+
+                    val location = withTimeoutOrNull(5000L) { locProvider.getCurrentLocation() }
+                    Log.d(TAG, "Location result: $location")
+
+                    // Check if user is at a saved profile location — if so show that profile's apps.
+                    val profileRepo = ep.locationProfileRepository()
+                    val matchedProfile = if (location != null) {
+                        ProfileId.values().map { id -> profileRepo.getProfile(id).first() }
+                            .firstOrNull { profile ->
+                                val lat = profile.latitude ?: return@firstOrNull false
+                                val lon = profile.longitude ?: return@firstOrNull false
+                                profile.selectedApps.isNotEmpty() &&
+                                    calc.calculateDistanceMeters(
+                                        location.latitude, location.longitude, lat, lon
+                                    ) <= PROFILE_MATCH_RADIUS_METERS
+                            }
+                    } else null
+
+                    if (matchedProfile != null) {
+                        Log.d(TAG, "At profile: ${matchedProfile.displayName}")
+                        val profileItems = matchedProfile.selectedApps.mapIndexed { idx, pkg ->
+                            val installed = try {
+                                context.packageManager.getPackageInfo(pkg, PackageManager.MATCH_ALL)
+                                true
+                            } catch (_: PackageManager.NameNotFoundException) { false }
+                            Triple(pkg, matchedProfile.displayName, installed)
+                        }
+                        icons.preloadIcons(profileItems.map { it.first })
+
+                        val effectivePageSize = if (twoColumn) PAGE_SIZE * 2 else PAGE_SIZE
+                        val totalPages = maxOf(1, (profileItems.size + effectivePageSize - 1) / effectivePageSize)
+                        val widgetPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                        val currentPage = widgetPrefs.getInt("page_$appWidgetId", 0).coerceIn(0, totalPages - 1)
+                        val pageItems = profileItems.drop(currentPage * effectivePageSize).take(effectivePageSize)
+
+                        setPaginationButtons(context, views, appWidgetId, currentPage, totalPages)
+                        views.setTextViewText(WidgetListR.id.tv_page_indicator, "${currentPage + 1}/$totalPages")
+                        views.removeAllViews(WidgetListR.id.items_container)
+
+                        val profileDisplayItems = pageItems.map { (pkg, profileName, installed) ->
+                            val label = try {
+                                val info = context.packageManager.getApplicationInfo(pkg, 0)
+                                context.packageManager.getApplicationLabel(info).toString()
+                            } catch (_: Exception) { pkg }
+                            WidgetDisplayItem(pkg, label, "@ ${profileName.substringBefore(" Apps")}", installed)
+                        }
+                        addItemsToContainer(context, views, appWidgetId, twoColumn, profileDisplayItems, icons, wColors)
+                        Log.d(TAG, "Profile page built: ${pageItems.size} items for widget $appWidgetId")
+                        appWidgetManager.updateAppWidget(appWidgetId, views)
+                        return@runBlocking
+                    }
+
+                    // Resolve nearest real branch coordinates from Overpass (OSM).
+                    // Falls back to database coordinates if offline or no result within 15 km.
+                    val branchFinder = ep.nearbyBranchFinder()
+                    val nearestBranches = if (location != null) {
+                        withTimeoutOrNull(10000L) {
+                            branchFinder.findNearestBranches(location.latitude, location.longitude)
+                        } ?: emptyMap()
+                    } else emptyMap()
+                    Log.d(TAG, "Nearest branches resolved: ${nearestBranches.keys}")
+
+                    val allItems = mappings.mapNotNull { m ->
+                        val installed = try {
+                            context.packageManager.getPackageInfo(m.packageName, PackageManager.MATCH_ALL)
+                            true
+                        } catch (_: PackageManager.NameNotFoundException) { false }
+                        // Prefer OSM branch coordinate; fall back to DB coordinate
+                        val (branchLat, branchLon) = nearestBranches[m.businessName]
+                            ?: ((m.latitude ?: return@mapNotNull null) to (m.longitude ?: return@mapNotNull null))
+                        val dist = if (location != null) {
+                            calc.calculateDistanceMeters(location.latitude, location.longitude, branchLat, branchLon).toInt()
+                        } else m.geofenceRadius
+                        Triple(m, dist, installed)
+                    }.sortedBy { it.second }
+
+                    icons.preloadIcons(allItems.map { it.first.packageName })
+
+                    // Pagination: show effectivePageSize items per page
+                    val effectivePageSize = if (twoColumn) PAGE_SIZE * 2 else PAGE_SIZE
+                    val totalPages = maxOf(1, (allItems.size + effectivePageSize - 1) / effectivePageSize)
+                    val widgetPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    var currentPage = widgetPrefs.getInt("page_$appWidgetId", 0).coerceIn(0, totalPages - 1)
+                    val pageItems = allItems.drop(currentPage * effectivePageSize).take(effectivePageSize)
+
+                    setPaginationButtons(context, views, appWidgetId, currentPage, totalPages)
+                    views.setTextViewText(WidgetListR.id.tv_page_indicator, "${currentPage + 1}/$totalPages")
+
+                    // Build items for current page
+                    views.removeAllViews(WidgetListR.id.items_container)
+                    val nearbyDisplayItems = pageItems.map { (m, dist, installed) ->
+                        val distText = prefs?.let { calc.formatDistanceWithPreferences(dist.toDouble(), it) }
+                            ?: if (dist < 1000) context.getString(WidgetListR.string.distance_format, dist)
+                               else context.getString(WidgetListR.string.distance_km_format, dist / 1000.0)
+                        WidgetDisplayItem(m.packageName, m.businessName, distText, installed)
+                    }
+                    addItemsToContainer(context, views, appWidgetId, twoColumn, nearbyDisplayItems, icons, wColors)
+                    Log.d(TAG, "addView page $currentPage/$totalPages built: ${pageItems.size} items for widget $appWidgetId")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to build addView items", e)
+                }
+            }
+
+            appWidgetManager.updateAppWidget(appWidgetId, views)
+        }
+
+        private data class WidgetColors(
+            val background: Int,
+            val textPrimary: Int,
+            val textSecondary: Int,
+            val iconTint: Int
+        )
+
+        private fun resolveWidgetColors(context: Context, theme: WidgetTheme): WidgetColors {
+            val dark = when (theme) {
+                WidgetTheme.DARK -> true
+                WidgetTheme.LIGHT -> false
+                WidgetTheme.SYSTEM -> {
+                    val uiMgr = context.getSystemService(android.content.Context.UI_MODE_SERVICE)
+                        as android.app.UiModeManager
+                    uiMgr.nightMode == android.app.UiModeManager.MODE_NIGHT_YES
+                }
+            }
+            return if (dark) WidgetColors(
+                background    = 0xFF1C1C1E.toInt(),
+                textPrimary   = 0xFFFFFFFF.toInt(),
+                textSecondary = 0xFFAAAAAA.toInt(),
+                iconTint      = 0xFFAAAAAA.toInt()
+            ) else WidgetColors(
+                background    = 0xFFF5F5F5.toInt(),
+                textPrimary   = 0xFF212121.toInt(),
+                textSecondary = 0xFF757575.toInt(),
+                iconTint      = 0xFF757575.toInt()
+            )
+        }
+
+        private data class WidgetDisplayItem(
+            val packageName: String,
+            val label: String,
+            val subtext: String,
+            val installed: Boolean
+        )
+
+        private fun makeRegularItem(
+            context: Context,
+            appWidgetId: Int,
+            globalIdx: Int,
+            item: WidgetDisplayItem,
+            icons: AppIconLoader,
+            colors: WidgetColors
+        ): RemoteViews {
+            val rv = RemoteViews(context.packageName, WidgetListR.layout.widget_list_item)
+            rv.setInt(WidgetListR.id.item_root, "setBackgroundColor", colors.background)
+            rv.setTextViewText(WidgetListR.id.business_name, item.label)
+            rv.setTextColor(WidgetListR.id.business_name, colors.textPrimary)
+            rv.setTextViewText(WidgetListR.id.distance, item.subtext)
+            rv.setTextColor(WidgetListR.id.distance, colors.textSecondary)
+            rv.setImageViewResource(
+                WidgetListR.id.status_dot,
+                if (item.installed) WidgetListR.drawable.ic_installed_dot else WidgetListR.drawable.ic_uninstalled_dot
+            )
+            val bmp = icons.getIconBitmap(item.packageName)
+            if (bmp != null) rv.setImageViewBitmap(WidgetListR.id.app_icon, bmp)
+            else rv.setImageViewResource(WidgetListR.id.app_icon, android.R.drawable.sym_def_app_icon)
+            val clickIntent = Intent(WidgetClickReceiver.ACTION_WIDGET_ITEM_CLICK).apply {
+                setPackage(context.packageName)
+                putExtra(WidgetClickReceiver.EXTRA_PACKAGE_NAME, item.packageName)
+            }
+            val pi = PendingIntent.getBroadcast(
+                context, appWidgetId * 1000 + globalIdx, clickIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            rv.setOnClickPendingIntent(WidgetListR.id.item_root, pi)
+            return rv
+        }
+
+        private fun makeCompactItem(
+            context: Context,
+            appWidgetId: Int,
+            globalIdx: Int,
+            item: WidgetDisplayItem,
+            icons: AppIconLoader,
+            colors: WidgetColors
+        ): RemoteViews {
+            val rv = RemoteViews(context.packageName, WidgetListR.layout.widget_list_item_compact)
+            rv.setInt(WidgetListR.id.compact_item_root, "setBackgroundColor", colors.background)
+            rv.setTextViewText(WidgetListR.id.compact_business_name, item.label)
+            rv.setTextColor(WidgetListR.id.compact_business_name, colors.textPrimary)
+            rv.setTextViewText(WidgetListR.id.compact_distance, item.subtext)
+            rv.setTextColor(WidgetListR.id.compact_distance, colors.textSecondary)
+            rv.setImageViewResource(
+                WidgetListR.id.compact_status_dot,
+                if (item.installed) WidgetListR.drawable.ic_installed_dot else WidgetListR.drawable.ic_uninstalled_dot
+            )
+            val bmp = icons.getIconBitmap(item.packageName)
+            if (bmp != null) rv.setImageViewBitmap(WidgetListR.id.compact_app_icon, bmp)
+            else rv.setImageViewResource(WidgetListR.id.compact_app_icon, android.R.drawable.sym_def_app_icon)
+            val clickIntent = Intent(WidgetClickReceiver.ACTION_WIDGET_ITEM_CLICK).apply {
+                setPackage(context.packageName)
+                putExtra(WidgetClickReceiver.EXTRA_PACKAGE_NAME, item.packageName)
+            }
+            val pi = PendingIntent.getBroadcast(
+                context, appWidgetId * 1000 + globalIdx, clickIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            rv.setOnClickPendingIntent(WidgetListR.id.compact_item_root, pi)
+            return rv
+        }
+
+        private fun addItemsToContainer(
+            context: Context,
+            views: RemoteViews,
+            appWidgetId: Int,
+            twoColumn: Boolean,
+            pageItems: List<WidgetDisplayItem>,
+            icons: AppIconLoader,
+            colors: WidgetColors,
+            pageOffset: Int = 0
+        ) {
+            if (twoColumn) {
+                var idx = 0
+                while (idx < pageItems.size) {
+                    val row = RemoteViews(context.packageName, WidgetListR.layout.widget_item_row)
+                    row.setInt(WidgetListR.id.row_container, "setBackgroundColor", colors.background)
+                    row.addView(WidgetListR.id.row_container,
+                        makeCompactItem(context, appWidgetId, pageOffset + idx, pageItems[idx], icons, colors))
+                    if (idx + 1 < pageItems.size) {
+                        row.addView(WidgetListR.id.row_container,
+                            makeCompactItem(context, appWidgetId, pageOffset + idx + 1, pageItems[idx + 1], icons, colors))
+                    }
+                    views.addView(WidgetListR.id.items_container, row)
+                    idx += 2
+                }
+            } else {
+                for ((i, item) in pageItems.withIndex()) {
+                    views.addView(WidgetListR.id.items_container,
+                        makeRegularItem(context, appWidgetId, pageOffset + i, item, icons, colors))
+                }
+            }
+        }
+
+        private fun setPaginationButtons(
+            context: Context,
+            views: RemoteViews,
+            appWidgetId: Int,
+            currentPage: Int,
+            totalPages: Int
+        ) {
+            val prevIntent = Intent(ACTION_PAGE_CHANGE).apply {
+                setPackage(context.packageName)
+                putExtra(EXTRA_WIDGET_ID, appWidgetId)
+                putExtra(EXTRA_PAGE_DELTA, -1)
+            }
+            views.setOnClickPendingIntent(
+                WidgetListR.id.btn_prev_page,
+                PendingIntent.getBroadcast(context, appWidgetId * 100 + 1, prevIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            )
+            views.setViewVisibility(
+                WidgetListR.id.btn_prev_page,
+                if (currentPage > 0) android.view.View.VISIBLE else android.view.View.INVISIBLE
+            )
+            val nextIntent = Intent(ACTION_PAGE_CHANGE).apply {
+                setPackage(context.packageName)
+                putExtra(EXTRA_WIDGET_ID, appWidgetId)
+                putExtra(EXTRA_PAGE_DELTA, 1)
+            }
+            views.setOnClickPendingIntent(
+                WidgetListR.id.btn_next_page,
+                PendingIntent.getBroadcast(context, appWidgetId * 100 + 2, nextIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            )
+            views.setViewVisibility(
+                WidgetListR.id.btn_next_page,
+                if (currentPage < totalPages - 1) android.view.View.VISIBLE else android.view.View.INVISIBLE
+            )
+        }
+
+        private fun getRepository(context: Context): BusinessAppRepository? {
+            return try {
+                val appContext = context.applicationContext
+                val hiltEntryPoint = EntryPointAccessors.fromApplication(
+                    appContext,
+                    WidgetEntryPoint::class.java
+                )
+                hiltEntryPoint.businessAppRepository()
+            } catch (e: Exception) {
+                Log.e(TAG, "Could not obtain Hilt entry point", e)
+                null
+            }
+        }
+
+        private fun createLaunchPendingIntent(context: Context, business: Business): PendingIntent {
+            Log.d(TAG, "Creating launch intent for ${business.name}, package=${business.packageName}")
+            
+            val intent = business.packageName?.let { packageName ->
+                try {
+                    // Try with basic flag first
+                    context.packageManager.getPackageInfo(packageName, 0)
+                    Log.d(TAG, "Package $packageName is installed (getPackageInfo succeeded)")
+                    
+                    // Get launch intent
+                    val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
+                    if (launchIntent != null) {
+                        Log.d(TAG, "Launch intent found for $packageName")
+                        launchIntent
+                    } else {
+                        Log.w(TAG, "No launch intent for $packageName, trying alternative approach")
+                        
+                        // Try to find any launcher activity
+                        val activities = context.packageManager.queryIntentActivities(
+                            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER),
+                            PackageManager.MATCH_ALL
+                        ).filter { it.activityInfo.packageName == packageName }
+                        
+                        if (activities.isNotEmpty()) {
+                            Log.d(TAG, "Found ${activities.size} launcher activities for $packageName")
+                            Intent(Intent.ACTION_MAIN).apply {
+                                setPackage(packageName)
+                                addCategory(Intent.CATEGORY_LAUNCHER)
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                        } else {
+                            // Last resort: try to open app info in settings
+                            Log.w(TAG, "No launcher activity found for $packageName, falling back to Play Store")
+                            null
+                        }
+                    }
+                } catch (e: PackageManager.NameNotFoundException) {
+                    Log.d(TAG, "Package $packageName not found by getPackageInfo, trying getApplicationInfo")
+                    // Try getApplicationInfo instead
+                    try {
+                        context.packageManager.getApplicationInfo(packageName, 0)
+                        Log.d(TAG, "Package $packageName found via getApplicationInfo")
+                        
+                        val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
+                        launchIntent ?: run {
+                            Log.w(TAG, "No launch intent even though app exists")
+                            null
+                        }
+                    } catch (e2: PackageManager.NameNotFoundException) {
+                        Log.d(TAG, "Package $packageName not found by getApplicationInfo either, checking all packages")
+                        
+                        // Debug: list all packages to see if it exists
+                        val allPackages = context.packageManager.getInstalledPackages(0)
+                        val matching = allPackages.any { it.packageName == packageName }
+                        Log.d(TAG, "Package $packageName exists in getInstalledPackages: $matching")
+                        Log.d(TAG, "Total packages: ${allPackages.size}")
+                        
+                        null
+                    } catch (e2: Exception) {
+                        Log.e(TAG, "Exception in getApplicationInfo for $packageName", e2)
+                        null
+                    }
+                } catch (e: SecurityException) {
+                    Log.e(TAG, "SecurityException checking package $packageName", e)
+                    null
+                } catch (e: Exception) {
+                    Log.e(TAG, "Exception checking package $packageName", e)
+                    null
+                }
+            } ?: run {
+                Log.d(TAG, "No package name or fallback, opening Play Store search for ${business.name}")
+                Intent(Intent.ACTION_VIEW).apply {
+                    data = Uri.parse("https://play.google.com/store/search?q=${business.name}")
+                }
+            }
+            
+            return PendingIntent.getActivity(
+                context,
+                business.hashCode(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        }
+
+        private fun getFallbackBusinesses(): List<Business> {
+            // Fallback placeholder data (the 10 UK businesses) with package names - updated to match v12 dataset
+            return listOf(
+                Business("Tesco", 150, "com.tesco.grocery.view"),
+                Business("McDonald's", 450, "com.mcdonalds.app.uk"),
+                Business("Greggs", 920, "com.mobile5.greggs"),
+                Business("Costa Coffee", 120, "uk.co.club.costa.costa"),
+                Business("Asda", 300, "com.asda.rewards"),
+                Business("Lidl", 400, "com.lidl.eci.lidlplus"),
+                Business("Premier Inn", 600, "com.whitbread.premierinn"),
+                Business("Starbucks", 320, "com.starbucks.mobilecard"),
+                Business("Boots", 750, "com.boots"),
+                Business("WHSmith", 560, "com.whsmith.android")
+            )
+        }
+
+        private fun getIconResourceForBusiness(context: Context, businessName: String): Int {
+            val iconName = when (businessName) {
+                "Tesco" -> "ic_business_tesco"
+                "Starbucks" -> "ic_business_starbucks"
+                "Boots" -> "ic_business_boots"
+                "McDonald's" -> "ic_business_mcdonalds"
+                "Greggs" -> "ic_business_greggs"
+                "Costa Coffee" -> "ic_business_costa"
+                "WHSmith" -> "ic_business_whsmith"
+                "Waterstones" -> "ic_business_waterstones"
+                "Pret A Manger" -> "ic_business_pret"
+                "Subway" -> "ic_business_subway"
+                else -> "ic_app_placeholder"
+            }
+            return context.resources.getIdentifier(iconName, "drawable", context.packageName)
+                .takeIf { it != 0 } ?: R.drawable.ic_app_placeholder
+        }
+
+        private data class Business(
+            val name: String,
+            val distanceMeters: Int,
+            val packageName: String? = null
+        )
+    }
+}

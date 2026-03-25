@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- RemoteViewsService for scrollable widget list -->
+        <service
+            android:name=".NearbyAppsWidgetListService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.widget.RemoteViewsService" />
+            </intent-filter>
+        </service>
+
+        <!-- Debug broadcast receiver for widget clicks -->
+        <receiver
+            android:name=".WidgetClickReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.example.nearbyappswidget.ACTION_WIDGET_ITEM_CLICK" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Trampoline activity: widget items target this to launch apps / Play Store -->
+        <activity
+            android:name=".LaunchProxyActivity"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+    </application>
+
+</manifest>
