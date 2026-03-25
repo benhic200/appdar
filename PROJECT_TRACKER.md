@@ -1223,3 +1223,21 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
 **Test v64:** Verify "My Businesses" screen, add business dialog, search & clear all in app picker, renamed profile labels, larger refresh button, widget theme settings, and app rename.
 
 **Ready for testing.** 📱🎯
+
+**v65 Built (Widget Icon‑Tint Fix + Scrollable‑Layout Theme) – 2026‑03‑25 22:33 GMT**
+**Fixes implemented:**
+- **Android 12+ RemoteViews whitelist compliance** – replaced `setColorFilter` (causing "Can't load widget") with `setColorStateList("setImageTintList", ...)` for navigation/refresh icons in the scrollable‑list widget (API 31+). For older APIs, keep `setColorFilter`.
+- **Widget theme colours applied to scrollable layout** (`widget_nearby_apps_scrollable.xml`) – background colour, header text colour, and refresh‑icon tint now follow the selected widget theme (System/Light/Dark).
+- **Added `iconTint` field to `WidgetColors`** (grey for light theme, light grey for dark theme) and applied to all four UI icons (prev/next page, settings, refresh).
+- **Root‑view ID added** (`widget_root`) to scrollable layout for theme‑background targeting.
+- **MIUI launcher‑cache note** – app rename to "Appdar" may not appear until launcher restarts (force‑stop launcher or reboot). No code fix needed.
+
+**Build details:**
+- **VersionCode 65** (versionName "1.65")
+- **SHA‑256:** `ed2b9307cd3775299d04da230c77f6eac0f85eaa4f19780e4c3d768d55a0faf3`
+- **Download:** `http://192.168.0.111:8080/nearby‑apps‑widget‑v65.apk`
+- **Build log:** Success (1m 10s, 309 tasks executed)
+
+**Test v65:** Verify widget loads on Android 12+ devices (no "Can't load widget" error), check that navigation/refresh icons follow widget theme (grey/grey) instead of fixed blue, and confirm scrollable‑layout background/text colours match selected theme.
+
+**Ready for testing.** 📱🎯

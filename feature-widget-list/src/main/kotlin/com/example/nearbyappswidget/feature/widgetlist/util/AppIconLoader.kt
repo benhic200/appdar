@@ -23,7 +23,7 @@ class AppIconLoader @Inject constructor(@ApplicationContext private val context:
 
     companion object {
         private const val CACHE_SIZE = 50 // number of icons to cache
-        private const val BITMAP_SIZE_DP = 48 // desired icon size in dp
+        private const val BITMAP_SIZE_DP = 40 // desired icon size in dp (80 px at 2× density)
     }
 
     private val cache = object : LruCache<String, Bitmap>(CACHE_SIZE) {

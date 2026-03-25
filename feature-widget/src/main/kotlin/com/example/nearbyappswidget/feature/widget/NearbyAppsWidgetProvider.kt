@@ -406,6 +406,16 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
             )
         }
 
+        /**
+         * Scales a bitmap down so its longest side is at most [maxPx] pixels.
+         * Returns the original if it is already small enough.
+         * Keeps bitmaps lean for the RemoteViews IPC parcel (1 MB limit).
+         */
+        private fun scaledForWidget(bmp: android.graphics.Bitmap, maxPx: Int): android.graphics.Bitmap {
+            if (bmp.width <= maxPx && bmp.height <= maxPx) return bmp
+            return android.graphics.Bitmap.createScaledBitmap(bmp, maxPx, maxPx, true)
+        }
+
         private data class WidgetDisplayItem(
             val packageName: String,
             val label: String,
@@ -432,7 +442,7 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
                 if (item.installed) WidgetListR.drawable.ic_installed_dot else WidgetListR.drawable.ic_uninstalled_dot
             )
             val bmp = icons.getIconBitmap(item.packageName)
-            if (bmp != null) rv.setImageViewBitmap(WidgetListR.id.app_icon, bmp)
+            if (bmp != null) rv.setImageViewBitmap(WidgetListR.id.app_icon, scaledForWidget(bmp, 80))
             else rv.setImageViewResource(WidgetListR.id.app_icon, android.R.drawable.sym_def_app_icon)
             val clickIntent = Intent(WidgetClickReceiver.ACTION_WIDGET_ITEM_CLICK).apply {
                 setPackage(context.packageName)
@@ -465,7 +475,7 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
                 if (item.installed) WidgetListR.drawable.ic_installed_dot else WidgetListR.drawable.ic_uninstalled_dot
             )
             val bmp = icons.getIconBitmap(item.packageName)
-            if (bmp != null) rv.setImageViewBitmap(WidgetListR.id.compact_app_icon, bmp)
+            if (bmp != null) rv.setImageViewBitmap(WidgetListR.id.compact_app_icon, scaledForWidget(bmp, 80))
             else rv.setImageViewResource(WidgetListR.id.compact_app_icon, android.R.drawable.sym_def_app_icon)
             val clickIntent = Intent(WidgetClickReceiver.ACTION_WIDGET_ITEM_CLICK).apply {
                 setPackage(context.packageName)
