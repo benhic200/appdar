@@ -1320,3 +1320,41 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
 **Test v71:** Install, then **remove and re‑add the widget** from the home screen (MIUI caches widget views). If the widget loads, MIUI's RemoteViews whitelist issue was the culprit. If it still shows "Can't load widget", need to investigate further (possible MIUI‑specific layout‑attribute restrictions).
 
 **Ready for testing.** 📱🎯
+
+**v72 Built (Adaptive Widget Layouts & Purple Palette) – 2026‑03‑26 01:18 GMT**
+**Changes implemented (per user spec):**
+- **Four adaptive widget modes**:
+  - Nano (≤130dp): `widget_nano[_dark].xml` — single business, tiny refresh button
+  - Strip (131–260dp or height <150dp): `widget_strip[_dark].xml` — 3 items, no pagination
+  - List (261–299dp): `widget_nearby_apps_list[_dark].xml` — 1‑column paginated
+  - Grid (≥300dp): same root + `widget_item_row.xml` for 2‑column
+- **MIUI safety rules upheld**:
+  - No `<Space>` elements (replaced with weighted `<TextView>`)
+  - No `?android:attr/` theme references (all hardcoded hex)
+  - No `GridLayout` containers (all `LinearLayout`)
+  - No programmatic `setInt`/`setTextColor` calls (all in XML)
+- **Purple palette**:
+  - Icons: `#FFAB47BC` light / `#FFCE93D8` dark
+  - Chip backgrounds: `#FFF3E5F5` / `#FF4A148C`
+  - Widget backgrounds: `#FFFDF8FF` / `#FF1C1A2E`
+- **Onboarding & User Guide**:
+  - First‑launch shows `OnboardingScreen`, flag saved in `appdar_prefs`
+  - Guide accessible from drawer via `UserGuideScreen`
+- **Launcher icon**:
+  - `ic_launcher_foreground.xml` — full SVG converted to Android vector with radial gradient, radar rings, sweep line, gold blip dots, app‑grid dots
+  - `ic_launcher_background` updated to `#3C3489` (matches gradient outer edge)
+- **Widget preview**:
+  - `android:previewLayout` (API 31+) points to `widget_preview.xml` (live sample data, scales with dark mode)
+  - `android:previewImage` (all APIs) points to `widget_preview_image.xml` (hand‑crafted vector)
+
+**Build details:**
+- **VersionCode 72** (versionName "1.72")
+- **SHA‑256:** `fc087028d4aa598355039cbb32c78896263fef91aa90f11104621842a615b398`
+- **Download:** `http://192.168.0.111:8080/nearby‑apps‑widget‑v72.apk`
+- **External:** `https://hickielaptopkali.tail25553f.ts.net:8081/nearby‑apps‑widget‑v72.apk`
+- **Build log:** Success (1m 25s, 309 tasks executed, 266 executed, 43 up‑to‑date)
+- **Git commit:** [`52352fd`](https://github.com/benhic200/appdar/commit/52352fdc224a0853a264956cb9dee000cf9b74b4) – Build v72
+
+**Test v72:** Install, then **remove and re‑add the widget** from the home screen (MIUI caches widget views). The widget should now automatically switch between Nano/Strip/List/Grid modes when resized. Onboarding screen appears on first launch.
+
+**Ready for testing.** 📱🎯
