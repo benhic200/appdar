@@ -128,11 +128,15 @@ class BusinessAppRepositoryImpl @Inject constructor(
     }
 
     override suspend fun addCustomMapping(mapping: BusinessAppMapping) {
-        val withBox = mapping.withBoundingBox() ?: mapping
+        val withBox = (mapping.withBoundingBox() ?: mapping).copy(isCustom = true)
         dao.insert(withBox)
     }
 
     override suspend fun deleteMapping(mapping: BusinessAppMapping) {
         dao.delete(mapping)
+    }
+
+    override suspend fun toggleEnabled(mapping: BusinessAppMapping) {
+        dao.update(mapping.copy(isEnabled = !mapping.isEnabled))
     }
 }

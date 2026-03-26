@@ -69,7 +69,15 @@ data class BusinessAppMapping(
     val version: Int = 1,
 
     @ColumnInfo(name = "last_updated")
-    val lastUpdated: Long = System.currentTimeMillis()
+    val lastUpdated: Long = System.currentTimeMillis(),
+
+    /** Whether this place is active in the widget. Seeded places can be toggled off without deletion. */
+    @ColumnInfo(name = "is_enabled")
+    val isEnabled: Boolean = true,
+
+    /** True only for places added manually by the user — these show a delete button instead of a toggle. */
+    @ColumnInfo(name = "is_custom")
+    val isCustom: Boolean = false
 )
 
 /**

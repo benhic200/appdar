@@ -1,7 +1,6 @@
 package com.example.nearbyappswidget
 
 import android.content.Context
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -87,6 +86,7 @@ class AddBusinessViewModel @Inject constructor(
                     latitude = location?.latitude,
                     longitude = location?.longitude,
                     geofenceRadius = geofenceRadius
+                    // isCustom is set to true inside addCustomMapping
                 )
                 repository.addCustomMapping(mapping)
                 onDone()
@@ -99,6 +99,10 @@ class AddBusinessViewModel @Inject constructor(
     fun deleteBusiness(mapping: BusinessAppMapping) {
         viewModelScope.launch { repository.deleteMapping(mapping) }
     }
+
+    fun toggleEnabled(mapping: BusinessAppMapping) {
+        viewModelScope.launch { repository.toggleEnabled(mapping) }
+    }
 }
 
 @Composable
@@ -109,39 +113,42 @@ fun AddBusinessScreen(
     val installedApps by viewModel.installedApps.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (mappings.isEmpty()) {
-                item {
-                    Text(
-                        text = "No businesses yet. Tap + to add one.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(vertical = 16.dp)
-                    )
-                }
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Add button at the top
+        item {
+            OutlinedButton(
+                onClick = { showAddDialog = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Add Place")
             }
-            items(mappings, key = { it.id }) { mapping ->
-                BusinessMappingCard(
-                    mapping = mapping,
-                    iconBitmap = installedApps.find { it.packageName == mapping.packageName }?.iconBitmap,
-                    onDelete = { viewModel.deleteBusiness(mapping) }
+        }
+
+        if (mappings.isEmpty()) {
+            item {
+                Text(
+                    text = "No places yet. Tap Add Place to get started.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 16.dp)
                 )
             }
         }
 
-        FloatingActionButton(
-            onClick = { showAddDialog = true },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = "Add business")
+        items(mappings, key = { it.id }) { mapping ->
+            PlaceMappingCard(
+                mapping = mapping,
+                iconBitmap = installedApps.find { it.packageName == mapping.packageName }?.iconBitmap,
+                onToggleEnabled = { viewModel.toggleEnabled(mapping) },
+                onDelete = { viewModel.deleteBusiness(mapping) }
+            )
         }
     }
 
@@ -160,12 +167,19 @@ fun AddBusinessScreen(
 }
 
 @Composable
-private fun BusinessMappingCard(
+private fun PlaceMappingCard(
     mapping: BusinessAppMapping,
     iconBitmap: Bitmap?,
+    onToggleEnabled: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (mapping.isEnabled) MaterialTheme.colorScheme.surface
+                             else MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -177,13 +191,21 @@ private fun BusinessMappingCard(
                 Image(
                     bitmap = iconBitmap.asImageBitmap(),
                     contentDescription = null,
-                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp))
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(8.dp))
                 )
             } else {
                 Icon(Icons.Filled.Android, contentDescription = null, modifier = Modifier.size(40.dp))
             }
+
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = mapping.businessName, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    text = mapping.businessName,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = if (mapping.isEnabled) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Text(
                     text = mapping.appName,
                     style = MaterialTheme.typography.bodySmall,
@@ -199,11 +221,21 @@ private fun BusinessMappingCard(
                     )
                 }
             }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Filled.Delete,
-                    contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.error
+
+            if (mapping.isCustom) {
+                // User-added: show delete button
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = "Delete",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            } else {
+                // Seeded place: show enabled/disabled toggle
+                Switch(
+                    checked = mapping.isEnabled,
+                    onCheckedChange = { onToggleEnabled() }
                 )
             }
         }
@@ -228,13 +260,13 @@ private fun AddBusinessDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Business") },
+        title = { Text("Add Place") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = businessName,
                     onValueChange = { businessName = it },
-                    label = { Text("Business Name") },
+                    label = { Text("Place Name") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )

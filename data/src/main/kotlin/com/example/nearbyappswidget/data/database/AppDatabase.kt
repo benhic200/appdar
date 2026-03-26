@@ -19,7 +19,7 @@ import android.database.sqlite.SQLiteException
         CachedAddress::class,
         LocationHistory::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -208,6 +208,18 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("DROP INDEX IF EXISTS `index_business_app_mappings_bounding_box`")
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_business_app_mappings_min_lat_max_lat_min_lon_max_lon` ON `business_app_mappings` (`min_lat`, `max_lat`, `min_lon`, `max_lon`)")
+            }
+        }
+
+        /**
+         * Migration from version 6 to 7.
+         * Adds is_enabled (default 1/true) and is_custom (default 0/false) columns.
+         * Existing seeded rows get is_enabled=1, is_custom=0 which is the correct default.
+         */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE `business_app_mappings` ADD COLUMN `is_enabled` INTEGER NOT NULL DEFAULT 1")
+                database.execSQL("ALTER TABLE `business_app_mappings` ADD COLUMN `is_custom` INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

@@ -67,4 +67,9 @@ interface BusinessAppRepository {
      * Deletes a specific business mapping by its entity.
      */
     suspend fun deleteMapping(mapping: BusinessAppMapping)
+
+    /**
+     * Flips the isEnabled flag on a mapping (seeded places are toggled, not deleted).
+     */
+    suspend fun toggleEnabled(mapping: BusinessAppMapping)
 }

@@ -31,9 +31,6 @@ private const val EXTRA_WIDGET_ID = "widget_id"
 private const val EXTRA_PAGE_DELTA = "page_delta"
 private const val PREFS_NAME = "NearbyAppsWidgetPrefs"
 private const val PAGE_SIZE = 5
-// Tight radius for "am I at this profile location?" — intentionally smaller than the
-// business search radius so a nearby café search can't accidentally trigger home mode.
-private const val PROFILE_MATCH_RADIUS_METERS = 150
 
 private const val TAG = "NearbyAppsWidget"
 
@@ -41,7 +38,7 @@ private const val TAG = "NearbyAppsWidget"
  * Widget provider for the Nearby Apps Widget.
  * Updates the widget with data from the local repository.
  */
-class NearbyAppsWidgetProvider : AppWidgetProvider() {
+open class NearbyAppsWidgetProvider : AppWidgetProvider() {
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
@@ -64,10 +61,16 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
                 if (prefs.lowPowerMode) return
             } catch (_: Exception) { return }
             val mgr = AppWidgetManager.getInstance(context)
-            val ids = mgr.getAppWidgetIds(
-                android.content.ComponentName(context, NearbyAppsWidgetProvider::class.java)
+            val allClasses = listOf(
+                NearbyAppsWidgetProvider::class.java,
+                NearbyAppsWidgetProviderNano::class.java,
+                NearbyAppsWidgetProviderStrip::class.java,
+                NearbyAppsWidgetProviderGrid::class.java
             )
-            for (id in ids) updateAppWidget(context, mgr, id)
+            for (cls in allClasses) {
+                val ids = mgr.getAppWidgetIds(android.content.ComponentName(context, cls))
+                for (id in ids) updateAppWidget(context, mgr, id)
+            }
             return
         }
         if (intent.action == ACTION_PAGE_CHANGE) {
@@ -135,10 +138,16 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     minWidthDp <= THRESHOLD_NANO_MAX_DP ->
                         updateAsNano(context, appWidgetManager, appWidgetId)
                     minWidthDp <= THRESHOLD_STRIP_MAX_DP || minHeightDp < THRESHOLD_STRIP_HEIGHT_DP ->
-                        updateAsStrip(context, appWidgetManager, appWidgetId)
-                    else ->
-                        updateWithRemoteCollectionItems(context, appWidgetManager, appWidgetId,
-                            twoColumn = minWidthDp >= THRESHOLD_2COL_MIN_DP)
+                        updateAsStrip(context, appWidgetManager, appWidgetId, minWidthDp, minHeightDp)
+                    else -> {
+                        val columnCount = when {
+                            minWidthDp < 300 -> 1
+                            minWidthDp < 400 -> 2
+                            minWidthDp < 500 -> 3
+                            else -> 4
+                        }
+                        updateWithRemoteCollectionItems(context, appWidgetManager, appWidgetId, columnCount)
+                    }
                 }
             } else {
                 updateAsScrollableList(context, appWidgetManager, appWidgetId, minWidthDp)
@@ -211,9 +220,9 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
             context: Context,
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int,
-            twoColumn: Boolean
+            columnCount: Int
         ) {
-            Log.d(TAG, "updateWithAddView id=$appWidgetId twoColumn=$twoColumn")
+            Log.d(TAG, "updateWithAddView id=$appWidgetId columnCount=$columnCount")
             // Use a LinearLayout-based layout (not ListView). Items are added via addView()
             // so each gets setOnClickPendingIntent — the same mechanism as the working refresh
             // button. MIUI drops collection-widget item clicks but not regular view clicks.
@@ -266,7 +275,7 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
 
                     val prefs = settings.getCurrentPreferences()
                     repo.initialize()
-                    val mappings = repo.getAllMappings().first()
+                    val mappings = repo.getAllMappings().first().filter { it.isEnabled }
 
                     val location = withTimeoutOrNull(5000L) { locProvider.getCurrentLocation() }
                     Log.d(TAG, "Location result: $location")
@@ -281,7 +290,7 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
                                 profile.selectedApps.isNotEmpty() &&
                                     calc.calculateDistanceMeters(
                                         location.latitude, location.longitude, lat, lon
-                                    ) <= PROFILE_MATCH_RADIUS_METERS
+                                    ) <= prefs.searchRadiusMeters
                             }
                     } else null
 
@@ -296,7 +305,7 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
                         }
                         icons.preloadIcons(profileItems.map { it.first })
 
-                        val effectivePageSize = if (twoColumn) PAGE_SIZE * 2 else PAGE_SIZE
+                        val effectivePageSize = PAGE_SIZE * columnCount
                         val totalPages = maxOf(1, (profileItems.size + effectivePageSize - 1) / effectivePageSize)
                         val widgetPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                         val currentPage = widgetPrefs.getInt("page_$appWidgetId", 0).coerceIn(0, totalPages - 1)
@@ -313,7 +322,7 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
                             } catch (_: Exception) { pkg }
                             WidgetDisplayItem(pkg, label, "@ ${profileName.substringBefore(" Apps")}", installed)
                         }
-                        addItemsToContainer(context, views, appWidgetId, twoColumn, profileDisplayItems, icons, darkThemeEarly)
+                        addItemsToContainer(context, views, appWidgetId, columnCount, profileDisplayItems, icons, darkThemeEarly)
                         Log.d(TAG, "Profile page built: ${pageItems.size} items for widget $appWidgetId")
                         appWidgetManager.updateAppWidget(appWidgetId, views)
                         return@runBlocking
@@ -346,7 +355,7 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     icons.preloadIcons(allItems.map { it.first.packageName })
 
                     // Pagination: show effectivePageSize items per page
-                    val effectivePageSize = if (twoColumn) PAGE_SIZE * 2 else PAGE_SIZE
+                    val effectivePageSize = PAGE_SIZE * columnCount
                     val totalPages = maxOf(1, (allItems.size + effectivePageSize - 1) / effectivePageSize)
                     val widgetPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                     var currentPage = widgetPrefs.getInt("page_$appWidgetId", 0).coerceIn(0, totalPages - 1)
@@ -363,7 +372,7 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
                                else context.getString(WidgetListR.string.distance_km_format, dist / 1000.0)
                         WidgetDisplayItem(m.packageName, m.businessName, distText, installed)
                     }
-                    addItemsToContainer(context, views, appWidgetId, twoColumn, nearbyDisplayItems, icons, darkThemeEarly)
+                    addItemsToContainer(context, views, appWidgetId, columnCount, nearbyDisplayItems, icons, darkThemeEarly)
                     Log.d(TAG, "addView page $currentPage/$totalPages built: ${pageItems.size} items for widget $appWidgetId")
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to build addView items", e)
@@ -401,11 +410,18 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     repo.initialize()
                     val location = withTimeoutOrNull(5000L) { locProvider.getCurrentLocation() }
 
-                    val closest = repo.getAllMappings().first().mapNotNull { m ->
-                        val lat = m.latitude ?: return@mapNotNull null
-                        val lon = m.longitude ?: return@mapNotNull null
+                    val branchFinder = ep.nearbyBranchFinder()
+                    val nearestBranches = if (location != null) {
+                        withTimeoutOrNull(10000L) {
+                            branchFinder.findNearestBranches(location.latitude, location.longitude)
+                        } ?: emptyMap()
+                    } else emptyMap()
+
+                    val closest = repo.getAllMappings().first().filter { it.isEnabled }.mapNotNull { m ->
+                        val (branchLat, branchLon) = nearestBranches[m.businessName]
+                            ?: ((m.latitude ?: return@mapNotNull null) to (m.longitude ?: return@mapNotNull null))
                         val dist = if (location != null)
-                            calc.calculateDistanceMeters(location.latitude, location.longitude, lat, lon).toInt()
+                            calc.calculateDistanceMeters(location.latitude, location.longitude, branchLat, branchLon).toInt()
                         else m.geofenceRadius
                         val installed = try {
                             context.packageManager.getPackageInfo(m.packageName, PackageManager.MATCH_ALL); true
@@ -448,14 +464,36 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
         private fun updateAsStrip(
             context: Context,
             appWidgetManager: AppWidgetManager,
-            appWidgetId: Int
+            appWidgetId: Int,
+            minWidthDp: Int = 200,
+            minHeightDp: Int = 200
         ) {
-            Log.d(TAG, "updateAsStrip id=$appWidgetId")
+            val isHorizontal = minHeightDp < THRESHOLD_STRIP_HEIGHT_DP
+            Log.d(TAG, "updateAsStrip id=$appWidgetId isHorizontal=$isHorizontal minWidthDp=$minWidthDp minHeightDp=$minHeightDp")
             val darkTheme = resolveDarkTheme(context)
-            val views = RemoteViews(context.packageName,
-                if (darkTheme) WidgetListR.layout.widget_strip_dark else WidgetListR.layout.widget_strip)
 
-            views.setOnClickPendingIntent(WidgetListR.id.strip_refresh, buildRefreshPi(context, appWidgetId))
+            val views = if (isHorizontal) {
+                RemoteViews(context.packageName,
+                    if (darkTheme) WidgetListR.layout.widget_strip_horizontal_dark
+                    else WidgetListR.layout.widget_strip_horizontal)
+            } else {
+                RemoteViews(context.packageName,
+                    if (darkTheme) WidgetListR.layout.widget_strip_dark else WidgetListR.layout.widget_strip)
+            }
+
+            if (isHorizontal) {
+                views.setOnClickPendingIntent(WidgetListR.id.strip_h_refresh, buildRefreshPi(context, appWidgetId))
+            } else {
+                views.setOnClickPendingIntent(WidgetListR.id.strip_refresh, buildRefreshPi(context, appWidgetId))
+            }
+
+            val itemCount = if (isHorizontal) {
+                when {
+                    minWidthDp <= 200 -> 2
+                    minWidthDp <= 280 -> 3
+                    else -> 4
+                }
+            } else 3
 
             runBlocking {
                 try {
@@ -469,27 +507,43 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     repo.initialize()
                     val location = withTimeoutOrNull(5000L) { locProvider.getCurrentLocation() }
 
-                    val sorted = repo.getAllMappings().first().mapNotNull { m ->
-                        val lat = m.latitude ?: return@mapNotNull null
-                        val lon = m.longitude ?: return@mapNotNull null
+                    val branchFinder = ep.nearbyBranchFinder()
+                    val nearestBranches = if (location != null) {
+                        withTimeoutOrNull(10000L) {
+                            branchFinder.findNearestBranches(location.latitude, location.longitude)
+                        } ?: emptyMap()
+                    } else emptyMap()
+
+                    val sorted = repo.getAllMappings().first().filter { it.isEnabled }.mapNotNull { m ->
+                        val (branchLat, branchLon) = nearestBranches[m.businessName]
+                            ?: ((m.latitude ?: return@mapNotNull null) to (m.longitude ?: return@mapNotNull null))
                         val dist = if (location != null)
-                            calc.calculateDistanceMeters(location.latitude, location.longitude, lat, lon).toInt()
+                            calc.calculateDistanceMeters(location.latitude, location.longitude, branchLat, branchLon).toInt()
                         else m.geofenceRadius
                         val installed = try {
                             context.packageManager.getPackageInfo(m.packageName, PackageManager.MATCH_ALL); true
                         } catch (_: PackageManager.NameNotFoundException) { false }
                         WidgetDisplayItem(m.packageName, m.businessName,
                             calc.formatDistanceWithPreferences(dist.toDouble(), prefs), installed) to dist
-                    }.sortedBy { it.second }.take(3).map { it.first }
+                    }.sortedBy { it.second }.take(itemCount).map { it.first }
 
                     icons.preloadIcons(sorted.map { it.packageName })
-                    views.removeAllViews(WidgetListR.id.strip_items_container)
-                    sorted.forEachIndexed { i, item ->
-                        views.addView(WidgetListR.id.strip_items_container,
-                            makeStripItem(context, appWidgetId, i, item, icons, darkTheme))
+
+                    if (isHorizontal) {
+                        views.removeAllViews(WidgetListR.id.strip_h_items_container)
+                        sorted.forEachIndexed { i, item ->
+                            views.addView(WidgetListR.id.strip_h_items_container,
+                                makeCompactItem(context, appWidgetId, i, item, icons, darkTheme))
+                        }
+                    } else {
+                        views.removeAllViews(WidgetListR.id.strip_items_container)
+                        sorted.forEachIndexed { i, item ->
+                            views.addView(WidgetListR.id.strip_items_container,
+                                makeStripItem(context, appWidgetId, i, item, icons, darkTheme))
+                        }
+                        views.setTextViewText(WidgetListR.id.strip_page_indicator,
+                            if (sorted.isEmpty()) "No businesses nearby" else "")
                     }
-                    views.setTextViewText(WidgetListR.id.strip_page_indicator,
-                        if (sorted.isEmpty()) "No businesses nearby" else "")
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to build strip widget", e)
                 }
@@ -638,26 +692,27 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
             context: Context,
             views: RemoteViews,
             appWidgetId: Int,
-            twoColumn: Boolean,
+            columnCount: Int,
             pageItems: List<WidgetDisplayItem>,
             icons: AppIconLoader,
             darkTheme: Boolean,
             pageOffset: Int = 0
         ) {
-            if (twoColumn) {
-                // Two compact items per horizontal row. Row wrapper is a LinearLayout so
+            if (columnCount >= 2) {
+                // columnCount compact items per horizontal row. Row wrapper is a LinearLayout so
                 // no setInt/reflection needed — safe on MIUI.
                 var idx = 0
                 while (idx < pageItems.size) {
                     val row = RemoteViews(context.packageName, WidgetListR.layout.widget_item_row)
-                    row.addView(WidgetListR.id.row_container,
-                        makeCompactItem(context, appWidgetId, pageOffset + idx, pageItems[idx], icons, darkTheme))
-                    if (idx + 1 < pageItems.size) {
-                        row.addView(WidgetListR.id.row_container,
-                            makeCompactItem(context, appWidgetId, pageOffset + idx + 1, pageItems[idx + 1], icons, darkTheme))
+                    for (col in 0 until columnCount) {
+                        val itemIdx = idx + col
+                        if (itemIdx < pageItems.size) {
+                            row.addView(WidgetListR.id.row_container,
+                                makeCompactItem(context, appWidgetId, pageOffset + itemIdx, pageItems[itemIdx], icons, darkTheme))
+                        }
                     }
                     views.addView(WidgetListR.id.items_container, row)
-                    idx += 2
+                    idx += columnCount
                 }
             } else {
                 for ((i, item) in pageItems.withIndex()) {

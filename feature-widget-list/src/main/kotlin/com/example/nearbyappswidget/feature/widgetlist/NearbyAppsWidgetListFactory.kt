@@ -14,6 +14,8 @@ import androidx.annotation.RequiresApi
 import com.example.nearbyappswidget.data.repository.BusinessAppRepository
 import com.example.nearbyappswidget.data.local.settings.SettingsRepository
 import com.example.nearbyappswidget.data.local.settings.UserPreferences
+import com.example.nearbyappswidget.data.local.profiles.LocationProfileRepository
+import com.example.nearbyappswidget.data.local.profiles.ProfileId
 import com.example.nearbyappswidget.feature.widgetlist.R
 import com.example.nearbyappswidget.feature.widgetlist.di.WidgetListEntryPoint
 import com.example.nearbyappswidget.feature.widgetlist.util.AppIconLoader
@@ -50,6 +52,7 @@ internal class NearbyAppsWidgetListFactory(
     private lateinit var distanceCalculator: DistanceCalculator
     private lateinit var iconLoader: AppIconLoader
     private lateinit var locationProvider: LocationProvider
+    private lateinit var locationProfileRepository: LocationProfileRepository
     private var userPreferences: UserPreferences? = null
     private var businessItems: List<BusinessItem> = emptyList()
 
@@ -71,11 +74,13 @@ internal class NearbyAppsWidgetListFactory(
             distanceCalculator = entryPoint.distanceCalculator().also { Log.d(TAG, "Distance calculator acquired: ${it != null}") }
             locationProvider = entryPoint.locationProvider().also { Log.d(TAG, "Location provider acquired: ${it != null}") }
             iconLoader = entryPoint.appIconLoader().also { Log.d(TAG, "Icon loader acquired: ${it != null}") }
+            locationProfileRepository = entryPoint.locationProfileRepository().also { Log.d(TAG, "Location profile repository acquired: ${it != null}") }
             Log.d(TAG, "Dependencies loaded: repository=${businessAppRepository != null}, " +
                 "settings=${settingsRepository != null}, " +
                 "location=${locationProvider != null}, " +
                 "calculator=${distanceCalculator != null}, " +
-                "iconLoader=${iconLoader != null}")
+                "iconLoader=${iconLoader != null}, " +
+                "profileRepo=${locationProfileRepository != null}")
             loadBusinessItems()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize widget list factory", e)
@@ -131,16 +136,20 @@ internal class NearbyAppsWidgetListFactory(
 
         views.setTextViewText(R.id.business_name, business.name)
 
-        val distanceText = userPreferences?.let { prefs ->
-            distanceCalculator.formatDistanceWithPreferences(
-                business.distanceMeters.toDouble(),
-                prefs
-            )
-        } ?: if (business.distanceMeters < 1000) {
-            context.getString(R.string.distance_format, business.distanceMeters)
+        val distanceText = if (business.profileLabel != null) {
+            "@ ${business.profileLabel}"
         } else {
-            val km = business.distanceMeters / 1000.0
-            context.getString(R.string.distance_km_format, km)
+            userPreferences?.let { prefs ->
+                distanceCalculator.formatDistanceWithPreferences(
+                    business.distanceMeters.toDouble(),
+                    prefs
+                )
+            } ?: if (business.distanceMeters < 1000) {
+                context.getString(R.string.distance_format, business.distanceMeters)
+            } else {
+                val km = business.distanceMeters / 1000.0
+                context.getString(R.string.distance_km_format, km)
+            }
         }
         views.setTextViewText(R.id.distance, distanceText)
 
@@ -192,6 +201,54 @@ internal class NearbyAppsWidgetListFactory(
                     Log.w(TAG, "Location is null after timeout, distance calculations will fallback to geofence radius")
                 } else {
                     Log.d(TAG, "Location coordinates: (${currentLocation.latitude}, ${currentLocation.longitude}) accuracy=${currentLocation.accuracy}")
+                }
+
+                // Check if user is at a saved profile location — if so show that profile's apps.
+                val matchedProfile = if (currentLocation != null && userPreferences != null) {
+                    ProfileId.values().map { id -> locationProfileRepository.getProfile(id).first() }
+                        .firstOrNull { profile ->
+                            val lat = profile.latitude ?: return@firstOrNull false
+                            val lon = profile.longitude ?: return@firstOrNull false
+                            profile.selectedApps.isNotEmpty() &&
+                                distanceCalculator.calculateDistanceMeters(
+                                    currentLocation.latitude, currentLocation.longitude, lat, lon
+                                ) <= userPreferences!!.searchRadiusMeters
+                        }
+                } else null
+
+                if (matchedProfile != null) {
+                    Log.d(TAG, "At profile: ${matchedProfile.displayName}")
+                    val profileItems = matchedProfile.selectedApps.mapIndexed { idx, pkg ->
+                        val installed = try {
+                            context.packageManager.getPackageInfo(pkg, PackageManager.MATCH_ALL)
+                            true
+                        } catch (_: PackageManager.NameNotFoundException) { false }
+                        Pair(pkg, installed)
+                    }
+                    iconLoader.preloadIcons(profileItems.map { it.first })
+                    businessItems = profileItems.map { (pkg, installed) ->
+                        val label = try {
+                            val info = context.packageManager.getApplicationInfo(pkg, 0)
+                            context.packageManager.getApplicationLabel(info).toString()
+                        } catch (_: Exception) { pkg }
+                        BusinessItem(
+                            name = label,
+                            packageName = pkg,
+                            distanceMeters = 0,
+                            isInstalled = installed,
+                            profileLabel = matchedProfile.displayName.substringBefore(" Apps")
+                        )
+                    }
+                    // Log final items
+                    businessItems.forEachIndexed { idx, item ->
+                        Log.d(TAG, "Item ${idx+1}: ${item.name} - ${item.profileLabel}")
+                    }
+                    Log.d(TAG, "loadBusinessItems completed with profile items, ${businessItems.size} items")
+                    // API 31+ update (same as below)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        updateWidgetWithRemoteCollectionItems()
+                    }
+                    return@runBlocking
                 }
 
                 // Create business items with real distances where possible
@@ -336,6 +393,7 @@ internal class NearbyAppsWidgetListFactory(
         val name: String,
         val packageName: String,
         val distanceMeters: Int,
-        val isInstalled: Boolean
+        val isInstalled: Boolean,
+        val profileLabel: String? = null
     )
 }

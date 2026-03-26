@@ -276,7 +276,7 @@ fun TabbedAppScreen(
     val screenTitle = when (currentScreen) {
         "dashboard" -> "Dashboard"
         "nearby"  -> "Nearby Apps"
-        "businesses" -> "My Businesses"
+        "businesses" -> "Places"
         "home"    -> "Home Apps"
         "work"    -> "Work Apps"
         "custom1" -> "Custom Location 1"
@@ -312,7 +312,7 @@ fun TabbedAppScreen(
                 )
                 NavigationDrawerItem(
                     icon = { Icon(Icons.Filled.List, contentDescription = null) },
-                    label = { Text("My Businesses") },
+                    label = { Text("Places") },
                     selected = currentScreen == "businesses",
                     onClick = {
                         currentScreen = "businesses"

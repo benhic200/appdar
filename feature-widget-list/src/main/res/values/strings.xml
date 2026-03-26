@@ -11,4 +11,13 @@
     <!-- Distance format -->
     <string name="distance_format">%1$dm away</string>
     <string name="distance_km_format">%1$.1fkm away</string>
+
+    <!-- Widget picker names and descriptions -->
+    <string name="widget_name_nano">Nearby — Single Place</string>
+    <string name="widget_name_strip">Nearby — Quick Strip</string>
+    <string name="widget_name_grid">Nearby — Grid</string>
+    <string name="widget_desc_nano">Shows your single closest nearby place</string>
+    <string name="widget_desc_strip">A quick row of your closest nearby places</string>
+    <string name="widget_desc_list">A scrollable list of nearby places</string>
+    <string name="widget_desc_grid">A multi-column grid of nearby places</string>
 </resources>
