@@ -135,20 +135,27 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
             Log.d(TAG, "updateAppWidget id=$appWidgetId minWidth=${minWidthDp}dp minHeight=${minHeightDp}dp")
 
             if (minWidthDp < THRESHOLD_1X1_WIDTH_DP) {
-                updateAs1x1(context, appWidgetManager, appWidgetId)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && minHeightDp >= THRESHOLD_STRIP_HEIGHT_DP) {
+                    updateAsNarrowColumn(context, appWidgetManager, appWidgetId, minHeightDp)
+                } else {
+                    updateAs1x1(context, appWidgetManager, appWidgetId)
+                }
                 return
             }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 when {
                     minWidthDp <= THRESHOLD_NANO_MAX_DP ->
-                        updateAsNano(context, appWidgetManager, appWidgetId)
+                        if (minHeightDp >= THRESHOLD_STRIP_HEIGHT_DP)
+                            updateAsStrip(context, appWidgetManager, appWidgetId, minWidthDp, minHeightDp)
+                        else
+                            updateAsNano(context, appWidgetManager, appWidgetId, minHeightDp)
                     minWidthDp <= THRESHOLD_STRIP_MAX_DP || minHeightDp < THRESHOLD_STRIP_HEIGHT_DP ->
                         updateAsStrip(context, appWidgetManager, appWidgetId, minWidthDp, minHeightDp)
                     else -> {
                         val columnCount = when {
-                            minWidthDp < 300 -> 1
-                            minWidthDp < 450 -> 2
+                            minWidthDp < 270 -> 1
+                            minWidthDp < 330 -> 2
                             else -> 3
                         }
                         updateWithRemoteCollectionItems(context, appWidgetManager, appWidgetId, columnCount, minHeightDp)
@@ -159,6 +166,89 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
             }
         }
 
+        @RequiresApi(Build.VERSION_CODES.S)
+        private fun updateAsNarrowColumn(
+            context: Context,
+            appWidgetManager: AppWidgetManager,
+            appWidgetId: Int,
+            minHeightDp: Int
+        ) {
+            Log.d(TAG, "updateAsNarrowColumn id=$appWidgetId minHeight=${minHeightDp}dp")
+            val darkTheme = resolveDarkTheme(context)
+            val rootLayout = if (darkTheme) WidgetListR.layout.widget_narrow_column_dark
+                             else WidgetListR.layout.widget_narrow_column
+            val views = RemoteViews(context.packageName, rootLayout)
+            val iconCount = ((minHeightDp - 4) / 50).coerceIn(1, 8)
+
+            runBlocking {
+                try {
+                    val ep = EntryPointAccessors.fromApplication(
+                        context.applicationContext, WidgetListEntryPoint::class.java)
+                    val repo = ep.businessAppRepository()
+                    val calc = ep.distanceCalculator()
+                    val locProvider = ep.locationProvider()
+                    val icons = ep.appIconLoader()
+                    val prefs = ep.settingsRepository().getCurrentPreferences()
+                    repo.initialize()
+                    val location = withTimeoutOrNull(5000L) { locProvider.getCurrentLocation() }
+
+                    val profileRepo = ep.locationProfileRepository()
+                    val matchedProfile = if (location != null) {
+                        ProfileId.values().map { id -> profileRepo.getProfile(id).first() }
+                            .firstOrNull { profile ->
+                                val lat = profile.latitude ?: return@firstOrNull false
+                                val lon = profile.longitude ?: return@firstOrNull false
+                                profile.selectedApps.isNotEmpty() &&
+                                    calc.calculateDistanceMeters(
+                                        location.latitude, location.longitude, lat, lon
+                                    ) <= prefs.searchRadiusMeters
+                            }
+                    } else null
+
+                    val packages = if (matchedProfile != null) {
+                        matchedProfile.selectedApps.take(iconCount)
+                    } else {
+                        val branchFinder = ep.nearbyBranchFinder()
+                        val nearestBranches = if (location != null) {
+                            withTimeoutOrNull(10000L) {
+                                branchFinder.findNearestBranches(location.latitude, location.longitude)
+                            } ?: emptyMap()
+                        } else emptyMap()
+                        repo.getAllMappings().first().filter { it.isEnabled }.mapNotNull { m ->
+                            val (lat, lon) = nearestBranches[m.businessName]
+                                ?: ((m.latitude ?: return@mapNotNull null) to (m.longitude ?: return@mapNotNull null))
+                            val dist = if (location != null)
+                                calc.calculateDistanceMeters(location.latitude, location.longitude, lat, lon).toInt()
+                            else m.geofenceRadius
+                            m.packageName to dist
+                        }.sortedBy { it.second }.take(iconCount).map { it.first }
+                    }
+
+                    icons.preloadIcons(packages)
+                    views.removeAllViews(WidgetListR.id.narrow_icons_container)
+                    packages.forEachIndexed { i, pkg ->
+                        val itemLayout = if (darkTheme) WidgetListR.layout.widget_narrow_icon_item_dark
+                                         else WidgetListR.layout.widget_narrow_icon_item
+                        val item = RemoteViews(context.packageName, itemLayout)
+                        val bmp = icons.getIconBitmap(pkg)
+                        if (bmp != null) item.setImageViewBitmap(WidgetListR.id.narrow_app_icon, scaledForWidget(bmp, 80))
+                        else item.setImageViewResource(WidgetListR.id.narrow_app_icon, android.R.drawable.sym_def_app_icon)
+                        val clickIntent = Intent(WidgetClickReceiver.ACTION_WIDGET_ITEM_CLICK).apply {
+                            setPackage(context.packageName)
+                            putExtra(WidgetClickReceiver.EXTRA_PACKAGE_NAME, pkg)
+                        }
+                        item.setOnClickPendingIntent(WidgetListR.id.narrow_icon_root,
+                            PendingIntent.getBroadcast(context, appWidgetId * 1000 + i, clickIntent,
+                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+                        views.addView(WidgetListR.id.narrow_icons_container, item)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to build narrow column widget", e)
+                }
+            }
+            appWidgetManager.updateAppWidget(appWidgetId, views)
+        }
+
         private fun updateAs1x1(
             context: Context,
             appWidgetManager: AppWidgetManager,
@@ -166,16 +256,80 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
         ) {
             Log.d(TAG, "updateAppWidget id=$appWidgetId → 1x1 mode")
             val views = RemoteViews(context.packageName, R.layout.widget_nearby_apps_1x1)
-            // Tapping the icon opens the host app's main activity
+
+            // Default: tapping opens the host app
             val launchAppIntent = context.packageManager
                 .getLaunchIntentForPackage(context.packageName)
                 ?.apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
                 ?: Intent(Intent.ACTION_MAIN)
-            val pendingIntent = PendingIntent.getActivity(
+            val launchPi = PendingIntent.getActivity(
                 context, appWidgetId, launchAppIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            views.setOnClickPendingIntent(R.id.icon_1x1, pendingIntent)
+            views.setOnClickPendingIntent(R.id.icon_1x1_root, launchPi)
+
+            runBlocking {
+                try {
+                    val ep = EntryPointAccessors.fromApplication(
+                        context.applicationContext, WidgetListEntryPoint::class.java)
+                    val repo = ep.businessAppRepository()
+                    val calc = ep.distanceCalculator()
+                    val locProvider = ep.locationProvider()
+                    val icons = ep.appIconLoader()
+                    val prefs = ep.settingsRepository().getCurrentPreferences()
+                    repo.initialize()
+                    val location = withTimeoutOrNull(5000L) { locProvider.getCurrentLocation() }
+
+                    // Profile-aware: show first app of matched profile, else nearest app
+                    val profileRepo = ep.locationProfileRepository()
+                    val matchedPkg = if (location != null) {
+                        ProfileId.values().map { id -> profileRepo.getProfile(id).first() }
+                            .firstOrNull { profile ->
+                                val lat = profile.latitude ?: return@firstOrNull false
+                                val lon = profile.longitude ?: return@firstOrNull false
+                                profile.selectedApps.isNotEmpty() &&
+                                    calc.calculateDistanceMeters(
+                                        location.latitude, location.longitude, lat, lon
+                                    ) <= prefs.searchRadiusMeters
+                            }?.selectedApps?.firstOrNull()
+                    } else null
+
+                    val pkg = matchedPkg ?: run {
+                        val branchFinder = ep.nearbyBranchFinder()
+                        val nearestBranches = if (location != null) {
+                            withTimeoutOrNull(10000L) {
+                                branchFinder.findNearestBranches(location.latitude, location.longitude)
+                            } ?: emptyMap()
+                        } else emptyMap()
+                        repo.getAllMappings().first().filter { it.isEnabled }.mapNotNull { m ->
+                            val (lat, lon) = nearestBranches[m.businessName]
+                                ?: ((m.latitude ?: return@mapNotNull null) to (m.longitude ?: return@mapNotNull null))
+                            val dist = if (location != null)
+                                calc.calculateDistanceMeters(location.latitude, location.longitude, lat, lon).toInt()
+                            else m.geofenceRadius
+                            m.packageName to dist
+                        }.minByOrNull { it.second }?.first
+                    }
+
+                    if (pkg != null) {
+                        icons.preloadIcons(listOf(pkg))
+                        val bmp = icons.getIconBitmap(pkg)
+                        if (bmp != null) views.setImageViewBitmap(R.id.icon_1x1, scaledForWidget(bmp, 80))
+                        else views.setImageViewResource(R.id.icon_1x1, android.R.drawable.sym_def_app_icon)
+                        val clickIntent = Intent(WidgetClickReceiver.ACTION_WIDGET_ITEM_CLICK).apply {
+                            setPackage(context.packageName)
+                            putExtra(WidgetClickReceiver.EXTRA_PACKAGE_NAME, pkg)
+                        }
+                        views.setOnClickPendingIntent(R.id.icon_1x1_root,
+                            PendingIntent.getBroadcast(context, appWidgetId * 1000, clickIntent,
+                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+                    } else {
+                        // pkg is null, do nothing
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to load icon for 1x1 widget", e)
+                }
+            }
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
 
@@ -394,9 +548,10 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
         private fun updateAsNano(
             context: Context,
             appWidgetManager: AppWidgetManager,
-            appWidgetId: Int
+            appWidgetId: Int,
+            minHeightDp: Int = 100
         ) {
-            Log.d(TAG, "updateAsNano id=$appWidgetId")
+            Log.d(TAG, "updateAsNano id=$appWidgetId minHeight=${minHeightDp}dp")
             val darkTheme = resolveDarkTheme(context)
             val views = RemoteViews(context.packageName,
                 if (darkTheme) WidgetListR.layout.widget_nano_dark else WidgetListR.layout.widget_nano)
@@ -504,6 +659,12 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     Log.e(TAG, "Failed to build nano widget", e)
                 }
             }
+            // Short widget: hide chip row and shrink icon so it fits in ≤90dp height
+            if (minHeightDp < 90) {
+                views.setViewVisibility(WidgetListR.id.nano_chip_row, android.view.View.GONE)
+                views.setViewLayoutWidth(WidgetListR.id.nano_app_icon, 40f, android.util.TypedValue.COMPLEX_UNIT_DIP)
+                views.setViewLayoutHeight(WidgetListR.id.nano_app_icon, 40f, android.util.TypedValue.COMPLEX_UNIT_DIP)
+            }
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
 
@@ -542,7 +703,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     minWidthDp <= 280 -> 3
                     else -> 4
                 }
-            } else rowsPerColumn(minHeightDp)
+            } else rowsPerColumnStrip(minHeightDp)
 
             runBlocking {
                 try {
@@ -711,9 +872,13 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
             return android.graphics.Bitmap.createScaledBitmap(bmp, maxPx, maxPx, true)
         }
 
-        /** How many item-rows fit in a widget of [heightDp] dp (header ~50dp, each row ~68dp). */
+        /** How many item-rows fit in a grid widget of [heightDp] dp (header ~50dp, each row ~68dp). */
         private fun rowsPerColumn(heightDp: Int): Int =
             ((heightDp - 50) / 68).coerceIn(2, 8)
+
+        /** How many item-rows fit in a strip widget of [heightDp] dp (header ~30dp, each row ~42dp). */
+        private fun rowsPerColumnStrip(heightDp: Int): Int =
+            ((heightDp - 30) / 42).coerceIn(1, 8)
 
         private data class WidgetDisplayItem(
             val packageName: String,
