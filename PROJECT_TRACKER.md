@@ -1276,3 +1276,24 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
 **Test v68:** Install, then **remove and re‑add the widget** from the home screen to pick up the new layout (MIUI caches widget views). Verify widget loads on Android 12+ devices with no "Can't load widget" error, and that dark/light themes work via separate XML files.
 
 **Ready for testing.** 📱🎯
+
+**v70 Built (GridLayout 2‑Column Flattening) – 2026‑03‑26 00:00 GMT**
+**Changes:**
+- **Replaced row‑based nesting with GridLayout** – `widget_nearby_apps_list.xml` and `widget_nearby_apps_list_dark.xml` now use `GridLayout` with `android:columnCount="2"`.
+- **`addItemsToContainer` updated** – two‑column mode adds compact items directly to the GridLayout, eliminating intermediate row RemoteViews (nesting reduced from 4 to 3 levels).
+- **Set GridLayout layout params** – each item receives `setLayoutColumn`, `setLayoutRow`, and `setLayoutColumnWeight` via `RemoteViews.setInt`.
+- **Threshold forced to 0** – `THRESHOLD_2COL_WIDTH_DP = 0` to always use two‑column mode (GridLayout) for testing.
+- **Icon size remains 40 dp** – memory footprint unchanged.
+- **Build‑script auto‑incremented versionCode to 70** (versionName "1.70").
+
+**Build details:**
+- **VersionCode 70** (versionName "1.70")
+- **SHA‑256:** `c53e31c19a21a9f2f0428d5b39677995787f3b964aeacf5544df9db248f0115a`
+- **Download:** `http://192.168.0.111:8080/nearby‑apps‑widget‑v70.apk`
+- **External:** `https://hickielaptopkali.tail25553f.ts.net:8081/nearby‑apps‑widget‑v70.apk`
+- **Build log:** Success (1m 30s, 309 tasks executed)
+- **Git commit:** [`d0c3a0d`](https://github.com/benhic200/appdar/commit/d0c3a0d) – Build v70
+
+**Test v70:** Install, then **remove and re‑add the widget** from the home screen (MIUI caches widget views). If the widget loads, the 3‑level nesting (row RemoteViews) was the crash. If it still shows "Can't load widget", the issue lies elsewhere (likely a resource reference or layout attribute that MIUI's widget inflater rejects).
+
+**Ready for testing.** 📱🎯

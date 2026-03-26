@@ -4,7 +4,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="?android:attr/colorBackground">
+    android:background="#FFF5F5F5">
 
     <!-- Header row with title and refresh icon -->
     <LinearLayout
@@ -20,8 +20,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/nearby_apps"
-            android:textAppearance="?android:attr/textAppearanceMedium"
-            android:textColor="?android:attr/textColorPrimary" />
+            android:textSize="16sp"
+            android:textColor="#FF212121" />
 
         <!-- Refresh icon (circular arrow) -->
         <ImageView
@@ -34,7 +34,7 @@
             android:tint="@android:color/holo_blue_dark"
             android:clickable="true"
             android:focusable="true"
-            android:background="?android:attr/selectableItemBackground" />
+            android:background="#00000000" />
     </LinearLayout>
 
     <!-- Item list container (populated via RemoteViews) -->
@@ -52,8 +52,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/no_nearby_businesses"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="14sp"
+        android:textColor="#FF757575"
         android:gravity="center"
         android:visibility="gone" />
 

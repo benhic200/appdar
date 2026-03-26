@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    Compact icon-over-text cell for the two-column widget grid.
-    layout_width="0dp" + layout_weight="1" so two cells fill one row equally.
--->
+<!-- Light-theme compact cell for the two-column grid. NO theme attributes. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/compact_item_root"
     android:layout_width="0dp"
@@ -13,7 +10,7 @@
     android:padding="8dp"
     android:clickable="true"
     android:focusable="true"
-    android:background="?android:attr/selectableItemBackground">
+    android:background="#FFF5F5F5">
 
     <ImageView
         android:id="@+id/compact_app_icon"
@@ -30,8 +27,8 @@
         android:gravity="center"
         android:maxLines="2"
         android:ellipsize="end"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:textColor="?android:attr/textColorPrimary" />
+        android:textColor="#FF212121"
+        android:textSize="12sp" />
 
     <TextView
         android:id="@+id/compact_distance"
@@ -43,8 +40,8 @@
         android:paddingTop="2dp"
         android:paddingEnd="6dp"
         android:paddingBottom="2dp"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:textColor="@android:color/white"
+        android:textColor="#FF757575"
+        android:textSize="10sp"
         android:maxLines="1"
         android:ellipsize="end" />
 
