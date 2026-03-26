@@ -1,10 +1,100 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Appdar launcher icon — radar/app-grid design.
+    Full icon including background so both the adaptive-icon foreground layer
+    and the legacy mipmap bitmap path render correctly.
+    Viewport: 512×512 matching the original SVG.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Background: rounded rect (rx=112) with radial gradient #534AB7 → #3C3489 -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M12,2C8.13,2 5,5.13 5,9c0,5.25 7,13 7,13s7,-7.75 7,-13c0,-3.87 -3.13,-7 -7,-7zM12,11.5c-1.38,0 -2.5,-1.12 -2.5,-2.5s1.12,-2.5 2.5,-2.5 2.5,1.12 2.5,2.5 -1.12,2.5 -2.5,2.5z" />
+        android:pathData="M 112,0 L 400,0 Q 512,0 512,112 L 512,400 Q 512,512 400,512 L 112,512 Q 0,512 0,400 L 0,112 Q 0,0 112,0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="256"
+                android:centerY="256"
+                android:gradientRadius="300"
+                android:startColor="#534AB7"
+                android:endColor="#3C3489" />
+        </aapt:attr>
+    </path>
+
+    <!-- Radar ring r=170, opacity=0.20 -->
+    <path
+        android:pathData="M 256,60 A 170,170,0,1,0,256,400 A 170,170,0,1,0,256,60 Z"
+        android:fillColor="#00000000"
+        android:strokeColor="#33FFFFFF"
+        android:strokeWidth="2.5" />
+
+    <!-- Radar ring r=120, opacity=0.25 -->
+    <path
+        android:pathData="M 256,110 A 120,120,0,1,0,256,350 A 120,120,0,1,0,256,110 Z"
+        android:fillColor="#00000000"
+        android:strokeColor="#40FFFFFF"
+        android:strokeWidth="2.5" />
+
+    <!-- Radar ring r=70, opacity=0.30 -->
+    <path
+        android:pathData="M 256,160 A 70,70,0,1,0,256,300 A 70,70,0,1,0,256,160 Z"
+        android:fillColor="#00000000"
+        android:strokeColor="#4DFFFFFF"
+        android:strokeWidth="2.5" />
+
+    <!-- Sweep line from centre (256,230) to (390,96), opacity=0.65 -->
+    <path
+        android:pathData="M 256,230 L 390,96"
+        android:fillColor="#00000000"
+        android:strokeColor="#A6FFFFFF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round" />
+
+    <!-- Blip dot — large (336,128) r=13, opacity=0.95 -->
+    <path
+        android:pathData="M 336,115 A 13,13,0,1,0,336,141 A 13,13,0,1,0,336,115 Z"
+        android:fillColor="#F2FAC775" />
+
+    <!-- Blip dot — medium (298,190) r=9, opacity=0.65 -->
+    <path
+        android:pathData="M 298,181 A 9,9,0,1,0,298,199 A 9,9,0,1,0,298,181 Z"
+        android:fillColor="#A6FAC775" />
+
+    <!-- Blip dot — small (370,195) r=7, opacity=0.40 -->
+    <path
+        android:pathData="M 370,188 A 7,7,0,1,0,370,202 A 7,7,0,1,0,370,188 Z"
+        android:fillColor="#66FAC775" />
+
+    <!-- Centre dot (256,230) r=12 -->
+    <path
+        android:pathData="M 256,218 A 12,12,0,1,0,256,242 A 12,12,0,1,0,256,218 Z"
+        android:fillColor="#FFFFFFFF" />
+
+    <!-- App grid row 1 — all opacity 0.90 -->
+    <path
+        android:pathData="M 176,342 A 18,18,0,1,0,176,378 A 18,18,0,1,0,176,342 Z"
+        android:fillColor="#E6FFFFFF" />
+    <path
+        android:pathData="M 256,342 A 18,18,0,1,0,256,378 A 18,18,0,1,0,256,342 Z"
+        android:fillColor="#E6FFFFFF" />
+    <path
+        android:pathData="M 336,342 A 18,18,0,1,0,336,378 A 18,18,0,1,0,336,342 Z"
+        android:fillColor="#E6FFFFFF" />
+
+    <!-- App grid row 2 — outer dots opacity 0.45, centre opacity 0.90 -->
+    <path
+        android:pathData="M 176,410 A 18,18,0,1,0,176,446 A 18,18,0,1,0,176,410 Z"
+        android:fillColor="#73FFFFFF" />
+    <path
+        android:pathData="M 256,410 A 18,18,0,1,0,256,446 A 18,18,0,1,0,256,410 Z"
+        android:fillColor="#E6FFFFFF" />
+    <path
+        android:pathData="M 336,410 A 18,18,0,1,0,336,446 A 18,18,0,1,0,336,410 Z"
+        android:fillColor="#73FFFFFF" />
+
 </vector>

@@ -1,19 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Light-theme widget root layout, API 31+.
-    NO theme attributes (?android:attr/...) — inflated by the launcher process which
-    may not have our app theme. All colours are hardcoded.
-    NO <Space> — not guaranteed to be in MIUI's RemoteViews whitelist.
-    items_container is a LinearLayout so addView() works without LayoutParams.
+    NO theme attributes. NO Space. items_container is LinearLayout for addView().
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#FFF5F5F5">
+    android:background="#FFFDF8FF">
 
-    <!-- Header row: pagination controls + settings + refresh -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -40,7 +36,7 @@
             android:src="@android:drawable/ic_media_previous"
             android:contentDescription="Previous page"
             android:padding="4dp"
-            android:tint="#FF757575"
+            android:tint="#FFAB47BC"
             android:clickable="true"
             android:focusable="true"
             android:background="#00000000" />
@@ -51,7 +47,7 @@
             android:layout_height="wrap_content"
             android:paddingStart="2dp"
             android:paddingEnd="2dp"
-            android:textColor="#FF757575" />
+            android:textColor="#FF6B5B95" />
 
         <ImageView
             android:id="@+id/btn_next_page"
@@ -60,12 +56,12 @@
             android:src="@android:drawable/ic_media_next"
             android:contentDescription="Next page"
             android:padding="4dp"
-            android:tint="#FF757575"
+            android:tint="#FFAB47BC"
             android:clickable="true"
             android:focusable="true"
             android:background="#00000000" />
 
-        <!-- Weight-1 TextView replaces Space — Space is not in MIUI's RemoteViews whitelist -->
+        <!-- Spacer: TextView with weight replaces Space (not in MIUI RemoteViews whitelist) -->
         <TextView
             android:layout_width="0dp"
             android:layout_height="1dp"
@@ -78,7 +74,7 @@
             android:src="@drawable/ic_settings_gear"
             android:contentDescription="Settings"
             android:padding="4dp"
-            android:tint="#FF757575"
+            android:tint="#FFAB47BC"
             android:clickable="true"
             android:focusable="true"
             android:background="#00000000" />
@@ -90,7 +86,7 @@
             android:src="@android:drawable/ic_menu_rotate"
             android:contentDescription="@string/refresh"
             android:padding="4dp"
-            android:tint="#FF757575"
+            android:tint="#FFAB47BC"
             android:clickable="true"
             android:focusable="true"
             android:background="#00000000" />

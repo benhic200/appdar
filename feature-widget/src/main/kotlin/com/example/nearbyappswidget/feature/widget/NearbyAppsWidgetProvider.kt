@@ -110,7 +110,10 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
     companion object {
         // Width thresholds in dp
         private const val THRESHOLD_1X1_WIDTH_DP = 80
-        private const val THRESHOLD_2COL_WIDTH_DP = 9999  // TEST: force 1-column to isolate nesting crash
+        private const val THRESHOLD_NANO_MAX_DP = 130    // ≤130dp → single-business nano card
+        private const val THRESHOLD_STRIP_MAX_DP = 260   // 131–260dp → compact 3-item strip
+        private const val THRESHOLD_STRIP_HEIGHT_DP = 150 // short widgets force strip even if wide
+        private const val THRESHOLD_2COL_MIN_DP = 300    // ≥300dp → 2-column grid
 
         public fun updateAppWidget(
             context: Context,
@@ -119,10 +122,24 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
         ) {
             val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
             val minWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
-            Log.d(TAG, "updateAppWidget id=$appWidgetId minWidth=${minWidthDp}dp")
+            val minHeightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 200)
+            Log.d(TAG, "updateAppWidget id=$appWidgetId minWidth=${minWidthDp}dp minHeight=${minHeightDp}dp")
 
             if (minWidthDp < THRESHOLD_1X1_WIDTH_DP) {
                 updateAs1x1(context, appWidgetManager, appWidgetId)
+                return
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                when {
+                    minWidthDp <= THRESHOLD_NANO_MAX_DP ->
+                        updateAsNano(context, appWidgetManager, appWidgetId)
+                    minWidthDp <= THRESHOLD_STRIP_MAX_DP || minHeightDp < THRESHOLD_STRIP_HEIGHT_DP ->
+                        updateAsStrip(context, appWidgetManager, appWidgetId)
+                    else ->
+                        updateWithRemoteCollectionItems(context, appWidgetManager, appWidgetId,
+                            twoColumn = minWidthDp >= THRESHOLD_2COL_MIN_DP)
+                }
             } else {
                 updateAsScrollableList(context, appWidgetManager, appWidgetId, minWidthDp)
             }
@@ -154,12 +171,7 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
             appWidgetId: Int,
             minWidthDp: Int = 250
         ) {
-            Log.d(TAG, "updateAppWidget id=$appWidgetId (scrollable)")
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                updateWithRemoteCollectionItems(context, appWidgetManager, appWidgetId, minWidthDp)
-                return
-            }
+            Log.d(TAG, "updateAppWidget id=$appWidgetId (scrollable, API<31)")
 
             // API < 31: use RemoteViewsService + setPendingIntentTemplate fill-in pattern.
             val views = RemoteViews(context.packageName, WidgetListR.layout.widget_nearby_apps_scrollable)
@@ -199,10 +211,9 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
             context: Context,
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int,
-            minWidthDp: Int = 250
+            twoColumn: Boolean
         ) {
-            val twoColumn = minWidthDp >= THRESHOLD_2COL_WIDTH_DP
-            Log.d(TAG, "updateWithAddView id=$appWidgetId")
+            Log.d(TAG, "updateWithAddView id=$appWidgetId twoColumn=$twoColumn")
             // Use a LinearLayout-based layout (not ListView). Items are added via addView()
             // so each gets setOnClickPendingIntent — the same mechanism as the working refresh
             // button. MIUI drops collection-widget item clicks but not regular view clicks.
@@ -362,6 +373,176 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
 
+        // ── Nano mode (≤130dp wide): single closest business ──────────────────────────
+
+        @RequiresApi(Build.VERSION_CODES.S)
+        private fun updateAsNano(
+            context: Context,
+            appWidgetManager: AppWidgetManager,
+            appWidgetId: Int
+        ) {
+            Log.d(TAG, "updateAsNano id=$appWidgetId")
+            val darkTheme = resolveDarkTheme(context)
+            val views = RemoteViews(context.packageName,
+                if (darkTheme) WidgetListR.layout.widget_nano_dark else WidgetListR.layout.widget_nano)
+
+            val refreshPi = buildRefreshPi(context, appWidgetId)
+            views.setOnClickPendingIntent(WidgetListR.id.nano_refresh, refreshPi)
+
+            runBlocking {
+                try {
+                    val ep = EntryPointAccessors.fromApplication(
+                        context.applicationContext, WidgetListEntryPoint::class.java)
+                    val repo = ep.businessAppRepository()
+                    val calc = ep.distanceCalculator()
+                    val locProvider = ep.locationProvider()
+                    val icons = ep.appIconLoader()
+                    val prefs = ep.settingsRepository().getCurrentPreferences()
+                    repo.initialize()
+                    val location = withTimeoutOrNull(5000L) { locProvider.getCurrentLocation() }
+
+                    val closest = repo.getAllMappings().first().mapNotNull { m ->
+                        val lat = m.latitude ?: return@mapNotNull null
+                        val lon = m.longitude ?: return@mapNotNull null
+                        val dist = if (location != null)
+                            calc.calculateDistanceMeters(location.latitude, location.longitude, lat, lon).toInt()
+                        else m.geofenceRadius
+                        val installed = try {
+                            context.packageManager.getPackageInfo(m.packageName, PackageManager.MATCH_ALL); true
+                        } catch (_: PackageManager.NameNotFoundException) { false }
+                        Triple(m, dist, installed)
+                    }.minByOrNull { it.second }
+
+                    if (closest != null) {
+                        val (m, dist, installed) = closest
+                        icons.preloadIcons(listOf(m.packageName))
+                        views.setTextViewText(WidgetListR.id.nano_business_name, m.businessName)
+                        views.setTextViewText(WidgetListR.id.nano_distance,
+                            calc.formatDistanceWithPreferences(dist.toDouble(), prefs))
+                        views.setImageViewResource(WidgetListR.id.nano_status_dot,
+                            if (installed) WidgetListR.drawable.ic_installed_dot else WidgetListR.drawable.ic_uninstalled_dot)
+                        val bmp = icons.getIconBitmap(m.packageName)
+                        if (bmp != null) views.setImageViewBitmap(WidgetListR.id.nano_app_icon, scaledForWidget(bmp, 80))
+                        else views.setImageViewResource(WidgetListR.id.nano_app_icon, android.R.drawable.sym_def_app_icon)
+                        val clickIntent = Intent(WidgetClickReceiver.ACTION_WIDGET_ITEM_CLICK).apply {
+                            setPackage(context.packageName)
+                            putExtra(WidgetClickReceiver.EXTRA_PACKAGE_NAME, m.packageName)
+                        }
+                        views.setOnClickPendingIntent(WidgetListR.id.nano_root,
+                            PendingIntent.getBroadcast(context, appWidgetId * 1000, clickIntent,
+                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+                    } else {
+                        views.setTextViewText(WidgetListR.id.nano_business_name, "No businesses")
+                        views.setTextViewText(WidgetListR.id.nano_distance, "")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to build nano widget", e)
+                }
+            }
+            appWidgetManager.updateAppWidget(appWidgetId, views)
+        }
+
+        // ── Strip mode (131–260dp wide or short): 3 closest businesses ────────────
+
+        @RequiresApi(Build.VERSION_CODES.S)
+        private fun updateAsStrip(
+            context: Context,
+            appWidgetManager: AppWidgetManager,
+            appWidgetId: Int
+        ) {
+            Log.d(TAG, "updateAsStrip id=$appWidgetId")
+            val darkTheme = resolveDarkTheme(context)
+            val views = RemoteViews(context.packageName,
+                if (darkTheme) WidgetListR.layout.widget_strip_dark else WidgetListR.layout.widget_strip)
+
+            views.setOnClickPendingIntent(WidgetListR.id.strip_refresh, buildRefreshPi(context, appWidgetId))
+
+            runBlocking {
+                try {
+                    val ep = EntryPointAccessors.fromApplication(
+                        context.applicationContext, WidgetListEntryPoint::class.java)
+                    val repo = ep.businessAppRepository()
+                    val calc = ep.distanceCalculator()
+                    val locProvider = ep.locationProvider()
+                    val icons = ep.appIconLoader()
+                    val prefs = ep.settingsRepository().getCurrentPreferences()
+                    repo.initialize()
+                    val location = withTimeoutOrNull(5000L) { locProvider.getCurrentLocation() }
+
+                    val sorted = repo.getAllMappings().first().mapNotNull { m ->
+                        val lat = m.latitude ?: return@mapNotNull null
+                        val lon = m.longitude ?: return@mapNotNull null
+                        val dist = if (location != null)
+                            calc.calculateDistanceMeters(location.latitude, location.longitude, lat, lon).toInt()
+                        else m.geofenceRadius
+                        val installed = try {
+                            context.packageManager.getPackageInfo(m.packageName, PackageManager.MATCH_ALL); true
+                        } catch (_: PackageManager.NameNotFoundException) { false }
+                        WidgetDisplayItem(m.packageName, m.businessName,
+                            calc.formatDistanceWithPreferences(dist.toDouble(), prefs), installed) to dist
+                    }.sortedBy { it.second }.take(3).map { it.first }
+
+                    icons.preloadIcons(sorted.map { it.packageName })
+                    views.removeAllViews(WidgetListR.id.strip_items_container)
+                    sorted.forEachIndexed { i, item ->
+                        views.addView(WidgetListR.id.strip_items_container,
+                            makeStripItem(context, appWidgetId, i, item, icons, darkTheme))
+                    }
+                    views.setTextViewText(WidgetListR.id.strip_page_indicator,
+                        if (sorted.isEmpty()) "No businesses nearby" else "")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to build strip widget", e)
+                }
+            }
+            appWidgetManager.updateAppWidget(appWidgetId, views)
+        }
+
+        private fun makeStripItem(
+            context: Context,
+            appWidgetId: Int,
+            globalIdx: Int,
+            item: WidgetDisplayItem,
+            icons: AppIconLoader,
+            darkTheme: Boolean
+        ): RemoteViews {
+            val rv = RemoteViews(context.packageName,
+                if (darkTheme) WidgetListR.layout.widget_strip_item_dark else WidgetListR.layout.widget_strip_item)
+            rv.setTextViewText(WidgetListR.id.business_name, item.label)
+            rv.setTextViewText(WidgetListR.id.distance, item.subtext)
+            rv.setImageViewResource(WidgetListR.id.status_dot,
+                if (item.installed) WidgetListR.drawable.ic_installed_dot else WidgetListR.drawable.ic_uninstalled_dot)
+            val bmp = icons.getIconBitmap(item.packageName)
+            if (bmp != null) rv.setImageViewBitmap(WidgetListR.id.app_icon, scaledForWidget(bmp, 60))
+            else rv.setImageViewResource(WidgetListR.id.app_icon, android.R.drawable.sym_def_app_icon)
+            val clickIntent = Intent(WidgetClickReceiver.ACTION_WIDGET_ITEM_CLICK).apply {
+                setPackage(context.packageName)
+                putExtra(WidgetClickReceiver.EXTRA_PACKAGE_NAME, item.packageName)
+            }
+            rv.setOnClickPendingIntent(WidgetListR.id.item_root,
+                PendingIntent.getBroadcast(context, appWidgetId * 1000 + globalIdx, clickIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+            return rv
+        }
+
+        // ── Shared helpers ─────────────────────────────────────────────────────────
+
+        /** Resolve dark/light without throwing — defaults to light on any error. */
+        private fun resolveDarkTheme(context: Context): Boolean = try {
+            val ep = EntryPointAccessors.fromApplication(
+                context.applicationContext, WidgetListEntryPoint::class.java)
+            val prefs = runBlocking { ep.settingsRepository().getCurrentPreferences() }
+            resolveWidgetDark(context, prefs.widgetTheme)
+        } catch (_: Exception) { false }
+
+        private fun buildRefreshPi(context: Context, appWidgetId: Int): android.app.PendingIntent {
+            val intent = Intent(context, NearbyAppsWidgetProvider::class.java).apply {
+                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))
+            }
+            return PendingIntent.getBroadcast(context, appWidgetId, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        }
+
         private fun resolveWidgetDark(context: Context, theme: WidgetTheme): Boolean = when (theme) {
             WidgetTheme.DARK -> true
             WidgetTheme.LIGHT -> false
@@ -464,17 +645,19 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
             pageOffset: Int = 0
         ) {
             if (twoColumn) {
-                // GridLayout with columnCount=2; add compact items directly
-                for ((i, item) in pageItems.withIndex()) {
-                    val column = i % 2
-                    val row = i / 2
-                    val itemView = makeCompactItem(context, appWidgetId, pageOffset + i, item, icons, darkTheme)
-                    // Set GridLayout layout params
-                    itemView.setInt(WidgetListR.id.compact_item_root, "setLayoutColumn", column)
-                    itemView.setInt(WidgetListR.id.compact_item_root, "setLayoutRow", row)
-                    itemView.setInt(WidgetListR.id.compact_item_root, "setLayoutColumnWeight", 1)
-                    // itemView.setInt(WidgetListR.id.compact_item_root, "setLayoutRowWeight", 0)
-                    views.addView(WidgetListR.id.items_container, itemView)
+                // Two compact items per horizontal row. Row wrapper is a LinearLayout so
+                // no setInt/reflection needed — safe on MIUI.
+                var idx = 0
+                while (idx < pageItems.size) {
+                    val row = RemoteViews(context.packageName, WidgetListR.layout.widget_item_row)
+                    row.addView(WidgetListR.id.row_container,
+                        makeCompactItem(context, appWidgetId, pageOffset + idx, pageItems[idx], icons, darkTheme))
+                    if (idx + 1 < pageItems.size) {
+                        row.addView(WidgetListR.id.row_container,
+                            makeCompactItem(context, appWidgetId, pageOffset + idx + 1, pageItems[idx + 1], icons, darkTheme))
+                    }
+                    views.addView(WidgetListR.id.items_container, row)
+                    idx += 2
                 }
             } else {
                 for ((i, item) in pageItems.withIndex()) {

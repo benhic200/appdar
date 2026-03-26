@@ -13,8 +13,8 @@ android {
         applicationId = "com.example.nearbyappswidget"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 71
-        versionName = "1.71"
+        versionCode = 72
+        versionName = "1.73"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

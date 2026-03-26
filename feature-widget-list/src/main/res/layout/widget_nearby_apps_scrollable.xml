@@ -35,7 +35,7 @@
             android:tint="@android:color/holo_blue_dark"
             android:clickable="true"
             android:focusable="true"
-            android:background="?android:attr/selectableItemBackground" />
+            android:background="#00000000" />
     </LinearLayout>
 
     <!-- Scrollable list of nearby businesses -->
@@ -59,8 +59,8 @@
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
         android:text="@string/no_nearby_businesses"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="14sp"
+        android:textColor="#FF757575"
         android:gravity="center"
         android:visibility="gone" />
 

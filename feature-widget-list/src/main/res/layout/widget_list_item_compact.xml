@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Light-theme compact cell for the two-column grid. NO theme attributes. -->
+<!-- Light compact cell for 2-column grid. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/compact_item_root"
     android:layout_width="0dp"
@@ -10,7 +10,7 @@
     android:padding="8dp"
     android:clickable="true"
     android:focusable="true"
-    android:background="#FFF5F5F5">
+    android:background="#FFFDF8FF">
 
     <ImageView
         android:id="@+id/compact_app_icon"
@@ -40,15 +40,15 @@
         android:paddingTop="2dp"
         android:paddingEnd="6dp"
         android:paddingBottom="2dp"
-        android:textColor="#FF757575"
+        android:textColor="#FF6A1B9A"
         android:textSize="10sp"
         android:maxLines="1"
         android:ellipsize="end" />
 
     <ImageView
         android:id="@+id/compact_status_dot"
-        android:layout_width="8dp"
-        android:layout_height="8dp"
+        android:layout_width="6dp"
+        android:layout_height="6dp"
         android:layout_marginTop="4dp"
         android:importantForAccessibility="no" />
 
