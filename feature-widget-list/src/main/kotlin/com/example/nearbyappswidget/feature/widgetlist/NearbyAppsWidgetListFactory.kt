@@ -15,6 +15,7 @@ import com.example.nearbyappswidget.data.repository.BusinessAppRepository
 import com.example.nearbyappswidget.data.local.settings.SettingsRepository
 import com.example.nearbyappswidget.data.local.settings.UserPreferences
 import com.example.nearbyappswidget.data.local.profiles.LocationProfileRepository
+import com.example.nearbyappswidget.data.local.profiles.PROFILE_GEOFENCE_METERS
 import com.example.nearbyappswidget.data.local.profiles.ProfileId
 import com.example.nearbyappswidget.feature.widgetlist.R
 import com.example.nearbyappswidget.feature.widgetlist.di.WidgetListEntryPoint
@@ -212,7 +213,7 @@ internal class NearbyAppsWidgetListFactory(
                             profile.selectedApps.isNotEmpty() &&
                                 distanceCalculator.calculateDistanceMeters(
                                     currentLocation.latitude, currentLocation.longitude, lat, lon
-                                ) <= userPreferences!!.searchRadiusMeters
+                                ) <= PROFILE_GEOFENCE_METERS
                         }
                 } else null
 

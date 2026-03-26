@@ -28,6 +28,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.nearbyappswidget.data.local.profiles.LocationProfile
 import com.example.nearbyappswidget.data.local.profiles.LocationProfileRepository
+import com.example.nearbyappswidget.data.local.profiles.PROFILE_GEOFENCE_METERS
 import com.example.nearbyappswidget.data.local.profiles.ProfileId
 import com.example.nearbyappswidget.data.local.settings.DistanceUnit
 import com.example.nearbyappswidget.data.local.settings.SettingsRepository
@@ -97,7 +98,7 @@ class DashboardViewModel @Inject constructor(
                         p.selectedApps.isNotEmpty() &&
                             distanceCalculator.calculateDistanceMeters(
                                 location.latitude, location.longitude, lat, lon
-                            ) <= prefs.searchRadiusMeters
+                            ) <= PROFILE_GEOFENCE_METERS
                     }
                 } else null
 

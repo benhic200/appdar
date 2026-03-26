@@ -48,6 +48,7 @@ import com.example.nearbyappswidget.feature.widget.WidgetUpdateScheduler
 import com.example.nearbyappswidget.feature.settings.SettingsViewModel
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.app.ActivityCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -56,6 +57,8 @@ import com.example.nearbyappswidget.R
 import com.example.nearbyappswidget.data.local.profiles.ProfileId
 import com.example.nearbyappswidget.feature.geofencing.GeofenceManager
 import com.example.nearbyappswidget.core.util.BatteryOptimizationHelper
+import com.example.nearbyappswidget.billing.BillingManager
+import com.example.nearbyappswidget.billing.ProManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -121,9 +124,27 @@ class MainActivity : ComponentActivity() {
 
     private val _permissionState = mutableStateOf(PermissionState.UNKNOWN)
     private val _dbSeeded = mutableStateOf(false)
+    private val _isPro = mutableStateOf(false)
+
+    private lateinit var billingManager: BillingManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Restore persisted Pro state, then verify with Play Store
+        _isPro.value = ProManager.isPro(this)
+        billingManager = BillingManager(
+            context = this,
+            onProUnlocked = {
+                ProManager.setPro(this, true)
+                _isPro.value = true
+            },
+            onPurchaseFailed = { message ->
+                runOnUiThread { Toast.makeText(this, message, Toast.LENGTH_SHORT).show() }
+            }
+        )
+        billingManager.startConnection()
+
         val appPrefs = getSharedPreferences("appdar_prefs", MODE_PRIVATE)
         val _onboardingComplete = mutableStateOf(appPrefs.getBoolean("onboarding_complete", false))
 
@@ -157,6 +178,8 @@ class MainActivity : ComponentActivity() {
                         repository = repository,
                         permissionState = _permissionState.value,
                         dbSeeded = _dbSeeded.value,
+                        isPro = _isPro.value,
+                        onUpgradeTapped = { billingManager.launchPurchaseFlow(this@MainActivity) },
                         onRequestPermission = { requestLocationPermission() },
                         onSeedDatabase = { seedDatabase() },
                         onOpenAppSettings = { openAppSettings() },
@@ -245,6 +268,11 @@ class MainActivity : ComponentActivity() {
     private fun openBatterySettings() {
         BatteryOptimizationHelper.openBatteryOptimizationSettings(this)
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        billingManager.destroy()
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -253,6 +281,8 @@ fun TabbedAppScreen(
     repository: BusinessAppRepository,
     permissionState: PermissionState,
     dbSeeded: Boolean,
+    isPro: Boolean,
+    onUpgradeTapped: () -> Unit,
     onRequestPermission: () -> Unit,
     onSeedDatabase: () -> Unit,
     onOpenAppSettings: () -> Unit,
@@ -266,8 +296,6 @@ fun TabbedAppScreen(
     val coroutineScope = rememberCoroutineScope()
     var currentScreen by remember { mutableStateOf("dashboard") }
     val context = LocalContext.current
-    // TODO: replace with actual in-app purchase / license check
-    val isPro = false
 
     // Manage auto-refresh alarm when low power mode changes
     val settingsPrefs by settingsViewModel.userPreferences.collectAsState()
@@ -299,119 +327,191 @@ fun TabbedAppScreen(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
-                Spacer(modifier = Modifier.height(16.dp))
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.Dashboard, contentDescription = null) },
-                    label = { Text("Dashboard") },
-                    selected = currentScreen == "dashboard",
-                    onClick = {
-                        currentScreen = "dashboard"
-                        coroutineScope.launch { drawerState.close() }
+                Column(modifier = Modifier.fillMaxHeight()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // ── FREE section ──────────────────────────────────────────
+                    Text(
+                        text = "FREE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 28.dp, bottom = 4.dp)
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.Dashboard, contentDescription = null) },
+                        label = { Text("Dashboard") },
+                        selected = currentScreen == "dashboard",
+                        onClick = {
+                            currentScreen = "dashboard"
+                            coroutineScope.launch { drawerState.close() }
+                        }
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.NearMe, contentDescription = null) },
+                        label = { Text("Nearby Apps") },
+                        selected = currentScreen == "nearby",
+                        onClick = {
+                            currentScreen = "nearby"
+                            coroutineScope.launch { drawerState.close() }
+                        }
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.List, contentDescription = null) },
+                        label = { Text("Places") },
+                        selected = currentScreen == "businesses",
+                        onClick = {
+                            currentScreen = "businesses"
+                            coroutineScope.launch { drawerState.close() }
+                        }
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.Home, contentDescription = null) },
+                        label = { Text("Home Apps") },
+                        selected = currentScreen == "home",
+                        onClick = {
+                            currentScreen = "home"
+                            coroutineScope.launch { drawerState.close() }
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // ── PRO section ───────────────────────────────────────────
+                    Text(
+                        text = "PRO",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 28.dp, bottom = 4.dp)
+                    )
+                    NavigationDrawerItem(
+                        modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
+                        icon = { Icon(if (isPro) Icons.Filled.Work else Icons.Filled.Lock, contentDescription = null) },
+                        label = { Text("Work Apps") },
+                        badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
+                        selected = currentScreen == "work",
+                        onClick = {
+                            if (isPro) { currentScreen = "work"; coroutineScope.launch { drawerState.close() } }
+                            else { coroutineScope.launch { drawerState.close() }; onUpgradeTapped() }
+                        }
+                    )
+                    NavigationDrawerItem(
+                        modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
+                        icon = { Icon(if (isPro) Icons.Filled.FitnessCenter else Icons.Filled.Lock, contentDescription = null) },
+                        label = { Text("Gym Apps") },
+                        badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
+                        selected = currentScreen == "gym",
+                        onClick = {
+                            if (isPro) { currentScreen = "gym"; coroutineScope.launch { drawerState.close() } }
+                            else { coroutineScope.launch { drawerState.close() }; onUpgradeTapped() }
+                        }
+                    )
+                    NavigationDrawerItem(
+                        modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
+                        icon = { Icon(if (isPro) Icons.Filled.Apps else Icons.Filled.Lock, contentDescription = null) },
+                        label = { Text("Custom Location 1") },
+                        badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
+                        selected = currentScreen == "custom1",
+                        onClick = {
+                            if (isPro) { currentScreen = "custom1"; coroutineScope.launch { drawerState.close() } }
+                            else { coroutineScope.launch { drawerState.close() }; onUpgradeTapped() }
+                        }
+                    )
+                    NavigationDrawerItem(
+                        modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
+                        icon = { Icon(if (isPro) Icons.Filled.Apps else Icons.Filled.Lock, contentDescription = null) },
+                        label = { Text("Custom Location 2") },
+                        badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
+                        selected = currentScreen == "custom2",
+                        onClick = {
+                            if (isPro) { currentScreen = "custom2"; coroutineScope.launch { drawerState.close() } }
+                            else { coroutineScope.launch { drawerState.close() }; onUpgradeTapped() }
+                        }
+                    )
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                        label = { Text("Settings") },
+                        selected = currentScreen == "settings",
+                        onClick = {
+                            currentScreen = "settings"
+                            coroutineScope.launch { drawerState.close() }
+                        }
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.Info, contentDescription = null) },
+                        label = { Text("Setup") },
+                        selected = currentScreen == "setup",
+                        onClick = {
+                            currentScreen = "setup"
+                            coroutineScope.launch { drawerState.close() }
+                        }
+                    )
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Filled.Help, contentDescription = null) },
+                        label = { Text("Guide") },
+                        selected = currentScreen == "guide",
+                        onClick = {
+                            currentScreen = "guide"
+                            coroutineScope.launch { drawerState.close() }
+                        }
+                    )
+
+                    // Push upgrade bar to bottom
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // ── Persistent upgrade bar (hidden once user is Pro) ───────
+                    if (!isPro) {
+                        Surface(
+                            onClick = {
+                                coroutineScope.launch { drawerState.close() }
+                                onUpgradeTapped()
+                            },
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Filled.Star,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "Unlock Appdar Pro",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                    Text(
+                                        "Work, Gym & custom locations",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                    )
+                                }
+                                Surface(
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    shape = MaterialTheme.shapes.small
+                                ) {
+                                    Text(
+                                        "£1.67",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
-                )
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.NearMe, contentDescription = null) },
-                    label = { Text("Nearby Apps") },
-                    selected = currentScreen == "nearby",
-                    onClick = {
-                        currentScreen = "nearby"
-                        coroutineScope.launch { drawerState.close() }
-                    }
-                )
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.List, contentDescription = null) },
-                    label = { Text("Places") },
-                    selected = currentScreen == "businesses",
-                    onClick = {
-                        currentScreen = "businesses"
-                        coroutineScope.launch { drawerState.close() }
-                    }
-                )
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.Home, contentDescription = null) },
-                    label = { Text("Home Apps") },
-                    selected = currentScreen == "home",
-                    onClick = {
-                        currentScreen = "home"
-                        coroutineScope.launch { drawerState.close() }
-                    }
-                )
-                NavigationDrawerItem(
-                    modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
-                    icon = { Icon(Icons.Filled.Work, contentDescription = null) },
-                    label = { Text("Work Apps") },
-                    badge = if (!isPro) ({ Text("PRO", style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary) }) else null,
-                    selected = currentScreen == "work",
-                    onClick = {
-                        currentScreen = if (isPro) "work" else "upgrade"
-                        coroutineScope.launch { drawerState.close() }
-                    }
-                )
-                NavigationDrawerItem(
-                    modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
-                    icon = { Icon(Icons.Filled.FitnessCenter, contentDescription = null) },
-                    label = { Text("Gym Apps") },
-                    badge = if (!isPro) ({ Text("PRO", style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary) }) else null,
-                    selected = currentScreen == "gym",
-                    onClick = {
-                        currentScreen = if (isPro) "gym" else "upgrade"
-                        coroutineScope.launch { drawerState.close() }
-                    }
-                )
-                NavigationDrawerItem(
-                    modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
-                    icon = { Icon(Icons.Filled.Apps, contentDescription = null) },
-                    label = { Text("Custom Location 1") },
-                    badge = if (!isPro) ({ Text("PRO", style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary) }) else null,
-                    selected = currentScreen == "custom1",
-                    onClick = {
-                        currentScreen = if (isPro) "custom1" else "upgrade"
-                        coroutineScope.launch { drawerState.close() }
-                    }
-                )
-                NavigationDrawerItem(
-                    modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
-                    icon = { Icon(Icons.Filled.Apps, contentDescription = null) },
-                    label = { Text("Custom Location 2") },
-                    badge = if (!isPro) ({ Text("PRO", style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary) }) else null,
-                    selected = currentScreen == "custom2",
-                    onClick = {
-                        currentScreen = if (isPro) "custom2" else "upgrade"
-                        coroutineScope.launch { drawerState.close() }
-                    }
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                    label = { Text("Settings") },
-                    selected = currentScreen == "settings",
-                    onClick = {
-                        currentScreen = "settings"
-                        coroutineScope.launch { drawerState.close() }
-                    }
-                )
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.Info, contentDescription = null) },
-                    label = { Text("Setup") },
-                    selected = currentScreen == "setup",
-                    onClick = {
-                        currentScreen = "setup"
-                        coroutineScope.launch { drawerState.close() }
-                    }
-                )
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Filled.Help, contentDescription = null) },
-                    label = { Text("Guide") },
-                    selected = currentScreen == "guide",
-                    onClick = {
-                        currentScreen = "guide"
-                        coroutineScope.launch { drawerState.close() }
-                    }
-                )
+                }
             }
         }
     ) {
@@ -484,7 +584,7 @@ fun TabbedAppScreen(
                         )
                     }
                     "guide"   -> UserGuideScreen()
-                    "upgrade" -> ProUpgradeScreen()
+                    "upgrade" -> ProUpgradeScreen(onUpgradeTapped = onUpgradeTapped)
                 }
             }
         }
@@ -631,7 +731,7 @@ fun SetupContent(
 }
 
 @Composable
-fun ProUpgradeScreen() {
+fun ProUpgradeScreen(onUpgradeTapped: () -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -677,12 +777,11 @@ fun ProUpgradeScreen() {
                 }
             }
         }
-        // Purchase button (stub — wire up IAP here)
         Button(
-            onClick = { /* TODO: launch in-app purchase flow */ },
+            onClick = onUpgradeTapped,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Unlock Pro")
+            Text("Unlock Pro — £1.67")
         }
     }
 }

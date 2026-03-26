@@ -81,8 +81,8 @@
 
         <ImageView
             android:id="@+id/refresh_icon"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:src="@android:drawable/ic_menu_rotate"
             android:contentDescription="@string/refresh"
             android:padding="4dp"

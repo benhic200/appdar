@@ -11,6 +11,7 @@ import android.os.Build
 import android.util.Log
 import android.widget.RemoteViews
 import androidx.annotation.RequiresApi
+import com.example.nearbyappswidget.data.local.profiles.PROFILE_GEOFENCE_METERS
 import com.example.nearbyappswidget.data.local.profiles.ProfileId
 import com.example.nearbyappswidget.data.local.settings.WidgetTheme
 import com.example.nearbyappswidget.data.repository.BusinessAppRepository
@@ -201,7 +202,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                                 profile.selectedApps.isNotEmpty() &&
                                     calc.calculateDistanceMeters(
                                         location.latitude, location.longitude, lat, lon
-                                    ) <= prefs.searchRadiusMeters
+                                    ) <= PROFILE_GEOFENCE_METERS
                             }
                     } else null
 
@@ -290,7 +291,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                                 profile.selectedApps.isNotEmpty() &&
                                     calc.calculateDistanceMeters(
                                         location.latitude, location.longitude, lat, lon
-                                    ) <= prefs.searchRadiusMeters
+                                    ) <= PROFILE_GEOFENCE_METERS
                             }?.selectedApps?.firstOrNull()
                     } else null
 
@@ -450,7 +451,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                                 profile.selectedApps.isNotEmpty() &&
                                     calc.calculateDistanceMeters(
                                         location.latitude, location.longitude, lat, lon
-                                    ) <= prefs.searchRadiusMeters
+                                    ) <= PROFILE_GEOFENCE_METERS
                             }
                     } else null
 
@@ -581,7 +582,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                                 profile.selectedApps.isNotEmpty() &&
                                     calc.calculateDistanceMeters(
                                         location.latitude, location.longitude, lat, lon
-                                    ) <= prefs.searchRadiusMeters
+                                    ) <= PROFILE_GEOFENCE_METERS
                             }
                     } else null
 
@@ -727,7 +728,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                                 profile.selectedApps.isNotEmpty() &&
                                     calc.calculateDistanceMeters(
                                         location.latitude, location.longitude, lat, lon
-                                    ) <= prefs.searchRadiusMeters
+                                    ) <= PROFILE_GEOFENCE_METERS
                             }
                     } else null
 

@@ -3,6 +3,9 @@ package com.example.nearbyappswidget.data.local.profiles
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 
+/** Radius used to determine whether the user is "at" a saved profile location. */
+const val PROFILE_GEOFENCE_METERS = 300.0
+
 data class LocationProfile(
     val id: String,
     val displayName: String,
