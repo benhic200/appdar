@@ -10,7 +10,7 @@
     android:minHeight="52dp"
     android:clickable="true"
     android:focusable="true"
-    android:background="#FFFDF8FF">
+    android:background="@drawable/widget_ripple_row">
 
     <ImageView
         android:id="@+id/status_dot"

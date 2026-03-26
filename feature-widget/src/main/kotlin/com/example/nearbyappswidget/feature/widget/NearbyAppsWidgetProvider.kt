@@ -50,6 +50,13 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
+        // Show immediate feedback when the user manually taps a refresh button.
+        // Scheduled silent updates use ACTION_SCHEDULED_UPDATE, not ACTION_APPWIDGET_UPDATE,
+        // so this toast only fires for deliberate user taps.
+        if (intent.action == AppWidgetManager.ACTION_APPWIDGET_UPDATE &&
+            intent.hasExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS)) {
+            android.widget.Toast.makeText(context, "Refreshing…", android.widget.Toast.LENGTH_SHORT).show()
+        }
         if (intent.action == ACTION_SCHEDULED_UPDATE) {
             // Skip auto-update if low power mode is enabled
             try {
@@ -976,6 +983,9 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                 "Waterstones" -> "ic_business_waterstones"
                 "Pret A Manger" -> "ic_business_pret"
                 "Subway" -> "ic_business_subway"
+                "Asda" -> "ic_business_asda"
+                "Lidl" -> "ic_business_lidl"
+                "Premier Inn" -> "ic_business_premier"
                 else -> "ic_app_placeholder"
             }
             return context.resources.getIdentifier(iconName, "drawable", context.packageName)

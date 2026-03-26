@@ -10,7 +10,7 @@
     android:padding="8dp"
     android:clickable="true"
     android:focusable="true"
-    android:background="#FFFDF8FF">
+    android:background="@drawable/widget_ripple_row">
 
     <ImageView
         android:id="@+id/compact_app_icon"
