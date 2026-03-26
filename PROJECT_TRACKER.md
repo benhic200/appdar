@@ -1297,3 +1297,26 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
 **Test v70:** Install, then **remove and re‑add the widget** from the home screen (MIUI caches widget views). If the widget loads, the 3‑level nesting (row RemoteViews) was the crash. If it still shows "Can't load widget", the issue lies elsewhere (likely a resource reference or layout attribute that MIUI's widget inflater rejects).
 
 **Ready for testing.** 📱🎯
+
+**v71 Built (MIUI RemoteViews Whitelist Fixes) – 2026‑03‑26 00:21 GMT**
+**Root causes fixed:**
+1. **`<Space>` elements** – not in MIUI's RemoteViews whitelist, causing InflateException. Replaced with weight‑1 `<TextView>`.
+2. **`GridLayout` as items_container** – requires GridLayout.LayoutParams on every child; addView calls don't set those params. Replaced with LinearLayout in both light/dark layouts.
+3. **Theme attributes** (`?android:attr/selectableItemBackground`, `?android:attr/colorBackground`, `?android:attr/textColorPrimary`, etc.) – resolved using launcher's theme in MIUI which may fail. Replaced with hardcoded hex values in all four item/root layouts.
+
+**Changes applied:**
+- Updated `widget_nearby_apps.xml`, `widget_item_nearby_app.xml`, `widget_nearby_apps_1x1.xml` in feature‑widget module (hardcoded colors, no theme attributes, no Space).
+- Updated `widget_nearby_apps_scrollable.xml` in feature‑widget‑list module (hardcoded colors, no theme attributes).
+- Kept `THRESHOLD_2COL_WIDTH_DP = 9999` (single‑column mode).
+
+**Build details:**
+- **VersionCode 71** (versionName "1.71")
+- **SHA‑256:** `954eeac87d35c3801efa1f5514a9d8f8f5e012a498c498bf228f4e6f839b1d70`
+- **Download:** `http://192.168.0.111:8080/nearby‑apps‑widget‑v71.apk`
+- **External:** `https://hickielaptopkali.tail25553f.ts.net:8081/nearby‑apps‑widget‑v71.apk`
+- **Build log:** Success (1m 30s, 309 tasks executed)
+- **Git commit:** [`a0a55ed`](https://github.com/benhic200/appdar/commit/a0a55ed95fd8a57dbfbc4a8992f9e93cd733bfe9) – Build v71
+
+**Test v71:** Install, then **remove and re‑add the widget** from the home screen (MIUI caches widget views). If the widget loads, MIUI's RemoteViews whitelist issue was the culprit. If it still shows "Can't load widget", need to investigate further (possible MIUI‑specific layout‑attribute restrictions).
+
+**Ready for testing.** 📱🎯
