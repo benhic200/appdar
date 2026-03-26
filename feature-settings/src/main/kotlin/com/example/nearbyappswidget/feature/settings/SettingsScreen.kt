@@ -33,14 +33,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.ViewModel
 import com.example.nearbyappswidget.data.local.settings.DistanceUnit
 import com.example.nearbyappswidget.data.local.settings.ThemeMode
 import com.example.nearbyappswidget.data.local.settings.WidgetTheme
-import com.example.nearbyappswidget.data.local.settings.UserPreferences
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Embeddable settings cards — no Scaffold, no scroll. The caller is responsible for scroll and padding.

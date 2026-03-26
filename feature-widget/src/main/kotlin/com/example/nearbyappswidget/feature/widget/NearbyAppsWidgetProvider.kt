@@ -11,7 +11,6 @@ import android.os.Build
 import android.util.Log
 import android.widget.RemoteViews
 import androidx.annotation.RequiresApi
-import androidx.core.content.ContextCompat
 import com.example.nearbyappswidget.data.local.profiles.ProfileId
 import com.example.nearbyappswidget.data.local.settings.WidgetTheme
 import com.example.nearbyappswidget.data.repository.BusinessAppRepository
@@ -142,11 +141,10 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     else -> {
                         val columnCount = when {
                             minWidthDp < 300 -> 1
-                            minWidthDp < 400 -> 2
-                            minWidthDp < 500 -> 3
-                            else -> 4
+                            minWidthDp < 450 -> 2
+                            else -> 3
                         }
-                        updateWithRemoteCollectionItems(context, appWidgetManager, appWidgetId, columnCount)
+                        updateWithRemoteCollectionItems(context, appWidgetManager, appWidgetId, columnCount, minHeightDp)
                     }
                 }
             } else {
@@ -220,7 +218,8 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
             context: Context,
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int,
-            columnCount: Int
+            columnCount: Int,
+            minHeightDp: Int = 200
         ) {
             Log.d(TAG, "updateWithAddView id=$appWidgetId columnCount=$columnCount")
             // Use a LinearLayout-based layout (not ListView). Items are added via addView()
@@ -305,7 +304,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                         }
                         icons.preloadIcons(profileItems.map { it.first })
 
-                        val effectivePageSize = PAGE_SIZE * columnCount
+                        val effectivePageSize = rowsPerColumn(minHeightDp) * columnCount
                         val totalPages = maxOf(1, (profileItems.size + effectivePageSize - 1) / effectivePageSize)
                         val widgetPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                         val currentPage = widgetPrefs.getInt("page_$appWidgetId", 0).coerceIn(0, totalPages - 1)
@@ -354,8 +353,8 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
 
                     icons.preloadIcons(allItems.map { it.first.packageName })
 
-                    // Pagination: show effectivePageSize items per page
-                    val effectivePageSize = PAGE_SIZE * columnCount
+                    // Pagination: rows fit on screen × column count
+                    val effectivePageSize = rowsPerColumn(minHeightDp) * columnCount
                     val totalPages = maxOf(1, (allItems.size + effectivePageSize - 1) / effectivePageSize)
                     val widgetPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                     var currentPage = widgetPrefs.getInt("page_$appWidgetId", 0).coerceIn(0, totalPages - 1)
@@ -409,6 +408,49 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     val prefs = ep.settingsRepository().getCurrentPreferences()
                     repo.initialize()
                     val location = withTimeoutOrNull(5000L) { locProvider.getCurrentLocation() }
+
+                    // Check if at a saved profile location — if so, show that profile's first app.
+                    val profileRepo = ep.locationProfileRepository()
+                    val matchedProfile = if (location != null) {
+                        ProfileId.values().map { id -> profileRepo.getProfile(id).first() }
+                            .firstOrNull { profile ->
+                                val lat = profile.latitude ?: return@firstOrNull false
+                                val lon = profile.longitude ?: return@firstOrNull false
+                                profile.selectedApps.isNotEmpty() &&
+                                    calc.calculateDistanceMeters(
+                                        location.latitude, location.longitude, lat, lon
+                                    ) <= prefs.searchRadiusMeters
+                            }
+                    } else null
+
+                    if (matchedProfile != null) {
+                        val pkg = matchedProfile.selectedApps.first()
+                        icons.preloadIcons(listOf(pkg))
+                        val installed = try {
+                            context.packageManager.getPackageInfo(pkg, PackageManager.MATCH_ALL); true
+                        } catch (_: PackageManager.NameNotFoundException) { false }
+                        val label = try {
+                            val info = context.packageManager.getApplicationInfo(pkg, 0)
+                            context.packageManager.getApplicationLabel(info).toString()
+                        } catch (_: Exception) { pkg }
+                        views.setTextViewText(WidgetListR.id.nano_business_name, label)
+                        views.setTextViewText(WidgetListR.id.nano_distance,
+                            "@ ${matchedProfile.displayName.substringBefore(" Apps")}")
+                        views.setImageViewResource(WidgetListR.id.nano_status_dot,
+                            if (installed) WidgetListR.drawable.ic_installed_dot
+                            else WidgetListR.drawable.ic_uninstalled_dot)
+                        val bmp = icons.getIconBitmap(pkg)
+                        if (bmp != null) views.setImageViewBitmap(WidgetListR.id.nano_app_icon, scaledForWidget(bmp, 80))
+                        else views.setImageViewResource(WidgetListR.id.nano_app_icon, android.R.drawable.sym_def_app_icon)
+                        val clickIntent = Intent(WidgetClickReceiver.ACTION_WIDGET_ITEM_CLICK).apply {
+                            setPackage(context.packageName)
+                            putExtra(WidgetClickReceiver.EXTRA_PACKAGE_NAME, pkg)
+                        }
+                        views.setOnClickPendingIntent(WidgetListR.id.nano_root,
+                            PendingIntent.getBroadcast(context, appWidgetId * 1000, clickIntent,
+                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+                        return@runBlocking
+                    }
 
                     val branchFinder = ep.nearbyBranchFinder()
                     val nearestBranches = if (location != null) {
@@ -493,7 +535,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     minWidthDp <= 280 -> 3
                     else -> 4
                 }
-            } else 3
+            } else rowsPerColumn(minHeightDp)
 
             runBlocking {
                 try {
@@ -506,6 +548,51 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     val prefs = ep.settingsRepository().getCurrentPreferences()
                     repo.initialize()
                     val location = withTimeoutOrNull(5000L) { locProvider.getCurrentLocation() }
+
+                    // Check if at a saved profile location — if so, show that profile's apps.
+                    val profileRepo = ep.locationProfileRepository()
+                    val matchedProfile = if (location != null) {
+                        ProfileId.values().map { id -> profileRepo.getProfile(id).first() }
+                            .firstOrNull { profile ->
+                                val lat = profile.latitude ?: return@firstOrNull false
+                                val lon = profile.longitude ?: return@firstOrNull false
+                                profile.selectedApps.isNotEmpty() &&
+                                    calc.calculateDistanceMeters(
+                                        location.latitude, location.longitude, lat, lon
+                                    ) <= prefs.searchRadiusMeters
+                            }
+                    } else null
+
+                    if (matchedProfile != null) {
+                        val profileApps = matchedProfile.selectedApps.take(itemCount)
+                        icons.preloadIcons(profileApps)
+                        val profileItems = profileApps.mapIndexed { _, pkg ->
+                            val installed = try {
+                                context.packageManager.getPackageInfo(pkg, PackageManager.MATCH_ALL); true
+                            } catch (_: PackageManager.NameNotFoundException) { false }
+                            val label = try {
+                                val info = context.packageManager.getApplicationInfo(pkg, 0)
+                                context.packageManager.getApplicationLabel(info).toString()
+                            } catch (_: Exception) { pkg }
+                            WidgetDisplayItem(pkg, label,
+                                "@ ${matchedProfile.displayName.substringBefore(" Apps")}", installed)
+                        }
+                        if (isHorizontal) {
+                            views.removeAllViews(WidgetListR.id.strip_h_items_container)
+                            profileItems.forEachIndexed { i, item ->
+                                views.addView(WidgetListR.id.strip_h_items_container,
+                                    makeCompactItem(context, appWidgetId, i, item, icons, darkTheme))
+                            }
+                        } else {
+                            views.removeAllViews(WidgetListR.id.strip_items_container)
+                            profileItems.forEachIndexed { i, item ->
+                                views.addView(WidgetListR.id.strip_items_container,
+                                    makeStripItem(context, appWidgetId, i, item, icons, darkTheme))
+                            }
+                            views.setTextViewText(WidgetListR.id.strip_page_indicator, "")
+                        }
+                        return@runBlocking
+                    }
 
                     val branchFinder = ep.nearbyBranchFinder()
                     val nearestBranches = if (location != null) {
@@ -616,6 +703,10 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
             if (bmp.width <= maxPx && bmp.height <= maxPx) return bmp
             return android.graphics.Bitmap.createScaledBitmap(bmp, maxPx, maxPx, true)
         }
+
+        /** How many item-rows fit in a widget of [heightDp] dp (header ~50dp, each row ~68dp). */
+        private fun rowsPerColumn(heightDp: Int): Int =
+            ((heightDp - 50) / 68).coerceIn(2, 8)
 
         private data class WidgetDisplayItem(
             val packageName: String,

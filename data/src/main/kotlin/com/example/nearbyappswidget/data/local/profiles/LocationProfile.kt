@@ -15,6 +15,7 @@ data class LocationProfile(
 enum class ProfileId(val key: String, val displayName: String) {
     HOME("home", "Home Apps"),
     WORK("work", "Work Apps"),
+    GYM("gym", "Gym Apps"),
     CUSTOM1("custom1", "Custom Location 1"),
     CUSTOM2("custom2", "Custom Location 2");
 

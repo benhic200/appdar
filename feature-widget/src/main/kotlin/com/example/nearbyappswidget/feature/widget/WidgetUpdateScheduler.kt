@@ -33,8 +33,10 @@ object WidgetUpdateScheduler {
     }
 
     private fun buildPendingIntent(context: Context): PendingIntent {
-        val intent = Intent(context, NearbyAppsWidgetProvider::class.java).apply {
-            action = ACTION_SCHEDULED_UPDATE
+        // Use package-scoped broadcast (no component) so all widget variants
+        // (Nano, Strip, Grid) registered with ACTION_SCHEDULED_UPDATE also receive it.
+        val intent = Intent(ACTION_SCHEDULED_UPDATE).apply {
+            setPackage(context.packageName)
         }
         return PendingIntent.getBroadcast(
             context, REQUEST_CODE, intent,
