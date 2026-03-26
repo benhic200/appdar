@@ -31,6 +31,7 @@ import com.example.nearbyappswidget.feature.settings.SettingsContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
@@ -119,6 +120,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val appPrefs = getSharedPreferences("appdar_prefs", MODE_PRIVATE)
+        val _onboardingComplete = mutableStateOf(appPrefs.getBoolean("onboarding_complete", false))
+
         setContent {
             val prefs by settingsRepository.userPreferences
                 .collectAsState(initial = com.example.nearbyappswidget.data.local.settings.UserPreferences())
@@ -127,19 +131,35 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.DARK   -> true
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
             }
+            val onboardingComplete by _onboardingComplete
             MaterialTheme(
                 colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme()
             ) {
-                TabbedAppScreen(
-                    repository = repository,
-                    permissionState = _permissionState.value,
-                    dbSeeded = _dbSeeded.value,
-                    onRequestPermission = { requestLocationPermission() },
-                    onSeedDatabase = { seedDatabase() },
-                    onOpenAppSettings = { openAppSettings() },
-                    onOpenBatterySettings = { openBatterySettings() },
-                    onFinishSetup = { finish() }
-                )
+                if (!onboardingComplete) {
+                    OnboardingScreen(
+                        permissionState = _permissionState.value,
+                        onRequestPermission = { requestLocationPermission() },
+                        onOpenAppSettings = { openAppSettings() },
+                        onOpenBatterySettings = { openBatterySettings() },
+                        onComplete = {
+                            appPrefs.edit().putBoolean("onboarding_complete", true).apply()
+                            _onboardingComplete.value = true
+                            // Trigger database seed if not done yet
+                            if (!_dbSeeded.value) seedDatabase()
+                        }
+                    )
+                } else {
+                    TabbedAppScreen(
+                        repository = repository,
+                        permissionState = _permissionState.value,
+                        dbSeeded = _dbSeeded.value,
+                        onRequestPermission = { requestLocationPermission() },
+                        onSeedDatabase = { seedDatabase() },
+                        onOpenAppSettings = { openAppSettings() },
+                        onOpenBatterySettings = { openBatterySettings() },
+                        onFinishSetup = { finish() }
+                    )
+                }
             }
         }
         // Check permission on create
@@ -263,6 +283,7 @@ fun TabbedAppScreen(
         "custom2" -> "Custom Location 2"
         "settings" -> "Settings"
         "setup"   -> "Setup"
+        "guide"   -> "User Guide"
         else      -> "Dashboard"
     }
 
@@ -353,6 +374,15 @@ fun TabbedAppScreen(
                         coroutineScope.launch { drawerState.close() }
                     }
                 )
+                NavigationDrawerItem(
+                    icon = { Icon(Icons.Filled.Help, contentDescription = null) },
+                    label = { Text("Guide") },
+                    selected = currentScreen == "guide",
+                    onClick = {
+                        currentScreen = "guide"
+                        coroutineScope.launch { drawerState.close() }
+                    }
+                )
             }
         }
     ) {
@@ -423,6 +453,7 @@ fun TabbedAppScreen(
                             onFinishSetup = onFinishSetup
                         )
                     }
+                    "guide"   -> UserGuideScreen()
                 }
             }
         }

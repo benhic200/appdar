@@ -97,12 +97,13 @@
     </LinearLayout>
 
     <!-- Items added dynamically via RemoteViews.addView() -->
-    <LinearLayout
+    <GridLayout
         android:id="@+id/items_container"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:orientation="vertical"
+        android:columnCount="2"
+        android:useDefaultMargins="false"
         android:paddingStart="8dp"
         android:paddingEnd="8dp"
         android:paddingBottom="8dp" />

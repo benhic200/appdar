@@ -1241,3 +1241,38 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
 **Test v65:** Verify widget loads on Android 12+ devices (no "Can't load widget" error), check that navigation/refresh icons follow widget theme (grey/grey) instead of fixed blue, and confirm scrollable‑layout background/text colours match selected theme.
 
 **Ready for testing.** 📱🎯
+
+**v66 Built (Icon Size Fix + Git‑Push Integration) – 2026‑03‑25 23:11 GMT**
+**Changes:**
+- **Icon size reduced from 48 dp to 40 dp** – `AppIconLoader.BITMAP_SIZE_DP = 40`. This yields 80 px at 2× density, cutting IPC payload from ~370 KB to ~256 KB for 10 icons, well under the 1 MB RemoteViews limit.
+- **Git‑push integration** – build script now automatically commits version‑code changes and pushes to `origin/main` after a successful build. Includes pull‑before‑push to avoid rejections.
+- **No functional changes to UI** – widget behaviour unchanged; only memory/performance improvement.
+
+**Build details:**
+- **VersionCode 66** (versionName "1.66")
+- **SHA‑256:** `ded84a04fe7c4bed936d0d55d923cede074b9f09fb4796ab5d908255a4a02e01`
+- **Download:** `http://192.168.0.111:8080/nearby‑apps‑widget‑v66.apk`
+- **Build log:** Success (56s, 309 tasks executed)
+- **Git commit:** [`578f735`](https://github.com/benhic200/appdar/commit/578f735) – Build v66
+
+**Test v66:** Verify widget still loads and displays icons correctly (no visual regression). The icon cache now stores 40 dp bitmaps; memory usage should be slightly lower.
+
+**Ready for testing.** 📱🎯
+
+**v68 Built (MIUI Color‑Fix & Script Repair) – 2026‑03‑25 23:40 GMT**
+**Changes:**
+- **All programmatic colour calls removed** – `NearbyAppsWidgetProvider.kt` now uses separate dark/light XML layouts (`widget_nearby_apps_list_dark.xml` / `widget_nearby_apps_list.xml`) with zero reflection calls (MIUI‑safe).
+- **Icon size remains 40 dp** (80 px at 2×) – memory footprint ~256 KB for 10 icons.
+- **Build‑script syntax error fixed** – missing `fi` added; git‑push block now closes correctly.
+- **Version auto‑incremented to 68** (script increments versionCode after reading).
+
+**Build details:**
+- **VersionCode 68** (versionName "1.68")
+- **SHA‑256:** `7a9bfe08c43d5ffa662d2d2017577a2b0267d700d1c7d6739967d04b111022fa`
+- **Download:** `http://192.168.0.111:8080/nearby‑apps‑widget‑v68.apk`
+- **External:** `https://hickielaptopkali.tail25553f.ts.net:8081/nearby‑apps‑widget‑v68.apk`
+- **Build log:** Success (2m 13s, 309 tasks executed)
+
+**Test v68:** Install, then **remove and re‑add the widget** from the home screen to pick up the new layout (MIUI caches widget views). Verify widget loads on Android 12+ devices with no "Can't load widget" error, and that dark/light themes work via separate XML files.
+
+**Ready for testing.** 📱🎯

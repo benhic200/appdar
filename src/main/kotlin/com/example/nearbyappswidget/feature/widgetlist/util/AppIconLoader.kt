@@ -12,7 +12,7 @@ import androidx.core.graphics.drawable.toBitmap
 class AppIconLoader private constructor(private val context: Context) {
     companion object {
         private const val CACHE_SIZE = 50
-        private const val BITMAP_SIZE_DP = 48
+        private const val BITMAP_SIZE_DP = 40 // desired icon size in dp (80 px at 2× density)
 
         @Volatile
         private var instance: AppIconLoader? = null

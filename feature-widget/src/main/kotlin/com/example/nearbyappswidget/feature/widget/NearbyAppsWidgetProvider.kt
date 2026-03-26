@@ -8,7 +8,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
-import android.content.res.ColorStateList
 import android.util.Log
 import android.widget.RemoteViews
 import androidx.annotation.RequiresApi
@@ -111,7 +110,7 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
     companion object {
         // Width thresholds in dp
         private const val THRESHOLD_1X1_WIDTH_DP = 80
-        private const val THRESHOLD_2COL_WIDTH_DP = 300  // full-width on most phones → 2-column grid
+        private const val THRESHOLD_2COL_WIDTH_DP = 9999  // TEST: force 1-column to isolate nesting crash
 
         public fun updateAppWidget(
             context: Context,
@@ -165,26 +164,6 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
             // API < 31: use RemoteViewsService + setPendingIntentTemplate fill-in pattern.
             val views = RemoteViews(context.packageName, WidgetListR.layout.widget_nearby_apps_scrollable)
 
-            runBlocking {
-                try {
-                    val ep = EntryPointAccessors.fromApplication(
-                        context.applicationContext, WidgetListEntryPoint::class.java
-                    )
-                    val settings = ep.settingsRepository()
-                    val prefs = settings.getCurrentPreferences()
-                    val wColors = resolveWidgetColors(context, prefs.widgetTheme)
-                    views.setInt(WidgetListR.id.widget_root, "setBackgroundColor", wColors.background)
-                    views.setTextColor(WidgetListR.id.widget_header, wColors.textPrimary)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        views.setColorStateList(WidgetListR.id.refresh_icon, "setImageTintList", ColorStateList.valueOf(wColors.iconTint))
-                    } else {
-                        views.setInt(WidgetListR.id.refresh_icon, "setColorFilter", wColors.iconTint)
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to apply widget theme colors", e)
-                }
-            }
-
             val serviceIntent = Intent(context, NearbyAppsWidgetListService::class.java).apply {
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
                 data = android.net.Uri.parse("widget://$appWidgetId")
@@ -227,7 +206,21 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
             // Use a LinearLayout-based layout (not ListView). Items are added via addView()
             // so each gets setOnClickPendingIntent — the same mechanism as the working refresh
             // button. MIUI drops collection-widget item clicks but not regular view clicks.
-            val views = RemoteViews(context.packageName, WidgetListR.layout.widget_nearby_apps_list)
+
+            // Resolve dark/light before we build RemoteViews so we can pick the right layout XML.
+            // All colors come from the XML — zero programmatic color calls to avoid MIUI reflection failures.
+            val darkThemeEarly = run {
+                try {
+                    val ep = EntryPointAccessors.fromApplication(
+                        context.applicationContext, WidgetListEntryPoint::class.java
+                    )
+                    val prefs = runBlocking { ep.settingsRepository().getCurrentPreferences() }
+                    resolveWidgetDark(context, prefs.widgetTheme)
+                } catch (_: Exception) { false }
+            }
+            val rootLayout = if (darkThemeEarly) WidgetListR.layout.widget_nearby_apps_list_dark
+                             else WidgetListR.layout.widget_nearby_apps_list
+            val views = RemoteViews(context.packageName, rootLayout)
 
             val refreshIntent = Intent(context, NearbyAppsWidgetProvider::class.java).apply {
                 action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
@@ -261,13 +254,6 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     val icons = ep.appIconLoader()
 
                     val prefs = settings.getCurrentPreferences()
-                    val wColors = resolveWidgetColors(context, prefs.widgetTheme)
-                    views.setInt(WidgetListR.id.widget_root, "setBackgroundColor", wColors.background)
-                    views.setTextColor(WidgetListR.id.tv_page_indicator, wColors.textSecondary)
-                    views.setColorStateList(WidgetListR.id.btn_prev_page, "setImageTintList", ColorStateList.valueOf(wColors.iconTint))
-                    views.setColorStateList(WidgetListR.id.btn_next_page, "setImageTintList", ColorStateList.valueOf(wColors.iconTint))
-                    views.setColorStateList(WidgetListR.id.settings_icon, "setImageTintList", ColorStateList.valueOf(wColors.iconTint))
-                    views.setColorStateList(WidgetListR.id.refresh_icon, "setImageTintList", ColorStateList.valueOf(wColors.iconTint))
                     repo.initialize()
                     val mappings = repo.getAllMappings().first()
 
@@ -316,7 +302,7 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
                             } catch (_: Exception) { pkg }
                             WidgetDisplayItem(pkg, label, "@ ${profileName.substringBefore(" Apps")}", installed)
                         }
-                        addItemsToContainer(context, views, appWidgetId, twoColumn, profileDisplayItems, icons, wColors)
+                        addItemsToContainer(context, views, appWidgetId, twoColumn, profileDisplayItems, icons, darkThemeEarly)
                         Log.d(TAG, "Profile page built: ${pageItems.size} items for widget $appWidgetId")
                         appWidgetManager.updateAppWidget(appWidgetId, views)
                         return@runBlocking
@@ -366,7 +352,7 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
                                else context.getString(WidgetListR.string.distance_km_format, dist / 1000.0)
                         WidgetDisplayItem(m.packageName, m.businessName, distText, installed)
                     }
-                    addItemsToContainer(context, views, appWidgetId, twoColumn, nearbyDisplayItems, icons, wColors)
+                    addItemsToContainer(context, views, appWidgetId, twoColumn, nearbyDisplayItems, icons, darkThemeEarly)
                     Log.d(TAG, "addView page $currentPage/$totalPages built: ${pageItems.size} items for widget $appWidgetId")
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to build addView items", e)
@@ -376,34 +362,14 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
 
-        private data class WidgetColors(
-            val background: Int,
-            val textPrimary: Int,
-            val textSecondary: Int,
-            val iconTint: Int
-        )
-
-        private fun resolveWidgetColors(context: Context, theme: WidgetTheme): WidgetColors {
-            val dark = when (theme) {
-                WidgetTheme.DARK -> true
-                WidgetTheme.LIGHT -> false
-                WidgetTheme.SYSTEM -> {
-                    val uiMgr = context.getSystemService(android.content.Context.UI_MODE_SERVICE)
-                        as android.app.UiModeManager
-                    uiMgr.nightMode == android.app.UiModeManager.MODE_NIGHT_YES
-                }
+        private fun resolveWidgetDark(context: Context, theme: WidgetTheme): Boolean = when (theme) {
+            WidgetTheme.DARK -> true
+            WidgetTheme.LIGHT -> false
+            WidgetTheme.SYSTEM -> {
+                val uiMgr = context.getSystemService(android.content.Context.UI_MODE_SERVICE)
+                    as android.app.UiModeManager
+                uiMgr.nightMode == android.app.UiModeManager.MODE_NIGHT_YES
             }
-            return if (dark) WidgetColors(
-                background    = 0xFF1C1C1E.toInt(),
-                textPrimary   = 0xFFFFFFFF.toInt(),
-                textSecondary = 0xFFAAAAAA.toInt(),
-                iconTint      = 0xFFAAAAAA.toInt()
-            ) else WidgetColors(
-                background    = 0xFFF5F5F5.toInt(),
-                textPrimary   = 0xFF212121.toInt(),
-                textSecondary = 0xFF757575.toInt(),
-                iconTint      = 0xFF757575.toInt()
-            )
         }
 
         /**
@@ -429,14 +395,13 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
             globalIdx: Int,
             item: WidgetDisplayItem,
             icons: AppIconLoader,
-            colors: WidgetColors
+            darkTheme: Boolean
         ): RemoteViews {
-            val rv = RemoteViews(context.packageName, WidgetListR.layout.widget_list_item)
-            rv.setInt(WidgetListR.id.item_root, "setBackgroundColor", colors.background)
+            val layout = if (darkTheme) WidgetListR.layout.widget_list_item_dark
+                         else WidgetListR.layout.widget_list_item
+            val rv = RemoteViews(context.packageName, layout)
             rv.setTextViewText(WidgetListR.id.business_name, item.label)
-            rv.setTextColor(WidgetListR.id.business_name, colors.textPrimary)
             rv.setTextViewText(WidgetListR.id.distance, item.subtext)
-            rv.setTextColor(WidgetListR.id.distance, colors.textSecondary)
             rv.setImageViewResource(
                 WidgetListR.id.status_dot,
                 if (item.installed) WidgetListR.drawable.ic_installed_dot else WidgetListR.drawable.ic_uninstalled_dot
@@ -462,14 +427,13 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
             globalIdx: Int,
             item: WidgetDisplayItem,
             icons: AppIconLoader,
-            colors: WidgetColors
+            darkTheme: Boolean
         ): RemoteViews {
-            val rv = RemoteViews(context.packageName, WidgetListR.layout.widget_list_item_compact)
-            rv.setInt(WidgetListR.id.compact_item_root, "setBackgroundColor", colors.background)
+            val layout = if (darkTheme) WidgetListR.layout.widget_list_item_compact_dark
+                         else WidgetListR.layout.widget_list_item_compact
+            val rv = RemoteViews(context.packageName, layout)
             rv.setTextViewText(WidgetListR.id.compact_business_name, item.label)
-            rv.setTextColor(WidgetListR.id.compact_business_name, colors.textPrimary)
             rv.setTextViewText(WidgetListR.id.compact_distance, item.subtext)
-            rv.setTextColor(WidgetListR.id.compact_distance, colors.textSecondary)
             rv.setImageViewResource(
                 WidgetListR.id.compact_status_dot,
                 if (item.installed) WidgetListR.drawable.ic_installed_dot else WidgetListR.drawable.ic_uninstalled_dot
@@ -496,27 +460,26 @@ class NearbyAppsWidgetProvider : AppWidgetProvider() {
             twoColumn: Boolean,
             pageItems: List<WidgetDisplayItem>,
             icons: AppIconLoader,
-            colors: WidgetColors,
+            darkTheme: Boolean,
             pageOffset: Int = 0
         ) {
             if (twoColumn) {
-                var idx = 0
-                while (idx < pageItems.size) {
-                    val row = RemoteViews(context.packageName, WidgetListR.layout.widget_item_row)
-                    row.setInt(WidgetListR.id.row_container, "setBackgroundColor", colors.background)
-                    row.addView(WidgetListR.id.row_container,
-                        makeCompactItem(context, appWidgetId, pageOffset + idx, pageItems[idx], icons, colors))
-                    if (idx + 1 < pageItems.size) {
-                        row.addView(WidgetListR.id.row_container,
-                            makeCompactItem(context, appWidgetId, pageOffset + idx + 1, pageItems[idx + 1], icons, colors))
-                    }
-                    views.addView(WidgetListR.id.items_container, row)
-                    idx += 2
+                // GridLayout with columnCount=2; add compact items directly
+                for ((i, item) in pageItems.withIndex()) {
+                    val column = i % 2
+                    val row = i / 2
+                    val itemView = makeCompactItem(context, appWidgetId, pageOffset + i, item, icons, darkTheme)
+                    // Set GridLayout layout params
+                    itemView.setInt(WidgetListR.id.compact_item_root, "setLayoutColumn", column)
+                    itemView.setInt(WidgetListR.id.compact_item_root, "setLayoutRow", row)
+                    itemView.setInt(WidgetListR.id.compact_item_root, "setLayoutColumnWeight", 1)
+                    // itemView.setInt(WidgetListR.id.compact_item_root, "setLayoutRowWeight", 0)
+                    views.addView(WidgetListR.id.items_container, itemView)
                 }
             } else {
                 for ((i, item) in pageItems.withIndex()) {
                     views.addView(WidgetListR.id.items_container,
-                        makeRegularItem(context, appWidgetId, pageOffset + i, item, icons, colors))
+                        makeRegularItem(context, appWidgetId, pageOffset + i, item, icons, darkTheme))
                 }
             }
         }
