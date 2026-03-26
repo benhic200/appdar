@@ -181,8 +181,8 @@ internal class NearbyAppsWidgetListFactory(
 
                 // Ensure database is seeded
                 businessAppRepository.initialize()
-                // Load all business mappings
-                val mappings = businessAppRepository.getAllMappings().first()
+                // Load all enabled business mappings
+                val mappings = businessAppRepository.getAllMappings().first().filter { it.isEnabled }
                 Log.d(TAG, "Loaded ${mappings.size} business mappings")
 
                 // Get current location (fallback to stub London)

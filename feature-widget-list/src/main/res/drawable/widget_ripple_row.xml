@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Rectangular ripple for light-theme tappable rows and the nano root.
+    Base layer matches the widget background so the view looks identical at rest.
+-->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#40AB47BC">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFDF8FF" />
+        </shape>
+    </item>
+</ripple>

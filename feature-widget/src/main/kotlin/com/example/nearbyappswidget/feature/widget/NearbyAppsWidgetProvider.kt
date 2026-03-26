@@ -554,8 +554,14 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
         ) {
             Log.d(TAG, "updateAsNano id=$appWidgetId minHeight=${minHeightDp}dp")
             val darkTheme = resolveDarkTheme(context)
-            val views = RemoteViews(context.packageName,
-                if (darkTheme) WidgetListR.layout.widget_nano_dark else WidgetListR.layout.widget_nano)
+            val isShort = minHeightDp < 90
+            val layoutRes = when {
+                isShort && darkTheme -> WidgetListR.layout.widget_nano_short_dark
+                isShort             -> WidgetListR.layout.widget_nano_short
+                darkTheme           -> WidgetListR.layout.widget_nano_dark
+                else                -> WidgetListR.layout.widget_nano
+            }
+            val views = RemoteViews(context.packageName, layoutRes)
 
             val refreshPi = buildRefreshPi(context, appWidgetId)
             views.setOnClickPendingIntent(WidgetListR.id.nano_refresh, refreshPi)
@@ -659,12 +665,6 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to build nano widget", e)
                 }
-            }
-            // Short widget: hide chip row and shrink icon so it fits in ≤90dp height
-            if (minHeightDp < 90) {
-                views.setViewVisibility(WidgetListR.id.nano_chip_row, android.view.View.GONE)
-                views.setViewLayoutWidth(WidgetListR.id.nano_app_icon, 40f, android.util.TypedValue.COMPLEX_UNIT_DIP)
-                views.setViewLayoutHeight(WidgetListR.id.nano_app_icon, 40f, android.util.TypedValue.COMPLEX_UNIT_DIP)
             }
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
@@ -873,9 +873,9 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
             return android.graphics.Bitmap.createScaledBitmap(bmp, maxPx, maxPx, true)
         }
 
-        /** How many item-rows fit in a grid widget of [heightDp] dp (header ~50dp, each row ~68dp). */
+        /** How many item-rows fit in a grid widget of [heightDp] dp (header ~40dp, each compact row ~103dp). */
         private fun rowsPerColumn(heightDp: Int): Int =
-            ((heightDp - 50) / 68).coerceIn(2, 8)
+            ((heightDp - 40) / 105).coerceIn(1, 4)
 
         /** How many item-rows fit in a strip widget of [heightDp] dp (header ~30dp, each row ~42dp). */
         private fun rowsPerColumnStrip(heightDp: Int): Int =

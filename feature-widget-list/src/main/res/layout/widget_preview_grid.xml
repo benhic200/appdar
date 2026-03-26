@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Static preview layout for the grid widget shown in the widget picker (android:previewLayout, API 31+).
+    Mirrors widget_nearby_apps_list.xml root + widget_list_item_compact.xml cells, 2 columns.
+    Hardcoded sample data — never receives RemoteViews updates.
+    Must not use Space, GridLayout, or ?android:attr/ theme references.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FFFDF8FF">
+
+    <!-- Header: mirrors widget_nearby_apps_list.xml header exactly -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <!-- Previous page arrow (invisible — page 1 of 1) -->
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@android:drawable/ic_media_previous"
+            android:padding="4dp"
+            android:tint="#FFAB47BC"
+            android:visibility="invisible"
+            android:importantForAccessibility="no" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="2dp"
+            android:paddingEnd="2dp"
+            android:text="1/1"
+            android:textColor="#FF6B5B95"
+            android:textSize="11sp" />
+
+        <!-- Next page arrow (invisible — only 1 page) -->
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@android:drawable/ic_media_next"
+            android:padding="4dp"
+            android:tint="#FFAB47BC"
+            android:visibility="invisible"
+            android:importantForAccessibility="no" />
+
+        <!-- Spacer -->
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_settings_gear"
+            android:padding="4dp"
+            android:tint="#FFAB47BC"
+            android:contentDescription="Settings"
+            android:importantForAccessibility="no" />
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@android:drawable/ic_menu_rotate"
+            android:padding="4dp"
+            android:tint="#FFAB47BC"
+            android:contentDescription="Refresh"
+            android:importantForAccessibility="no" />
+    </LinearLayout>
+
+    <!-- Items container: matches items_container padding -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="8dp">
+
+        <!-- Row 1: Costa Coffee · Tesco -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <!-- Compact cell: Costa Coffee, installed -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:padding="8dp"
+                android:background="#FFFDF8FF">
+
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@android:drawable/sym_def_app_icon"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:text="Costa Coffee"
+                    android:textColor="#FF212121"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:background="@drawable/chip_background"
+                    android:paddingStart="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingEnd="6dp"
+                    android:paddingBottom="2dp"
+                    android:text="120 m"
+                    android:textColor="#FF6A1B9A"
+                    android:textSize="10sp"
+                    android:maxLines="1" />
+
+                <ImageView
+                    android:layout_width="6dp"
+                    android:layout_height="6dp"
+                    android:layout_marginTop="4dp"
+                    android:src="@drawable/ic_installed_dot"
+                    android:importantForAccessibility="no" />
+            </LinearLayout>
+
+            <!-- Compact cell: Tesco, installed -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:padding="8dp"
+                android:background="#FFFDF8FF">
+
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@android:drawable/sym_def_app_icon"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:text="Tesco"
+                    android:textColor="#FF212121"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:background="@drawable/chip_background"
+                    android:paddingStart="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingEnd="6dp"
+                    android:paddingBottom="2dp"
+                    android:text="340 m"
+                    android:textColor="#FF6A1B9A"
+                    android:textSize="10sp"
+                    android:maxLines="1" />
+
+                <ImageView
+                    android:layout_width="6dp"
+                    android:layout_height="6dp"
+                    android:layout_marginTop="4dp"
+                    android:src="@drawable/ic_installed_dot"
+                    android:importantForAccessibility="no" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Row 2: McDonald's · Boots -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <!-- Compact cell: McDonald's, not installed -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:padding="8dp"
+                android:background="#FFFDF8FF">
+
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@android:drawable/sym_def_app_icon"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:text="McDonald\'s"
+                    android:textColor="#FF212121"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:background="@drawable/chip_background"
+                    android:paddingStart="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingEnd="6dp"
+                    android:paddingBottom="2dp"
+                    android:text="0.5 km"
+                    android:textColor="#FF6A1B9A"
+                    android:textSize="10sp"
+                    android:maxLines="1" />
+
+                <ImageView
+                    android:layout_width="6dp"
+                    android:layout_height="6dp"
+                    android:layout_marginTop="4dp"
+                    android:src="@drawable/ic_uninstalled_dot"
+                    android:importantForAccessibility="no" />
+            </LinearLayout>
+
+            <!-- Compact cell: Boots, installed -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:padding="8dp"
+                android:background="#FFFDF8FF">
+
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@android:drawable/sym_def_app_icon"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:text="Boots"
+                    android:textColor="#FF212121"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:background="@drawable/chip_background"
+                    android:paddingStart="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingEnd="6dp"
+                    android:paddingBottom="2dp"
+                    android:text="0.8 km"
+                    android:textColor="#FF6A1B9A"
+                    android:textSize="10sp"
+                    android:maxLines="1" />
+
+                <ImageView
+                    android:layout_width="6dp"
+                    android:layout_height="6dp"
+                    android:layout_marginTop="4dp"
+                    android:src="@drawable/ic_installed_dot"
+                    android:importantForAccessibility="no" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

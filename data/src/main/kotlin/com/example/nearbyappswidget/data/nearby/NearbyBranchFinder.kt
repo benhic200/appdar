@@ -39,18 +39,66 @@ class NearbyBranchFinder @Inject constructor(
         /**
          * Maps each business name (as stored in the DB) to its OSM brand tag.
          * OSM uses the brand tag to identify chain stores consistently.
+         * Overpass API works globally, so UK and US brands are both covered.
          */
         private val BRAND_TAGS = mapOf(
-            "Tesco"        to "Tesco",
-            "McDonald's"   to "McDonald's",
-            "Greggs"       to "Greggs",
-            "Costa Coffee" to "Costa Coffee",
-            "Asda"         to "Asda",
-            "Lidl"         to "Lidl",
-            "Premier Inn"  to "Premier Inn",
-            "Starbucks"    to "Starbucks",
-            "Boots"        to "Boots",
-            "WHSmith"      to "WH Smith"
+            // UK supermarkets
+            "Tesco"           to "Tesco",
+            "Sainsbury's"     to "Sainsbury's",
+            "Asda"            to "Asda",
+            "Morrisons"       to "Morrisons",
+            "Aldi"            to "Aldi",
+            "Lidl"            to "Lidl",
+            "Waitrose"        to "Waitrose",
+            "M&S"             to "Marks & Spencer",
+            "Iceland"         to "Iceland",
+            "Co-op"           to "Co-op",
+            // UK coffee & bakery
+            "Costa Coffee"    to "Costa Coffee",
+            "Starbucks"       to "Starbucks",
+            "Caffè Nero"      to "Caffè Nero",
+            "Pret A Manger"   to "Pret A Manger",
+            "Greggs"          to "Greggs",
+            // UK fast food
+            "McDonald's"      to "McDonald's",
+            "Burger King"     to "Burger King",
+            "KFC"             to "KFC",
+            "Subway"          to "Subway",
+            "Nando's"         to "Nando's",
+            "Five Guys"       to "Five Guys",
+            "Wagamama"        to "wagamama",
+            "Domino's"        to "Domino's",
+            "Papa John's"     to "Papa John's",
+            "Pizza Hut"       to "Pizza Hut",
+            "Leon"            to "LEON",
+            // UK pubs & retail
+            "Wetherspoons"    to "Wetherspoons",
+            "Boots"           to "Boots",
+            "WHSmith"         to "WH Smith",
+            // Hotels (global)
+            "Premier Inn"     to "Premier Inn",
+            "Travelodge"      to "Travelodge",
+            "Hilton"          to "Hilton",
+            "Marriott"        to "Marriott",
+            "Holiday Inn"     to "Holiday Inn",
+            // US supermarkets & retail
+            "Walmart"         to "Walmart",
+            "Target"          to "Target",
+            "Costco"          to "Costco",
+            "Whole Foods"     to "Whole Foods Market",
+            "Walgreens"       to "Walgreens",
+            "CVS"             to "CVS",
+            // US fast food & coffee — separate entries so both UK+US apps can match
+            "McDonald's (US)" to "McDonald's",
+            "Burger King (US)"to "Burger King",
+            "KFC (US)"        to "KFC",
+            "Taco Bell"       to "Taco Bell",
+            "Chipotle"        to "Chipotle",
+            "Chick-fil-A"     to "Chick-fil-A",
+            "Dunkin'"         to "Dunkin'",
+            "Panera Bread"    to "Panera Bread",
+            "Shake Shack"     to "Shake Shack",
+            "Domino's (US)"   to "Domino's"
         )
     }
 

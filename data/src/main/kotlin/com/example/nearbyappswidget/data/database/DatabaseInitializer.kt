@@ -33,20 +33,27 @@ object DatabaseInitializer {
     }
 
     /**
-     * Seeds the database with the initial dataset if the database is empty.
-     * Call this during app startup (e.g., in Application.onCreate or first repository access).
+     * Seeds the database on first install, and inserts any new entries from InitialDataset
+     * that are not yet present (identified by package name). Existing entries are untouched
+     * so user toggles are preserved.
      */
     suspend fun seedIfNeeded(dao: BusinessAppMappingDao) {
         val count = dao.count()
         Log.d(TAG, "Database row count: $count")
+        val allDataset = InitialDataset.getMappings()
         if (count == 0) {
-            Log.d(TAG, "Seeding database with initial dataset")
-            val mappings = InitialDataset.getMappings()
-            Log.d(TAG, "Inserting ${mappings.size} mappings")
-            dao.insertAll(mappings)
+            Log.d(TAG, "Seeding database with initial dataset (${allDataset.size} entries)")
+            dao.insertAll(allDataset)
             Log.d(TAG, "Seeding complete")
         } else {
-            Log.d(TAG, "Database already seeded, skipping")
+            // Insert any new entries added since the user first installed
+            val newEntries = allDataset.filter { dao.getByPackageName(it.packageName) == null }
+            if (newEntries.isNotEmpty()) {
+                Log.d(TAG, "Inserting ${newEntries.size} new dataset entries")
+                dao.insertAll(newEntries)
+            } else {
+                Log.d(TAG, "No new dataset entries to insert")
+            }
         }
     }
 

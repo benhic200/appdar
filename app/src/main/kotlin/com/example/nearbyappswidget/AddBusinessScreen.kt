@@ -211,15 +211,6 @@ private fun PlaceMappingCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (mapping.latitude != null && mapping.longitude != null) {
-                    Text(
-                        text = "%.4f, %.4f  •  ${mapping.geofenceRadius}m".format(
-                            mapping.latitude, mapping.longitude
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
 
             if (mapping.isCustom) {

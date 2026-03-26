@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Rectangular ripple for dark-theme tappable rows and the dark nano root.
+    Base layer matches the dark widget background so the view looks identical at rest.
+-->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#50CE93D8">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FF1C1A2E" />
+        </shape>
+    </item>
+</ripple>

@@ -130,106 +130,206 @@ fun LocationProfileScreen(
     val isSettingLocation by viewModel.isSettingLocation.collectAsState()
     var showAppPicker by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+    val profileName = profileId.displayName.substringBefore(" Apps")
+    val locationSet = profile.latitude != null && profile.longitude != null
+    val appsSet = profile.selectedApps.isNotEmpty()
+    val isReady = locationSet && appsSet
+
+    androidx.compose.foundation.lazy.LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Location Card
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "Location",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                if (profile.latitude != null && profile.longitude != null) {
-                    Text(
-                        text = profile.locationLabel ?: "${profile.latitude}, ${profile.longitude}",
-                        style = MaterialTheme.typography.bodyMedium
+
+        // ── How it works banner (shown until fully configured) ────────────────
+        if (!isReady) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
                     )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            "How to set up $profileName Apps",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Text(
+                            "Step 1 — Go to $profileName and tap \"Set to Current Location\". " +
+                            "Appdar will activate this profile whenever you're within 300 m of that spot.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Text(
+                            "Step 2 — Tap \"Choose Apps\" to pick the apps you want to appear in the " +
+                            "widget and Dashboard when you arrive at that location.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+            }
+        }
+
+        // ── Step 1: Activation Location ───────────────────────────────────────
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = if (locationSet) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Text(
+                                "1",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (locationSet) MaterialTheme.colorScheme.onPrimary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                        Text("Activation Location", style = MaterialTheme.typography.titleMedium)
+                    }
+
+                    if (locationSet) {
+                        Text(
+                            "Saved: ${profile.locationLabel ?: "${profile.latitude}, ${profile.longitude}"}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "Appdar will switch to $profileName Apps automatically when you're within 300 m of this location.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { viewModel.setCurrentLocation(profileId) },
+                                enabled = isSettingLocation == null
+                            ) {
+                                if (isSettingLocation == profileId) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                } else {
+                                    Text("Update Location")
+                                }
+                            }
+                            OutlinedButton(
+                                onClick = { viewModel.clearLocation(profileId) },
+                                enabled = isSettingLocation == null
+                            ) {
+                                Text("Clear")
+                            }
+                        }
+                    } else {
+                        Text(
+                            "Go to your $profileName now, then tap the button below to save that spot as your $profileName location.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         Button(
                             onClick = { viewModel.setCurrentLocation(profileId) },
+                            modifier = Modifier.fillMaxWidth(),
                             enabled = isSettingLocation == null
                         ) {
                             if (isSettingLocation == profileId) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp
-                                )
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                             } else {
-                                Text("Update")
+                                Text("Set to Current Location")
                             }
-                        }
-                        OutlinedButton(
-                            onClick = { viewModel.clearLocation(profileId) },
-                            enabled = isSettingLocation == null
-                        ) {
-                            Text("Clear")
-                        }
-                    }
-                } else {
-                    Text(
-                        text = "No location set. Tap below to use your current GPS location.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Button(
-                        onClick = { viewModel.setCurrentLocation(profileId) },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = isSettingLocation == null
-                    ) {
-                        if (isSettingLocation == profileId) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("Set to Current Location")
                         }
                     }
                 }
             }
         }
 
-        // Apps Card
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Apps",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    TextButton(onClick = { showAppPicker = true }) {
-                        Text("Edit")
+        // ── Step 2: Apps ──────────────────────────────────────────────────────
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Surface(
+                                shape = MaterialTheme.shapes.small,
+                                color = if (appsSet) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                            ) {
+                                Text(
+                                    "2",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (appsSet) MaterialTheme.colorScheme.onPrimary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                            Text("Apps to Show", style = MaterialTheme.typography.titleMedium)
+                        }
+                        TextButton(onClick = { showAppPicker = true }) {
+                            Text(if (appsSet) "Edit" else "Choose Apps")
+                        }
+                    }
+
+                    if (appsSet) {
+                        Text(
+                            "These apps appear in the widget and Dashboard when you arrive at your $profileName location:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        profile.selectedApps.forEach { packageName ->
+                            val appLabel = installedApps.find { it.packageName == packageName }?.label ?: packageName
+                            Text("• $appLabel", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    } else {
+                        Text(
+                            "Choose which apps to show in the widget and Dashboard when Appdar detects you're at your $profileName location.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Button(
+                            onClick = { showAppPicker = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Choose Apps")
+                        }
                     }
                 }
-                if (profile.selectedApps.isEmpty()) {
-                    Text(
-                        text = "No apps selected. Tap Edit to choose apps for this profile.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+            }
+        }
+
+        // ── Ready banner ──────────────────────────────────────────────────────
+        if (isReady) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
-                } else {
-                    profile.selectedApps.forEach { packageName ->
-                        val appLabel = installedApps.find { it.packageName == packageName }?.label ?: packageName
-                        Text(
-                            text = "• $appLabel",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text("✓", style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.primary)
+                        Column {
+                            Text(
+                                "$profileName Apps is active",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                "The widget and Dashboard will automatically show your ${profile.selectedApps.size} selected app${if (profile.selectedApps.size != 1) "s" else ""} when you're near ${profile.locationLabel ?: "your saved location"}.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
                 }
             }

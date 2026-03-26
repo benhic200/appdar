@@ -180,6 +180,7 @@ class MainActivity : ComponentActivity() {
                         dbSeeded = _dbSeeded.value,
                         isPro = _isPro.value,
                         onUpgradeTapped = { billingManager.launchPurchaseFlow(this@MainActivity) },
+                        onRestorePurchase = { billingManager.checkExistingPurchases() },
                         onRequestPermission = { requestLocationPermission() },
                         onSeedDatabase = { seedDatabase() },
                         onOpenAppSettings = { openAppSettings() },
@@ -283,6 +284,7 @@ fun TabbedAppScreen(
     dbSeeded: Boolean,
     isPro: Boolean,
     onUpgradeTapped: () -> Unit,
+    onRestorePurchase: () -> Unit,
     onRequestPermission: () -> Unit,
     onSeedDatabase: () -> Unit,
     onOpenAppSettings: () -> Unit,
@@ -390,8 +392,8 @@ fun TabbedAppScreen(
                         badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
                         selected = currentScreen == "work",
                         onClick = {
-                            if (isPro) { currentScreen = "work"; coroutineScope.launch { drawerState.close() } }
-                            else { coroutineScope.launch { drawerState.close() }; onUpgradeTapped() }
+                            if (isPro) { currentScreen = "work" } else { currentScreen = "upgrade" }
+                            coroutineScope.launch { drawerState.close() }
                         }
                     )
                     NavigationDrawerItem(
@@ -401,8 +403,8 @@ fun TabbedAppScreen(
                         badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
                         selected = currentScreen == "gym",
                         onClick = {
-                            if (isPro) { currentScreen = "gym"; coroutineScope.launch { drawerState.close() } }
-                            else { coroutineScope.launch { drawerState.close() }; onUpgradeTapped() }
+                            if (isPro) { currentScreen = "gym" } else { currentScreen = "upgrade" }
+                            coroutineScope.launch { drawerState.close() }
                         }
                     )
                     NavigationDrawerItem(
@@ -412,8 +414,8 @@ fun TabbedAppScreen(
                         badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
                         selected = currentScreen == "custom1",
                         onClick = {
-                            if (isPro) { currentScreen = "custom1"; coroutineScope.launch { drawerState.close() } }
-                            else { coroutineScope.launch { drawerState.close() }; onUpgradeTapped() }
+                            if (isPro) { currentScreen = "custom1" } else { currentScreen = "upgrade" }
+                            coroutineScope.launch { drawerState.close() }
                         }
                     )
                     NavigationDrawerItem(
@@ -423,8 +425,8 @@ fun TabbedAppScreen(
                         badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
                         selected = currentScreen == "custom2",
                         onClick = {
-                            if (isPro) { currentScreen = "custom2"; coroutineScope.launch { drawerState.close() } }
-                            else { coroutineScope.launch { drawerState.close() }; onUpgradeTapped() }
+                            if (isPro) { currentScreen = "custom2" } else { currentScreen = "upgrade" }
+                            coroutineScope.launch { drawerState.close() }
                         }
                     )
 
@@ -465,8 +467,8 @@ fun TabbedAppScreen(
                     if (!isPro) {
                         Surface(
                             onClick = {
+                                currentScreen = "upgrade"
                                 coroutineScope.launch { drawerState.close() }
-                                onUpgradeTapped()
                             },
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
@@ -563,7 +565,8 @@ fun TabbedAppScreen(
                             onSeedDatabase = onSeedDatabase,
                             onOpenAppSettings = onOpenAppSettings,
                             onOpenBatterySettings = onOpenBatterySettings,
-                            onFinishSetup = onFinishSetup
+                            onRestorePurchase = onRestorePurchase,
+                            onFinishSetup = { currentScreen = "dashboard" }
                         )
                     }
                     "setup"   -> Column(
@@ -580,7 +583,8 @@ fun TabbedAppScreen(
                             onSeedDatabase = onSeedDatabase,
                             onOpenAppSettings = onOpenAppSettings,
                             onOpenBatterySettings = onOpenBatterySettings,
-                            onFinishSetup = onFinishSetup
+                            onRestorePurchase = onRestorePurchase,
+                            onFinishSetup = { currentScreen = "dashboard" }
                         )
                     }
                     "guide"   -> UserGuideScreen()
@@ -599,6 +603,7 @@ fun SetupContent(
     onSeedDatabase: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenBatterySettings: () -> Unit,
+    onRestorePurchase: () -> Unit = {},
     onFinishSetup: () -> Unit
 ) {
     // Database status
@@ -614,7 +619,7 @@ fun SetupContent(
             )
             Spacer(modifier = Modifier.height(8.dp))
             if (dbSeeded) {
-                Text("✅ Database seeded with 10 UK businesses.")
+                Text("✅ Database seeded with UK & US businesses.")
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedButton(
                     onClick = onSeedDatabase,
@@ -721,12 +726,35 @@ fun SetupContent(
         }
     }
 
-    // Close button
+    // Restore purchase (new phone / reinstall)
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Restore Purchase",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Already purchased Appdar Pro? Tap below to restore it — useful after reinstalling the app or switching to a new phone.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = onRestorePurchase,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Restore Pro Purchase")
+            }
+        }
+    }
+
+    // Go to Dashboard
     Button(
         onClick = onFinishSetup,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text("Finish Setup")
+        Text("Go to Dashboard")
     }
 }
 
@@ -740,48 +768,106 @@ fun ProUpgradeScreen(onUpgradeTapped: () -> Unit = {}) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Hero card
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        ) {
             Column(
-                modifier = Modifier.padding(24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(
                     imageVector = Icons.Filled.Star,
                     contentDescription = null,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(56.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
-                Text("Upgrade to Pro", style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    "Unlock all location profiles and extra features.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    "Appdar Pro",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
+                Text(
+                    "The right apps for wherever you are.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Text(
+                        "One-time purchase — £1.67",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                    )
+                }
             }
         }
+
         // Feature list
         Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("What's included", style = MaterialTheme.typography.titleMedium)
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("What you get", style = MaterialTheme.typography.titleMedium)
                 listOf(
-                    "Work Apps — apps pinned to your work location",
-                    "Gym Apps — apps pinned to your gym location",
-                    "Custom Location 1 — any place you choose",
-                    "Custom Location 2 — a second custom place"
-                ).forEach { feature ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("✓", color = MaterialTheme.colorScheme.primary)
-                        Text(feature, style = MaterialTheme.typography.bodyMedium)
+                    Triple(Icons.Filled.Work,         "Work Apps",         "Pin the apps you use at work — they appear automatically when you arrive"),
+                    Triple(Icons.Filled.FitnessCenter, "Gym Apps",          "Your gym apps front and centre when you reach the gym"),
+                    Triple(Icons.Filled.Apps,          "Custom Location 1", "Any place you choose — coffee shop, library, anywhere"),
+                    Triple(Icons.Filled.Apps,          "Custom Location 2", "A second fully custom location profile")
+                ).forEach { (icon, title, desc) ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(title, style = MaterialTheme.typography.titleSmall)
+                            Text(desc, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }
         }
+
+        // How it works
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("How it works", style = MaterialTheme.typography.titleMedium)
+                listOf(
+                    "1. Set a location for Work, Gym, or a custom place",
+                    "2. Pin the apps you want to see there",
+                    "3. Appdar automatically shows them when you arrive"
+                ).forEach { step ->
+                    Text(step, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+
         Button(
             onClick = onUpgradeTapped,
             modifier = Modifier.fillMaxWidth()
         ) {
+            Icon(Icons.Filled.Star, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             Text("Unlock Pro — £1.67")
         }
+
+        Text(
+            "One-time payment. No subscription.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
     }
 }

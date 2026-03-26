@@ -118,7 +118,7 @@ class DashboardViewModel @Inject constructor(
 
                 // Not at any profile — show nearby businesses
                 businessAppRepository.initialize()
-                val mappings = businessAppRepository.getAllMappings().first()
+                val mappings = businessAppRepository.getAllMappings().first().filter { it.isEnabled }
                 val branches = if (location != null) {
                     withTimeoutOrNull(10_000L) {
                         nearbyBranchFinder.findNearestBranches(location.latitude, location.longitude)

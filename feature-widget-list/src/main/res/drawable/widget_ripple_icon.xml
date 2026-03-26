@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Circular ripple for icon buttons (refresh, prev/next page, settings, nano_refresh).
+    Transparent base so the button chrome shows through; oval mask clips the ripple to a circle.
+-->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#40AB47BC">
+    <item android:id="@android:id/mask">
+        <shape android:shape="oval">
+            <solid android:color="#FFFFFFFF" />
+        </shape>
+    </item>
+</ripple>

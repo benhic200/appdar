@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Horizontal strip (dark) — items added side-by-side via addView().
+    No header chrome, tiny refresh overlaid top-right.
+    MIUI-safe: no Space, no ?android:attr/, no GridLayout.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/strip_h_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF1C1A2E">
+
+    <LinearLayout
+        android:id="@+id/strip_h_items_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:paddingStart="2dp"
+        android:paddingEnd="22dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp" />
+
+    <ImageView
+        android:id="@+id/strip_h_refresh"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_gravity="top|end"
+        android:src="@android:drawable/ic_menu_rotate"
+        android:contentDescription="@string/refresh"
+        android:padding="2dp"
+        android:tint="#FFCE93D8"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="@drawable/widget_ripple_icon" />
+</FrameLayout>
