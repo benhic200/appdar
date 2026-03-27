@@ -1358,3 +1358,19 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
 **Test v72:** Install, then **remove and re‑add the widget** from the home screen (MIUI caches widget views). The widget should now automatically switch between Nano/Strip/List/Grid modes when resized. Onboarding screen appears on first launch.
 
 **Ready for testing.** 📱🎯
+
+**v79 Built (Custom locations with GPS coordinates) – 2026‑03‑27 11:22 GMT**
+**Features added:**
+- **Custom locations with GPS coordinates** – AddBusinessScreen UI for adding businesses with custom GPS coordinates, validation via NearbyBranchFinder (OSM).
+- **LocationProfile** – data model for custom business locations.
+- **NearbyBranchFinder** – OpenStreetMap-based validation of custom locations.
+
+**Build details:**
+- **VersionCode 79** (versionName "1.79")
+- **SHA‑256:** `6a7d50492cb2c9b2a140ffb113b8ee1fa4d1a0986e4c4199ea3b95c25303edd5`
+- **Download:** `http://192.168.0.111:8080/nearby‑apps‑widget‑v79.apk`
+- **External:** `https://hickielaptopkali.tail25553f.ts.net:8081/nearby‑apps‑widget‑v79.apk`
+- **Build log:** Success (2m 7s, 309 tasks executed, 266 executed, 43 up‑to‑date)
+- **Git commit:** [`cbff2ee`](https://github.com/benhic200/appdar/commit/cbff2ee) – Build v79
+
+**Test v79:** Install and verify custom location feature via AddBusinessScreen. GPS coordinates can be manually entered or selected from map.

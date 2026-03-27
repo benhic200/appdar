@@ -26,6 +26,7 @@
     <string name="refresh">Refresh</string>
 
     <!-- Widget picker names -->
+    <string name="widget_name_list">Nearby — List</string>
     <string name="widget_name_nano">Nearby — Single Place</string>
     <string name="widget_name_strip">Nearby — Quick Strip</string>
     <string name="widget_name_grid">Nearby — Grid</string>

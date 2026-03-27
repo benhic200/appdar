@@ -96,7 +96,14 @@ class AddBusinessViewModel @Inject constructor(
         _osmState.value = OsmValidationState.Loading
         osmValidationJob = viewModelScope.launch {
             delay(1_000)
-            val brandTag = nearbyBranchFinder.validateAndResolveBrandName(businessName.trim())
+            // Pass the user's current location so Overpass can scope its search to 100 km.
+            // Built-in brands (Tesco, McDonald's, etc.) are resolved instantly without a network call.
+            val location = runCatching { locationProvider.getCurrentLocation() }.getOrNull()
+            val brandTag = nearbyBranchFinder.validateAndResolveBrandName(
+                businessName.trim(),
+                userLat = location?.latitude,
+                userLon = location?.longitude
+            )
             _osmState.value = if (brandTag != null) OsmValidationState.Found(brandTag)
                               else OsmValidationState.NotFound
         }
@@ -155,6 +162,14 @@ class AddBusinessViewModel @Inject constructor(
                 .forEach { repository.toggleEnabled(it) }
         }
     }
+
+    fun enableUninstalled(installedPackageNames: Set<String>) {
+        viewModelScope.launch {
+            mappings.value
+                .filter { !it.isEnabled && it.packageName !in installedPackageNames }
+                .forEach { repository.toggleEnabled(it) }
+        }
+    }
 }
 
 @Composable
@@ -169,8 +184,12 @@ fun AddBusinessScreen(
     val installedPackageNames = remember(installedApps) {
         installedApps.map { it.packageName }.toHashSet()
     }
+    // Counts drive the toggle label/action
     val uninstalledEnabledCount = remember(mappings, installedPackageNames) {
         mappings.count { it.isEnabled && it.packageName !in installedPackageNames }
+    }
+    val uninstalledDisabledCount = remember(mappings, installedPackageNames) {
+        mappings.count { !it.isEnabled && it.packageName !in installedPackageNames }
     }
     val filtered = remember(mappings, searchQuery) {
         if (searchQuery.isBlank()) mappings
@@ -218,16 +237,24 @@ fun AddBusinessScreen(
                     Spacer(Modifier.width(4.dp))
                     Text("Add Place")
                 }
+                // Toggle: hide uninstalled apps (or show them again if already hidden)
+                val hidingMode = uninstalledEnabledCount > 0
                 OutlinedButton(
-                    onClick = { viewModel.disableUninstalled(installedPackageNames) },
-                    enabled = uninstalledEnabledCount > 0,
+                    onClick = {
+                        if (hidingMode) viewModel.disableUninstalled(installedPackageNames)
+                        else viewModel.enableUninstalled(installedPackageNames)
+                    },
+                    enabled = hidingMode || uninstalledDisabledCount > 0,
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.Filled.VisibilityOff, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        if (uninstalledEnabledCount > 0) "Hide uninstalled ($uninstalledEnabledCount)"
-                        else "Hide uninstalled"
+                        when {
+                            hidingMode -> "Hide uninstalled ($uninstalledEnabledCount)"
+                            uninstalledDisabledCount > 0 -> "Show uninstalled ($uninstalledDisabledCount)"
+                            else -> "Hide uninstalled"
+                        }
                     )
                 }
             }

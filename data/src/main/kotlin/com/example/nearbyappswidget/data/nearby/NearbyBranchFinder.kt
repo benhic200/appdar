@@ -155,16 +155,41 @@ class NearbyBranchFinder @Inject constructor(
 
     /**
      * Validates that [businessName] exists as a brand on OpenStreetMap and returns the
-     * canonical OSM brand tag (e.g. "McDonald's", "Starbucks") if found, or null if not.
+     * canonical OSM brand tag if found, or null if not.
      *
-     * Uses a lightweight global search (limit 1) so it is fast and suitable for real-time
-     * validation in the Add Place dialog. The query searches worldwide, not radius-limited.
+     * Fast path: if the name matches a built-in brand in [BRAND_TAGS] (case-insensitive),
+     * the result is returned immediately with no network call.
+     *
+     * For unknown custom brands, Overpass is queried:
+     *  - If [userLat]/[userLon] are provided, the search is scoped to a 100 km radius
+     *    (fast, practical — if a brand has no location within 100 km it's not useful here).
+     *  - If coordinates are null, a global query is attempted with a 30 s timeout.
      */
-    suspend fun validateAndResolveBrandName(businessName: String): String? =
-        withContext(Dispatchers.IO) {
+    suspend fun validateAndResolveBrandName(
+        businessName: String,
+        userLat: Double? = null,
+        userLon: Double? = null
+    ): String? {
+        val trimmed = businessName.trim()
+
+        // Fast path: check built-in brands (exact then case-insensitive)
+        BRAND_TAGS[trimmed]?.let { tag ->
+            Log.d(TAG, "Brand '$trimmed' matched built-in tag '$tag'")
+            return tag
+        }
+        BRAND_TAGS.entries.firstOrNull { it.key.equals(trimmed, ignoreCase = true) }?.value?.let { tag ->
+            Log.d(TAG, "Brand '$trimmed' matched built-in tag '$tag' (case-insensitive)")
+            return tag
+        }
+
+        // Custom brand: query Overpass
+        return withContext(Dispatchers.IO) {
             try {
-                val escaped = businessName.replace("\"", "\\\"")
-                val query = """[out:json][timeout:10];nwr["brand"="$escaped"];out ids;"""
+                val escaped = trimmed.replace("\"", "\\\"")
+                val areaFilter = if (userLat != null && userLon != null)
+                    "(around:100000,$userLat,$userLon)" else ""
+                val timeout = if (areaFilter.isEmpty()) 30 else 15
+                val query = """[out:json][timeout:$timeout];nwr["brand"="$escaped"]$areaFilter;out ids 1;"""
                 val body = "data=${Uri.encode(query)}"
                     .toRequestBody("application/x-www-form-urlencoded".toMediaType())
                 val request = Request.Builder().url(OVERPASS_URL).post(body).build()
@@ -175,17 +200,18 @@ class NearbyBranchFinder @Inject constructor(
 
                 val elements = JSONObject(responseJson).optJSONArray("elements")
                 if (elements != null && elements.length() > 0) {
-                    Log.d(TAG, "OSM brand validated: '$businessName' — ${elements.length()} locations found")
-                    businessName  // The brand tag is the name as typed (OSM matched it)
+                    Log.d(TAG, "OSM brand validated: '$trimmed' — found ${elements.length()} location(s)")
+                    trimmed  // Brand tag = the name as typed (OSM matched it)
                 } else {
-                    Log.d(TAG, "OSM brand not found: '$businessName'")
+                    Log.d(TAG, "OSM brand not found: '$trimmed'")
                     null
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "OSM brand validation failed for '$businessName'", e)
+                Log.e(TAG, "OSM brand validation failed for '$trimmed'", e)
                 null
             }
         }
+    }
 
     private fun fetchFromOverpass(
         userLat: Double,

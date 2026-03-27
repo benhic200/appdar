@@ -6,7 +6,7 @@
     android:minResizeHeight="40dp"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_nearby_apps_list"
-    android:previewImage="@drawable/widget_preview_image"
+    android:previewImage="@drawable/widget_preview_image_grid"
     android:previewLayout="@layout/widget_preview_grid"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
