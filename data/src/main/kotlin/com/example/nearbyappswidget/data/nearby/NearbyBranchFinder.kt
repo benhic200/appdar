@@ -90,7 +90,7 @@ class NearbyBranchFinder @Inject constructor(
             "CVS"             to "CVS",
             // US fast food & coffee — separate entries so both UK+US apps can match
             "McDonald's (US)" to "McDonald's",
-            "Burger King (US)"to "Burger King",
+            "Burger King (US)" to "Burger King",
             "KFC (US)"        to "KFC",
             "Taco Bell"       to "Taco Bell",
             "Chipotle"        to "Chipotle",
