@@ -10,7 +10,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Android
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,22 +27,33 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.nearbyappswidget.data.local.BusinessAppMapping
+import com.example.nearbyappswidget.data.nearby.NearbyBranchFinder
 import com.example.nearbyappswidget.data.repository.BusinessAppRepository
 import com.example.nearbyappswidget.feature.location.LocationProvider
 import com.example.nearbyappswidget.feature.widgetlist.util.AppIconLoader
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+
+sealed interface OsmValidationState {
+    object Idle : OsmValidationState
+    object Loading : OsmValidationState
+    data class Found(val brandTag: String) : OsmValidationState
+    object NotFound : OsmValidationState
+}
 
 @HiltViewModel
 class AddBusinessViewModel @Inject constructor(
     private val repository: BusinessAppRepository,
     private val locationProvider: LocationProvider,
     private val appIconLoader: AppIconLoader,
+    private val nearbyBranchFinder: NearbyBranchFinder,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -49,6 +65,11 @@ class AddBusinessViewModel @Inject constructor(
 
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
+
+    private val _osmState = MutableStateFlow<OsmValidationState>(OsmValidationState.Idle)
+    val osmState: StateFlow<OsmValidationState> = _osmState.asStateFlow()
+
+    private var osmValidationJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -65,12 +86,34 @@ class AddBusinessViewModel @Inject constructor(
         }
     }
 
+    /** Debounce-validates [businessName] against OpenStreetMap after 1 second of inactivity. */
+    fun onBusinessNameChanged(businessName: String) {
+        osmValidationJob?.cancel()
+        if (businessName.isBlank()) {
+            _osmState.value = OsmValidationState.Idle
+            return
+        }
+        _osmState.value = OsmValidationState.Loading
+        osmValidationJob = viewModelScope.launch {
+            delay(1_000)
+            val brandTag = nearbyBranchFinder.validateAndResolveBrandName(businessName.trim())
+            _osmState.value = if (brandTag != null) OsmValidationState.Found(brandTag)
+                              else OsmValidationState.NotFound
+        }
+    }
+
+    fun resetOsmState() {
+        osmValidationJob?.cancel()
+        _osmState.value = OsmValidationState.Idle
+    }
+
     fun addBusiness(
         businessName: String,
         packageName: String,
         appName: String,
         category: String,
         useCurrentLocation: Boolean,
+        osmBrandTag: String?,
         geofenceRadius: Int,
         onDone: () -> Unit
     ) {
@@ -85,7 +128,8 @@ class AddBusinessViewModel @Inject constructor(
                     category = category.trim().ifBlank { "Custom" },
                     latitude = location?.latitude,
                     longitude = location?.longitude,
-                    geofenceRadius = geofenceRadius
+                    geofenceRadius = geofenceRadius,
+                    osmBrandTag = osmBrandTag
                     // isCustom is set to true inside addCustomMapping
                 )
                 repository.addCustomMapping(mapping)
@@ -103,6 +147,14 @@ class AddBusinessViewModel @Inject constructor(
     fun toggleEnabled(mapping: BusinessAppMapping) {
         viewModelScope.launch { repository.toggleEnabled(mapping) }
     }
+
+    fun disableUninstalled(installedPackageNames: Set<String>) {
+        viewModelScope.launch {
+            mappings.value
+                .filter { it.isEnabled && it.packageName !in installedPackageNames }
+                .forEach { repository.toggleEnabled(it) }
+        }
+    }
 }
 
 @Composable
@@ -112,29 +164,81 @@ fun AddBusinessScreen(
     val mappings by viewModel.mappings.collectAsState()
     val installedApps by viewModel.installedApps.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val installedPackageNames = remember(installedApps) {
+        installedApps.map { it.packageName }.toHashSet()
+    }
+    val uninstalledEnabledCount = remember(mappings, installedPackageNames) {
+        mappings.count { it.isEnabled && it.packageName !in installedPackageNames }
+    }
+    val filtered = remember(mappings, searchQuery) {
+        if (searchQuery.isBlank()) mappings
+        else mappings.filter {
+            it.businessName.contains(searchQuery, ignoreCase = true) ||
+            it.appName.contains(searchQuery, ignoreCase = true)
+        }
+    }
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Add button at the top
+        // ── Search bar ────────────────────────────────────────────────────
         item {
-            OutlinedButton(
-                onClick = { showAddDialog = true },
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search places…") },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Filled.Clear, contentDescription = "Clear search")
+                        }
+                    }
+                },
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        // ── Action row ────────────────────────────────────────────────────
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Filled.Add, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Add Place")
+                OutlinedButton(
+                    onClick = { showAddDialog = true },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Add Place")
+                }
+                OutlinedButton(
+                    onClick = { viewModel.disableUninstalled(installedPackageNames) },
+                    enabled = uninstalledEnabledCount > 0,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Filled.VisibilityOff, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        if (uninstalledEnabledCount > 0) "Hide uninstalled ($uninstalledEnabledCount)"
+                        else "Hide uninstalled"
+                    )
+                }
             }
         }
 
-        if (mappings.isEmpty()) {
+        // ── Empty states ──────────────────────────────────────────────────
+        if (filtered.isEmpty()) {
             item {
                 Text(
-                    text = "No places yet. Tap Add Place to get started.",
+                    text = if (searchQuery.isNotBlank()) "No places match \"$searchQuery\"."
+                           else "No places yet. Tap Add Place to get started.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 16.dp)
@@ -142,7 +246,7 @@ fun AddBusinessScreen(
             }
         }
 
-        items(mappings, key = { it.id }) { mapping ->
+        items(filtered, key = { it.id }) { mapping ->
             PlaceMappingCard(
                 mapping = mapping,
                 iconBitmap = installedApps.find { it.packageName == mapping.packageName }?.iconBitmap,
@@ -153,12 +257,18 @@ fun AddBusinessScreen(
     }
 
     if (showAddDialog) {
+        val osmState by viewModel.osmState.collectAsState()
         AddBusinessDialog(
             installedApps = installedApps,
             isSaving = viewModel.isSaving.collectAsState().value,
-            onDismiss = { showAddDialog = false },
-            onConfirm = { name, pkg, appName, category, useLocation, radius ->
-                viewModel.addBusiness(name, pkg, appName, category, useLocation, radius) {
+            osmState = osmState,
+            onBusinessNameChanged = viewModel::onBusinessNameChanged,
+            onDismiss = {
+                viewModel.resetOsmState()
+                showAddDialog = false
+            },
+            onConfirm = { name, pkg, appName, category, useLocation, osmBrandTag, radius ->
+                viewModel.addBusiness(name, pkg, appName, category, useLocation, osmBrandTag, radius) {
                     showAddDialog = false
                 }
             }
@@ -237,8 +347,10 @@ private fun PlaceMappingCard(
 private fun AddBusinessDialog(
     installedApps: List<InstalledApp>,
     isSaving: Boolean,
+    osmState: OsmValidationState,
+    onBusinessNameChanged: (String) -> Unit,
     onDismiss: () -> Unit,
-    onConfirm: (name: String, pkg: String, appName: String, category: String, useLocation: Boolean, radius: Int) -> Unit
+    onConfirm: (name: String, pkg: String, appName: String, category: String, useLocation: Boolean, osmBrandTag: String?, radius: Int) -> Unit
 ) {
     var businessName by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
@@ -247,20 +359,58 @@ private fun AddBusinessDialog(
     var geofenceRadius by remember { mutableStateOf(200f) }
     var searchQuery by remember { mutableStateOf("") }
     var showAppPicker by remember { mutableStateOf(false) }
-    val isValid = businessName.isNotBlank() && selectedApp != null
+
+    // Can save if: has a name + selected app + (using current location OR OSM validated)
+    val osmFound = osmState is OsmValidationState.Found
+    val isValid = businessName.isNotBlank() && selectedApp != null && (useCurrentLocation || osmFound)
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Place") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Business name + OSM validation indicator
                 OutlinedTextField(
                     value = businessName,
-                    onValueChange = { businessName = it },
+                    onValueChange = {
+                        businessName = it
+                        onBusinessNameChanged(it)
+                    },
                     label = { Text("Place Name") },
                     singleLine = true,
+                    trailingIcon = {
+                        when (osmState) {
+                            is OsmValidationState.Loading ->
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            is OsmValidationState.Found ->
+                                Icon(Icons.Filled.CheckCircle, contentDescription = "Found on OpenStreetMap",
+                                    tint = MaterialTheme.colorScheme.primary)
+                            is OsmValidationState.NotFound ->
+                                Icon(Icons.Filled.Error, contentDescription = "Not found on OpenStreetMap",
+                                    tint = MaterialTheme.colorScheme.error)
+                            else -> {}
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                // OSM status message
+                when (osmState) {
+                    is OsmValidationState.Found ->
+                        Text(
+                            "Found on OpenStreetMap — nearest branch will be shown automatically.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    is OsmValidationState.NotFound ->
+                        Text(
+                            "Not found on OpenStreetMap — turn on \"Use current location\" below to save your position manually.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    else -> {}
+                }
+
                 OutlinedTextField(
                     value = category,
                     onValueChange = { category = it },
@@ -295,6 +445,13 @@ private fun AddBusinessDialog(
                     Text("Use current location", style = MaterialTheme.typography.bodyMedium)
                     Switch(checked = useCurrentLocation, onCheckedChange = { useCurrentLocation = it })
                 }
+                if (!useCurrentLocation && !osmFound) {
+                    Text(
+                        text = "Without a location and no OpenStreetMap match, this place won't appear in the widget. Turn on \"Use current location\" while you're at the place to save your position.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
                 Column {
                     Text(
                         "Detection radius: ${geofenceRadius.toInt()}m",
@@ -313,7 +470,8 @@ private fun AddBusinessDialog(
             TextButton(
                 onClick = {
                     val app = selectedApp ?: return@TextButton
-                    onConfirm(businessName, app.packageName, app.label, category, useCurrentLocation, geofenceRadius.toInt())
+                    val brandTag = (osmState as? OsmValidationState.Found)?.brandTag
+                    onConfirm(businessName, app.packageName, app.label, category, useCurrentLocation, brandTag, geofenceRadius.toInt())
                 },
                 enabled = isValid && !isSaving
             ) {

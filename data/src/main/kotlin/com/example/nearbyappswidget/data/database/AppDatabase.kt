@@ -19,7 +19,7 @@ import android.database.sqlite.SQLiteException
         CachedAddress::class,
         LocationHistory::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -220,6 +220,18 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE `business_app_mappings` ADD COLUMN `is_enabled` INTEGER NOT NULL DEFAULT 1")
                 database.execSQL("ALTER TABLE `business_app_mappings` ADD COLUMN `is_custom` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        /**
+         * Migration from version 7 to 8.
+         * Adds osm_brand_tag column (nullable TEXT) for custom places that have been validated
+         * against OpenStreetMap. NULL for all existing rows — built-in places use BRAND_TAGS in
+         * NearbyBranchFinder; custom places without a brand tag use their stored lat/lon.
+         */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE `business_app_mappings` ADD COLUMN `osm_brand_tag` TEXT")
             }
         }
     }

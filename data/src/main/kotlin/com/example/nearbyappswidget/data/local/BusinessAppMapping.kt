@@ -77,7 +77,15 @@ data class BusinessAppMapping(
 
     /** True only for places added manually by the user — these show a delete button instead of a toggle. */
     @ColumnInfo(name = "is_custom")
-    val isCustom: Boolean = false
+    val isCustom: Boolean = false,
+
+    /**
+     * The canonical OSM brand tag for this custom place (e.g. "Starbucks", "McDonald's").
+     * Non-null means NearbyBranchFinder will query OpenStreetMap for the nearest real branch,
+     * just like built-in businesses. Null means the stored lat/lon is used as-is.
+     */
+    @ColumnInfo(name = "osm_brand_tag")
+    val osmBrandTag: String? = null
 )
 
 /**

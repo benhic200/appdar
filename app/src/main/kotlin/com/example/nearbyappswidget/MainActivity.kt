@@ -797,6 +797,7 @@ fun ProUpgradeScreen(onUpgradeTapped: () -> Unit = {}) {
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Surface(
+                    onClick = onUpgradeTapped,
                     color = MaterialTheme.colorScheme.primary,
                     shape = MaterialTheme.shapes.medium
                 ) {

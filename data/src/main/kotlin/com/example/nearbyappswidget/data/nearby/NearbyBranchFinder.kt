@@ -3,6 +3,7 @@ package com.example.nearbyappswidget.data.nearby
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import com.example.nearbyappswidget.data.local.BusinessAppMappingDao
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -18,15 +19,20 @@ import javax.inject.Singleton
 import kotlin.math.*
 
 /**
- * Finds the nearest real branch of each UK business chain to the user's location
+ * Finds the nearest real branch of each business chain to the user's location
  * using the Overpass API (OpenStreetMap data — free, no API key required).
+ *
+ * Built-in businesses are defined in [BRAND_TAGS]. Custom places that have been
+ * validated against OSM (have a non-null [osmBrandTag]) are loaded from the database
+ * and merged in automatically — no call-site changes required.
  *
  * Results are cached in SharedPreferences for [CACHE_TTL_MS] or until the user
  * moves more than [LOCATION_THRESHOLD_M] metres, whichever comes first.
  */
 @Singleton
 class NearbyBranchFinder @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val dao: BusinessAppMappingDao
 ) {
     companion object {
         private const val TAG = "NearbyBranchFinder"
@@ -111,6 +117,9 @@ class NearbyBranchFinder @Inject constructor(
      * Returns a map of businessName → (latitude, longitude) of the nearest branch
      * within [SEARCH_RADIUS_M] metres of ([userLat], [userLon]).
      *
+     * Includes both built-in businesses (from [BRAND_TAGS]) and custom places that
+     * have been validated against OSM (non-null [osmBrandTag] in the database).
+     *
      * Businesses not found in the search area are omitted from the result —
      * callers should fall back to the database coordinate in that case.
      */
@@ -124,9 +133,16 @@ class NearbyBranchFinder @Inject constructor(
         }
 
         Log.d(TAG, "Cache miss — querying Overpass for ($userLat, $userLon)")
+
+        // Merge built-in brands with any custom places the user has validated against OSM
+        val customBrands = withContext(Dispatchers.IO) {
+            dao.getCustomOsmBrandMappings().associate { it.businessName to it.osmBrandTag!! }
+        }
+        val allBrands = BRAND_TAGS + customBrands
+
         return withContext(Dispatchers.IO) {
             try {
-                val result = fetchFromOverpass(userLat, userLon)
+                val result = fetchFromOverpass(userLat, userLon, allBrands)
                 saveCache(userLat, userLon, result)
                 Log.d(TAG, "Overpass returned ${result.size} nearest branches")
                 result
@@ -137,10 +153,48 @@ class NearbyBranchFinder @Inject constructor(
         }
     }
 
-    private fun fetchFromOverpass(userLat: Double, userLon: Double): Map<String, Pair<Double, Double>> {
+    /**
+     * Validates that [businessName] exists as a brand on OpenStreetMap and returns the
+     * canonical OSM brand tag (e.g. "McDonald's", "Starbucks") if found, or null if not.
+     *
+     * Uses a lightweight global search (limit 1) so it is fast and suitable for real-time
+     * validation in the Add Place dialog. The query searches worldwide, not radius-limited.
+     */
+    suspend fun validateAndResolveBrandName(businessName: String): String? =
+        withContext(Dispatchers.IO) {
+            try {
+                val escaped = businessName.replace("\"", "\\\"")
+                val query = """[out:json][timeout:10];nwr["brand"="$escaped"];out ids;"""
+                val body = "data=${Uri.encode(query)}"
+                    .toRequestBody("application/x-www-form-urlencoded".toMediaType())
+                val request = Request.Builder().url(OVERPASS_URL).post(body).build()
+
+                val responseJson = client.newCall(request).execute().use { response ->
+                    response.body?.string() ?: return@withContext null
+                }
+
+                val elements = JSONObject(responseJson).optJSONArray("elements")
+                if (elements != null && elements.length() > 0) {
+                    Log.d(TAG, "OSM brand validated: '$businessName' — ${elements.length()} locations found")
+                    businessName  // The brand tag is the name as typed (OSM matched it)
+                } else {
+                    Log.d(TAG, "OSM brand not found: '$businessName'")
+                    null
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "OSM brand validation failed for '$businessName'", e)
+                null
+            }
+        }
+
+    private fun fetchFromOverpass(
+        userLat: Double,
+        userLon: Double,
+        allBrands: Map<String, String>
+    ): Map<String, Pair<Double, Double>> {
         // nwr = node/way/relation — catches both pin-point nodes and area-mapped stores.
         // "out center" returns the centroid for ways/relations so we always get a lat/lon.
-        val brandsQuery = BRAND_TAGS.values.joinToString("\n") { brand ->
+        val brandsQuery = allBrands.values.distinct().joinToString("\n") { brand ->
             val escaped = brand.replace("\"", "\\\"")
             """  nwr["brand"="$escaped"](around:$SEARCH_RADIUS_M,$userLat,$userLon);"""
         }
@@ -154,13 +208,14 @@ class NearbyBranchFinder @Inject constructor(
             response.body?.string() ?: throw IllegalStateException("Empty Overpass response")
         }
 
-        return parseResponse(responseJson, userLat, userLon)
+        return parseResponse(responseJson, userLat, userLon, allBrands)
     }
 
     private fun parseResponse(
         json: String,
         userLat: Double,
-        userLon: Double
+        userLon: Double,
+        allBrands: Map<String, String>
     ): Map<String, Pair<Double, Double>> {
         val elements = JSONObject(json).getJSONArray("elements")
 
@@ -190,12 +245,12 @@ class NearbyBranchFinder @Inject constructor(
         }
 
         // Re-key from OSM brand name back to our business name
-        return BRAND_TAGS.mapNotNull { (businessName, brandTag) ->
+        return allBrands.mapNotNull { (businessName, brandTag) ->
             nearest[brandTag]?.let { coords -> businessName to coords }
         }.toMap().also { result ->
             result.forEach { (name, coords) ->
                 Log.d(TAG, "Nearest $name: (${coords.first}, ${coords.second}) " +
-                    "dist=${nearestDist[BRAND_TAGS[name]]?.toInt()}m")
+                    "dist=${nearestDist[allBrands[name]]?.toInt()}m")
             }
         }
     }

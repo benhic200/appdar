@@ -23,6 +23,10 @@ interface BusinessAppMappingDao {
     @Query("SELECT * FROM business_app_mappings WHERE latitude IS NOT NULL AND longitude IS NOT NULL")
     suspend fun getMappingsWithCoordinates(): List<BusinessAppMapping>
 
+    /** Returns all enabled mappings that have a validated OSM brand tag (custom places using OSM lookup). */
+    @Query("SELECT * FROM business_app_mappings WHERE osm_brand_tag IS NOT NULL AND is_enabled = 1")
+    suspend fun getCustomOsmBrandMappings(): List<BusinessAppMapping>
+
     /**
      * Returns business‑app mappings whose bounding box intersects the given latitude/longitude,
      * ordered by distance (closest first). This query uses the pre‑computed bounding‑box columns
