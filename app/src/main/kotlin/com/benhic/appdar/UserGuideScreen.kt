@@ -88,8 +88,9 @@ fun UserGuideScreen() {
                 "A compact 1×1 or 2×1 widget showing just the single closest place. " +
                 "At very small sizes (2×1) it uses a side-by-side layout with the icon on the left.")
             GuideSettingRow("Nearby — Quick Strip",
-                "A thin horizontal strip — good for a narrow column. " +
-                "Shows 2–3 places in a row, icon + name only.")
+                "A thin horizontal strip (4×1). Shows 2–4 places side by side — icon and name only. " +
+                "Also works as a vertical strip when placed in a taller column. " +
+                "Tap the small refresh button (top-right) to update.")
             GuideSettingRow("Nearby — Grid",
                 "A wider grid layout showing icon tiles with no text — " +
                 "fits more places in less vertical space.")
@@ -242,8 +243,9 @@ fun UserGuideScreen() {
             GuideSettingRow("Distance Unit",
                 "Choose how distances are displayed: metres, kilometres, miles, or feet.")
             GuideSettingRow("Background Refresh",
-                "How often the widget automatically refreshes its data (1–24 h). " +
-                "Lower intervals keep the widget more up to date but use more battery.")
+                "How often the widget automatically refreshes its data (1–60 min, default 5 min). " +
+                "Lower intervals keep the widget more up to date but use more battery. " +
+                "Overridden by Low Power Mode — enable that to stop auto-refresh entirely.")
             GuideSettingRow("Low Power Mode",
                 "Disables automatic background refresh entirely. " +
                 "The widget only updates when you tap the refresh button manually.")

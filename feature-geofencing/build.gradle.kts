@@ -44,6 +44,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
 
     implementation(libs.play.services.location)
+    implementation(libs.material)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)

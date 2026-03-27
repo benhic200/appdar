@@ -2,9 +2,9 @@
 android-gradle-plugin = "8.4.0"
 kotlin = "1.9.24"
 ksp = "1.9.24-1.0.20"
-compileSdk = "34"
+compileSdk = "35"
 minSdk = "24"
-targetSdk = "34"
+targetSdk = "35"
 material = "1.11.0"
 
 # AndroidX

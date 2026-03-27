@@ -9,6 +9,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -84,7 +85,8 @@ fun OnboardingScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(24.dp)
+            .navigationBarsPadding(),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         // Step dots
@@ -254,7 +256,6 @@ private fun LocationStepContent(
                     Text(
                         text = "Tip: Android 10+ requires setting location to \"Allow all the time\" (not just \"While using\") for background updates.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -284,8 +285,7 @@ private fun BatteryStepContent(
                 Text("Step 1 — Enable Autostart", fontWeight = FontWeight.SemiBold)
                 Text(
                     "Settings → Apps → Appdar → Autostart → ON",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodySmall
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedButton(onClick = onOpenAppSettings, modifier = Modifier.fillMaxWidth()) {
@@ -299,8 +299,7 @@ private fun BatteryStepContent(
                 Text("Step 2 — Disable Battery Optimisation", fontWeight = FontWeight.SemiBold)
                 Text(
                     "Battery & Performance → App Battery Saver → Appdar → No restrictions",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodySmall
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedButton(onClick = onOpenBatterySettings, modifier = Modifier.fillMaxWidth()) {
@@ -312,7 +311,6 @@ private fun BatteryStepContent(
         Text(
             text = "Not on MIUI? You can skip this step — standard Android manages this automatically.",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
     }
@@ -340,7 +338,6 @@ private fun WidgetStepContent() {
         Text(
             text = "Tap the refresh button on the widget any time to update the list. It also refreshes automatically based on your settings.",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
     }
@@ -363,7 +360,6 @@ private fun DoneStepContent() {
         Text(
             text = "Access this guide any time from the drawer → Guide.",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
     }

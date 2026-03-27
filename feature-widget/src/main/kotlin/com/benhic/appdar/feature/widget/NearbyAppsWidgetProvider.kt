@@ -179,7 +179,9 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
             val rootLayout = if (darkTheme) WidgetListR.layout.widget_narrow_column_dark
                              else WidgetListR.layout.widget_narrow_column
             val views = RemoteViews(context.packageName, rootLayout)
-            val iconCount = ((minHeightDp - 4) / 50).coerceIn(1, 8)
+            views.setOnClickPendingIntent(WidgetListR.id.narrow_refresh, buildRefreshPi(context, appWidgetId))
+            // Reserve 20dp for the refresh button at the top
+            val iconCount = ((minHeightDp - 24) / 50).coerceIn(1, 8)
 
             runBlocking {
                 try {
@@ -750,7 +752,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                             views.removeAllViews(WidgetListR.id.strip_h_items_container)
                             profileItems.forEachIndexed { i, item ->
                                 views.addView(WidgetListR.id.strip_h_items_container,
-                                    makeCompactItem(context, appWidgetId, i, item, icons, darkTheme))
+                                    makeHStripItem(context, appWidgetId, i, item, icons, darkTheme))
                             }
                         } else {
                             views.removeAllViews(WidgetListR.id.strip_items_container)
@@ -789,7 +791,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                         views.removeAllViews(WidgetListR.id.strip_h_items_container)
                         sorted.forEachIndexed { i, item ->
                             views.addView(WidgetListR.id.strip_h_items_container,
-                                makeCompactItem(context, appWidgetId, i, item, icons, darkTheme))
+                                makeHStripItem(context, appWidgetId, i, item, icons, darkTheme))
                         }
                     } else {
                         views.removeAllViews(WidgetListR.id.strip_items_container)
@@ -949,6 +951,32 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             rv.setOnClickPendingIntent(WidgetListR.id.compact_item_root, pi)
+            return rv
+        }
+
+        /** Compact cell for horizontal 4×1 strip — icon + 1-line name, fits ~55dp height. */
+        private fun makeHStripItem(
+            context: Context,
+            appWidgetId: Int,
+            globalIdx: Int,
+            item: WidgetDisplayItem,
+            icons: AppIconLoader,
+            darkTheme: Boolean
+        ): RemoteViews {
+            val layout = if (darkTheme) WidgetListR.layout.widget_strip_item_h_dark
+                         else WidgetListR.layout.widget_strip_item_h
+            val rv = RemoteViews(context.packageName, layout)
+            rv.setTextViewText(WidgetListR.id.strip_h_business_name, item.label)
+            val bmp = icons.getIconBitmap(item.packageName)
+            if (bmp != null) rv.setImageViewBitmap(WidgetListR.id.strip_h_app_icon, scaledForWidget(bmp, 64))
+            else rv.setImageViewResource(WidgetListR.id.strip_h_app_icon, android.R.drawable.sym_def_app_icon)
+            val clickIntent = Intent(WidgetClickReceiver.ACTION_WIDGET_ITEM_CLICK).apply {
+                setPackage(context.packageName)
+                putExtra(WidgetClickReceiver.EXTRA_PACKAGE_NAME, item.packageName)
+            }
+            rv.setOnClickPendingIntent(WidgetListR.id.strip_h_item_root,
+                PendingIntent.getBroadcast(context, appWidgetId * 1000 + globalIdx, clickIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
             return rv
         }
 

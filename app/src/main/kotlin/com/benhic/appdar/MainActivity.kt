@@ -299,13 +299,13 @@ fun TabbedAppScreen(
     var currentScreen by remember { mutableStateOf("dashboard") }
     val context = LocalContext.current
 
-    // Manage auto-refresh alarm when low power mode changes
+    // Manage auto-refresh alarm when low power mode or interval changes
     val settingsPrefs by settingsViewModel.userPreferences.collectAsState()
-    LaunchedEffect(settingsPrefs.lowPowerMode) {
+    LaunchedEffect(settingsPrefs.lowPowerMode, settingsPrefs.refreshIntervalMinutes) {
         if (settingsPrefs.lowPowerMode) {
             WidgetUpdateScheduler.cancel(context)
         } else {
-            WidgetUpdateScheduler.schedule(context)
+            WidgetUpdateScheduler.schedule(context, settingsPrefs.refreshIntervalMinutes)
         }
     }
 

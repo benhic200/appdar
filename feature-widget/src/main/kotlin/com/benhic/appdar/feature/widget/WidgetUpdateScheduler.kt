@@ -8,21 +8,21 @@ import android.os.SystemClock
 
 const val ACTION_SCHEDULED_UPDATE = "com.benhic.appdar.ACTION_SCHEDULED_UPDATE"
 
-private const val INTERVAL_MS = 5 * 60 * 1000L // 5 minutes
 private const val REQUEST_CODE = 9901
 
 /**
- * Schedules or cancels a repeating AlarmManager alarm that triggers widget refresh every 5 minutes.
+ * Schedules or cancels a repeating AlarmManager alarm that triggers widget refresh.
  * Disabled automatically when Low Power Mode is enabled in settings.
  */
 object WidgetUpdateScheduler {
 
-    fun schedule(context: Context) {
+    fun schedule(context: Context, intervalMinutes: Int = 5) {
+        val intervalMs = intervalMinutes.coerceIn(1, 60) * 60 * 1000L
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         alarmManager.setInexactRepeating(
             AlarmManager.ELAPSED_REALTIME_WAKEUP,
-            SystemClock.elapsedRealtime() + INTERVAL_MS,
-            INTERVAL_MS,
+            SystemClock.elapsedRealtime() + intervalMs,
+            intervalMs,
             buildPendingIntent(context)
         )
     }

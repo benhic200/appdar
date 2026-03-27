@@ -77,7 +77,7 @@ class AddBusinessViewModel @Inject constructor(
                 val pm = context.packageManager
                 pm.getInstalledPackages(0).mapNotNull { pkgInfo ->
                     if (pm.getLaunchIntentForPackage(pkgInfo.packageName) == null) return@mapNotNull null
-                    val label = pkgInfo.applicationInfo.loadLabel(pm).toString()
+                    val label = pkgInfo.applicationInfo?.loadLabel(pm)?.toString() ?: pkgInfo.packageName
                     val icon = appIconLoader.getIconBitmap(pkgInfo.packageName)
                     InstalledApp(pkgInfo.packageName, label, icon)
                 }.sortedBy { it.label }

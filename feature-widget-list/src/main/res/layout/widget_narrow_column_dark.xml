@@ -15,7 +15,20 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:gravity="center_horizontal"
-        android:paddingTop="2dp"
+        android:paddingTop="20dp"
         android:paddingBottom="2dp" />
+
+    <ImageView
+        android:id="@+id/narrow_refresh"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_gravity="top|end"
+        android:src="@android:drawable/ic_menu_rotate"
+        android:contentDescription="@string/refresh"
+        android:padding="2dp"
+        android:tint="#FFCE93D8"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="@drawable/widget_ripple_icon" />
 
 </FrameLayout>

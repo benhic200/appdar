@@ -11,6 +11,11 @@
         <item name="colorOutlineVariant">@color/outline_variant</item>
     </style>
 
+    <!-- Base widget style -->
+    <style name="Widget.NearbyAppsWidget" parent="android:Widget">
+        <item name="android:background">@android:color/transparent</item>
+    </style>
+
     <!-- Widget-specific theme attributes -->
     <style name="Widget.NearbyAppsWidget.Container">
         <item name="android:background">?android:attr/colorBackground</item>

@@ -165,14 +165,14 @@ private fun SettingsCards(
                     )
                     Spacer(modifier = Modifier.padding(4.dp))
                     Text(
-                        text = "Update widget data every ${userPreferences.refreshIntervalHours} h",
+                        text = "Update widget data every ${userPreferences.refreshIntervalMinutes} min",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Slider(
-                        value = userPreferences.refreshIntervalHours.toFloat(),
+                        value = userPreferences.refreshIntervalMinutes.toFloat(),
                         onValueChange = { viewModel.updateRefreshInterval(it.toInt()) },
-                        valueRange = 1f..24f,
-                        steps = 23,
+                        valueRange = 1f..60f,
+                        steps = 59,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -198,7 +198,7 @@ private fun SettingsCards(
                             text = if (userPreferences.lowPowerMode)
                                 "Widget updates only when you tap refresh"
                             else
-                                "Widget auto-refreshes every 5 minutes",
+                                "Disables auto-refresh (tap widget to refresh manually)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

@@ -1406,19 +1406,20 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
 
 **Test v81:** Upload AAB to Google Play Console → Internal/Closed testing track. Ensure "All uploaded bundles must be signed" error is resolved.
 
-**v82 Built (Package rename to com.benhic.appdar) – 2026‑03‑27 14:00 GMT**
+**v82 Built (Package rename to com.benhic.appdar) – 2026‑03‑27 14:10 GMT**
 **Features added:**
 - **Package rename** – Changed package from `com.example.nearbyappswidget` to `com.benhic.appdar` to satisfy Google Play restrictions.
 - **Version bump** – VersionCode 82, versionName "1.82".
 - **Script updates** – Updated `scripts/battery_profile.sh` with new package name.
 - **Directory restructure** – Moved source directories from `com/example/nearbyappswidget` to `com/benhic/appdar`.
+- **Backup created** – Full project backup archived at `/root/.openclaw/Adroid_Dev/backups/nearby-apps-widget-phase1-package-renamed-20260327-1414.tar.gz`.
 
 **Build details:**
 - **VersionCode 82** (versionName "1.82")
-- **AAB SHA‑256:** `TBD` (will update after build)
+- **AAB SHA‑256:** `8972d34f11af48d9ec1eb22c192edc7fd947f592c750d0e69409303fad6074b7`
 - **Download:** `http://192.168.0.111:8080/nearby‑apps‑widget‑v82.aab`
 - **External:** `https://hickielaptopkali.tail25553f.ts.net:8081/nearby‑apps‑widget‑v82.aab`
-- **Build log:** Pending
-- **Git commit:** `TBD`
+- **Build log:** Success (2m 9s, 228 tasks executed, 217 executed, 11 up‑to‑date)
+- **Git commit:** [`acde6ac`](https://github.com/benhic200/appdar/commit/acde6ac) – Build v82
 
 **Test v82:** Upload AAB to Google Play Console. The "com.example is restricted" error should now be resolved.

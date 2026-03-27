@@ -41,6 +41,7 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.material)
 
     // Optional: Retrofit for network geocoding API (uncomment when needed)
     // implementation(libs.retrofit)

@@ -12,14 +12,14 @@ import androidx.datastore.preferences.core.stringPreferencesKey
  * @property distanceUnit Display unit for distances (default: METERS)
  * @property enableGeocoding Whether to show addresses via geocoding API (default: false)
  * @property enableLocationHistory Whether to cache location history locally (default: false)
- * @property refreshIntervalHours How often to refresh widget data (default: 24)
+ * @property refreshIntervalMinutes How often to refresh widget data in minutes (default: 5)
  */
 data class UserPreferences(
     val searchRadiusMeters: Int = 500,
     val distanceUnit: DistanceUnit = DistanceUnit.KILOMETERS,
     val enableGeocoding: Boolean = false,
     val enableLocationHistory: Boolean = false,
-    val refreshIntervalHours: Int = 24,
+    val refreshIntervalMinutes: Int = 5,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val lowPowerMode: Boolean = false,
     val widgetTheme: WidgetTheme = WidgetTheme.SYSTEM
@@ -61,7 +61,7 @@ object PreferencesKeys {
     val DISTANCE_UNIT = stringPreferencesKey("distance_unit")
     val ENABLE_GEOCODING = booleanPreferencesKey("enable_geocoding")
     val ENABLE_LOCATION_HISTORY = booleanPreferencesKey("enable_location_history")
-    val REFRESH_INTERVAL_HOURS = intPreferencesKey("refresh_interval_hours")
+    val REFRESH_INTERVAL_MINUTES = intPreferencesKey("refresh_interval_minutes")
     val THEME_MODE = stringPreferencesKey("theme_mode")
     val LOW_POWER_MODE = booleanPreferencesKey("low_power_mode")
     val WIDGET_THEME = stringPreferencesKey("widget_theme")
@@ -77,7 +77,7 @@ fun Preferences.toUserPreferences(): UserPreferences = UserPreferences(
     } ?: DistanceUnit.KILOMETERS,
     enableGeocoding = this[PreferencesKeys.ENABLE_GEOCODING] ?: false,
     enableLocationHistory = this[PreferencesKeys.ENABLE_LOCATION_HISTORY] ?: false,
-    refreshIntervalHours = this[PreferencesKeys.REFRESH_INTERVAL_HOURS] ?: 24,
+    refreshIntervalMinutes = this[PreferencesKeys.REFRESH_INTERVAL_MINUTES] ?: 5,
     themeMode = this[PreferencesKeys.THEME_MODE]?.let { modeString ->
         ThemeMode.values().find { it.name == modeString } ?: ThemeMode.SYSTEM
     } ?: ThemeMode.SYSTEM,

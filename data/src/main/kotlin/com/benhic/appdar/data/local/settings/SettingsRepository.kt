@@ -66,12 +66,12 @@ class SettingsRepository @Inject constructor(
     /**
      * Updates the widget refresh interval.
      *
-     * @param hours Interval in hours (1–720, i.e., 1 hour to 30 days)
+     * @param minutes Interval in minutes (1–60)
      */
-    suspend fun updateRefreshInterval(hours: Int) {
-        require(hours in 1..720) { "Refresh interval must be between 1 and 720 hours" }
+    suspend fun updateRefreshInterval(minutes: Int) {
+        require(minutes in 1..60) { "Refresh interval must be between 1 and 60 minutes" }
         dataStore.edit { preferences ->
-            preferences[PreferencesKeys.REFRESH_INTERVAL_HOURS] = hours
+            preferences[PreferencesKeys.REFRESH_INTERVAL_MINUTES] = minutes
         }
     }
 

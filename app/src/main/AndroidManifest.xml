@@ -19,7 +19,7 @@
         <package android:name="com.mcdonalds.app.uk" />
         <package android:name="com.mobile5.greggs" />
         <package android:name="uk.co.club.costa.costa" />
-        <package android:name="com.asda.rewards" />
+        <package android:name="com.asda.android" />
         <package android:name="com.lidl.eci.lidlplus" />
         <package android:name="com.whitbread.premierinn" />
         <package android:name="com.starbucks.mobilecard" />

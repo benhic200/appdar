@@ -15,14 +15,14 @@ object InitialDataset {
         // ── UK Supermarkets ───────────────────────────────────────────────────
         createMapping("Tesco",        "com.tesco.grocery.view",         "Tesco",             "supermarket", 51.5074, -0.1278),
         createMapping("Sainsbury's",  "com.sainsburys.smkt.android.shop","Sainsbury's",       "supermarket", 51.5074, -0.1279),
-        createMapping("Asda",         "com.asda.rewards",               "Asda Rewards",      "supermarket", 51.5074, -0.1280),
-        createMapping("Morrisons",    "com.morrison.morrisons",         "Morrisons",         "supermarket", 51.5074, -0.1281),
+        createMapping("Asda",         "com.asda.android",               "Asda Groceries",    "supermarket", 51.5074, -0.1280),
+        createMapping("Morrisons",    "com.morrisons.ecommerce",        "Morrisons Grocery", "supermarket", 51.5074, -0.1281),
         createMapping("Aldi",         "com.aldi.offers",                "Aldi Offers",       "supermarket", 51.5074, -0.1282),
         createMapping("Lidl",         "com.lidl.eci.lidlplus",          "Lidl Plus",         "supermarket", 51.5074, -0.1283),
         createMapping("Waitrose",     "com.waitrose.picnic",            "Waitrose",          "supermarket", 51.5074, -0.1284),
         createMapping("M&S",          "com.marks.spencer.android",      "M&S",               "supermarket", 51.5074, -0.1285),
         createMapping("Iceland",      "com.iceland.android",            "Iceland",           "supermarket", 51.5074, -0.1286),
-        createMapping("Co-op",        "coop.co.uk.membership",          "Co-op Membership",  "supermarket", 51.5074, -0.1287),
+        createMapping("Co-op",        "uk.co.coop.android",             "Co-op",             "supermarket", 51.5074, -0.1287),
 
         // ── UK Coffee & Bakery ────────────────────────────────────────────────
         createMapping("Costa Coffee", "uk.co.club.costa.costa",         "Costa Coffee",      "coffee",   51.5075, -0.1278),
@@ -63,7 +63,7 @@ object InitialDataset {
         // ── US Supermarkets & Retail ──────────────────────────────────────────
         createMapping("Walmart",      "com.walmart.android",            "Walmart",           "supermarket", 40.7128, -74.0060),
         createMapping("Target",       "com.target.ui",                  "Target",            "retail",      40.7128, -74.0061),
-        createMapping("Costco",       "com.costco.mobile.android",      "Costco",            "supermarket", 40.7128, -74.0062),
+        createMapping("Costco",       "com.costco.mobileapp",           "Costco",            "supermarket", 40.7128, -74.0062),
         createMapping("Whole Foods",  "com.amazon.wholefoods",          "Whole Foods",       "supermarket", 40.7128, -74.0063),
         createMapping("Walgreens",    "com.walgreens",                  "Walgreens",         "pharmacy",    40.7128, -74.0064),
         createMapping("CVS",          "com.cvs.launchers.cvs",          "CVS Pharmacy",      "pharmacy",    40.7128, -74.0065),
@@ -77,7 +77,7 @@ object InitialDataset {
         createMapping("Chick-fil-A",      "com.chickfila.cfaone",             "Chick-fil-A",       "fast_food", 40.7129, -74.0065),
         createMapping("Dunkin'",          "com.dunkindonuts.mobile",          "Dunkin'",           "coffee",    40.7129, -74.0066),
         createMapping("Panera Bread",     "com.panerabread.app",              "Panera Bread",      "fast_food", 40.7129, -74.0067),
-        createMapping("Shake Shack",      "com.shackburger.app",              "Shake Shack",       "fast_food", 40.7129, -74.0068),
+        createMapping("Shake Shack",      "com.shackshack.app",               "Shake Shack",       "fast_food", 40.7129, -74.0068),
         createMapping("Domino's (US)",    "com.dominospizza",                 "Domino's",          "fast_food", 40.7129, -74.0069)
 
     ).mapNotNull { it.withBoundingBox() }
