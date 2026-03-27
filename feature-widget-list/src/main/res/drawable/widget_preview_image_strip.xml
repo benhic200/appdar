@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fallback previewImage for the strip (4×1) widget — shown on Android < 12 or when previewLayout fails.
+     Clearly shows the horizontal strip layout: 4 icon+name columns side by side. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="80dp"
+    android:viewportWidth="320"
+    android:viewportHeight="80">
+
+    <!-- Card background -->
+    <path
+        android:fillColor="#FFFDF8FF"
+        android:pathData="M8,0 L312,0 Q320,0 320,8 L320,72 Q320,80 312,80 L8,80 Q0,80 0,72 L0,8 Q0,0 8,0 Z" />
+
+    <!-- Column 1 divider hint -->
+    <path android:fillColor="#FFE8D5F5"
+        android:pathData="M78,4 L80,4 L80,76 L78,76 Z" />
+    <!-- Column 2 divider hint -->
+    <path android:fillColor="#FFE8D5F5"
+        android:pathData="M158,4 L160,4 L160,76 L158,76 Z" />
+    <!-- Column 3 divider hint -->
+    <path android:fillColor="#FFE8D5F5"
+        android:pathData="M238,4 L240,4 L240,76 L238,76 Z" />
+
+    <!-- Col 1: icon circle -->
+    <path android:fillColor="#FFCE93D8"
+        android:pathData="M39,40 m-22,0 a22,22 0,1,1 44,0 a22,22 0,1,1 -44,0" />
+    <!-- Col 1: name bar -->
+    <path android:fillColor="#FF9E9E9E"
+        android:pathData="M8,65 L72,65 Q74,65 74,67 L74,71 Q74,73 72,73 L8,73 Q6,73 6,71 L6,67 Q6,65 8,65 Z" />
+
+    <!-- Col 2: icon circle -->
+    <path android:fillColor="#FFBA68C8"
+        android:pathData="M119,40 m-22,0 a22,22 0,1,1 44,0 a22,22 0,1,1 -44,0" />
+    <!-- Col 2: name bar -->
+    <path android:fillColor="#FF9E9E9E"
+        android:pathData="M88,65 L152,65 Q154,65 154,67 L154,71 Q154,73 152,73 L88,73 Q86,73 86,71 L86,67 Q86,65 88,65 Z" />
+
+    <!-- Col 3: icon circle -->
+    <path android:fillColor="#FFAB47BC"
+        android:pathData="M199,40 m-22,0 a22,22 0,1,1 44,0 a22,22 0,1,1 -44,0" />
+    <!-- Col 3: name bar -->
+    <path android:fillColor="#FF9E9E9E"
+        android:pathData="M168,65 L232,65 Q234,65 234,67 L234,71 Q234,73 232,73 L168,73 Q166,73 166,71 L166,67 Q166,65 168,65 Z" />
+
+    <!-- Col 4: icon circle (faded = not installed) -->
+    <path android:fillColor="#FFE1BEE7"
+        android:pathData="M279,40 m-22,0 a22,22 0,1,1 44,0 a22,22 0,1,1 -44,0" />
+    <!-- Col 4: name bar (faded) -->
+    <path android:fillColor="#FFBDBDBD"
+        android:pathData="M248,65 L312,65 Q314,65 314,67 L314,71 Q314,73 312,73 L248,73 Q246,73 246,71 L246,67 Q246,65 248,65 Z" />
+</vector>

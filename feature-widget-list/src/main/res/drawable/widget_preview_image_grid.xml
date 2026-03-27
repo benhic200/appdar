@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fallback previewImage for the grid (4×4) widget — shown on Android < 12 or when previewLayout fails.
+     Clearly shows the multi-column grid layout: header bar + 2×3 compact cells. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="320dp"
+    android:viewportWidth="320"
+    android:viewportHeight="320">
+
+    <!-- Card background -->
+    <path
+        android:fillColor="#FFFDF8FF"
+        android:pathData="M8,0 L312,0 Q320,0 320,8 L320,312 Q320,320 312,320 L8,320 Q0,320 0,312 L0,8 Q0,0 8,0 Z" />
+
+    <!-- Header bar background -->
+    <path
+        android:fillColor="#FFF3E5F5"
+        android:pathData="M0,0 L320,0 L320,40 L0,40 Z" />
+
+    <!-- Header: page counter pill -->
+    <path
+        android:fillColor="#FFCE93D8"
+        android:pathData="M12,14 L52,14 Q56,14 56,18 L56,26 Q56,30 52,30 L12,30 Q8,30 8,26 L8,18 Q8,14 12,14 Z" />
+
+    <!-- Header: settings icon circle -->
+    <path
+        android:fillColor="#FFAB47BC"
+        android:pathData="M280,20 m-10,0 a10,10 0,1,1 20,0 a10,10 0,1,1 -20,0" />
+
+    <!-- Header: refresh icon circle -->
+    <path
+        android:fillColor="#FFAB47BC"
+        android:pathData="M305,20 m-8,0 a8,8 0,1,1 16,0 a8,8 0,1,1 -16,0" />
+
+    <!-- Grid column divider -->
+    <path android:fillColor="#FFE8D5F5"
+        android:pathData="M158,44 L162,44 L162,316 L158,316 Z" />
+
+    <!-- Row 1 divider -->
+    <path android:fillColor="#FFE8D5F5"
+        android:pathData="M4,140 L316,140 L316,144 L4,144 Z" />
+    <!-- Row 2 divider -->
+    <path android:fillColor="#FFE8D5F5"
+        android:pathData="M4,228 L316,228 L316,232 L4,232 Z" />
+
+    <!-- Cell (1,1): icon -->
+    <path android:fillColor="#FFCE93D8"
+        android:pathData="M80,88 m-32,0 a32,32 0,1,1 64,0 a32,32 0,1,1 -64,0" />
+    <!-- Cell (1,1): name bar -->
+    <path android:fillColor="#FF9E9E9E"
+        android:pathData="M20,128 L140,128 Q142,128 142,131 L142,137 Q142,140 140,140 L20,140 Q18,140 18,137 L18,131 Q18,128 20,128 Z" />
+
+    <!-- Cell (1,2): icon -->
+    <path android:fillColor="#FFBA68C8"
+        android:pathData="M240,88 m-32,0 a32,32 0,1,1 64,0 a32,32 0,1,1 -64,0" />
+    <!-- Cell (1,2): name bar -->
+    <path android:fillColor="#FF9E9E9E"
+        android:pathData="M178,128 L300,128 Q302,128 302,131 L302,137 Q302,140 300,140 L178,140 Q176,140 176,137 L176,131 Q176,128 178,128 Z" />
+
+    <!-- Cell (2,1): icon -->
+    <path android:fillColor="#FFAB47BC"
+        android:pathData="M80,182 m-32,0 a32,32 0,1,1 64,0 a32,32 0,1,1 -64,0" />
+    <!-- Cell (2,1): name bar -->
+    <path android:fillColor="#FF9E9E9E"
+        android:pathData="M20,220 L140,220 Q142,220 142,223 L142,229 Q142,232 140,232 L20,232 Q18,232 18,229 L18,223 Q18,220 20,220 Z" />
+
+    <!-- Cell (2,2): icon (faded = not installed) -->
+    <path android:fillColor="#FFE1BEE7"
+        android:pathData="M240,182 m-32,0 a32,32 0,1,1 64,0 a32,32 0,1,1 -64,0" />
+    <!-- Cell (2,2): name bar (faded) -->
+    <path android:fillColor="#FFBDBDBD"
+        android:pathData="M178,220 L300,220 Q302,220 302,223 L302,229 Q302,232 300,232 L178,232 Q176,232 176,229 L176,223 Q176,220 178,220 Z" />
+
+    <!-- Cell (3,1): icon (faded) -->
+    <path android:fillColor="#FFE8D5F5"
+        android:pathData="M80,272 m-28,0 a28,28 0,1,1 56,0 a28,28 0,1,1 -56,0" />
+    <!-- Cell (3,2): icon (faded) -->
+    <path android:fillColor="#FFE8D5F5"
+        android:pathData="M240,272 m-28,0 a28,28 0,1,1 56,0 a28,28 0,1,1 -56,0" />
+</vector>

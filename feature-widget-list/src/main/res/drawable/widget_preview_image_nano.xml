@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fallback previewImage for the nano (2×1) widget — shown on Android < 12 or when previewLayout fails. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="160dp"
+    android:viewportWidth="320"
+    android:viewportHeight="160">
+
+    <!-- Card background -->
+    <path
+        android:fillColor="#FFFDF8FF"
+        android:pathData="M8,0 L312,0 Q320,0 320,8 L320,152 Q320,160 312,160 L8,160 Q0,160 0,152 L0,8 Q0,0 8,0 Z" />
+
+    <!-- App icon circle (left side) -->
+    <path
+        android:fillColor="#FFCE93D8"
+        android:pathData="M56,80 m-40,0 a40,40 0,1,1 80,0 a40,40 0,1,1 -80,0" />
+
+    <!-- Inner icon detail -->
+    <path
+        android:fillColor="#FFAB47BC"
+        android:pathData="M56,80 m-24,0 a24,24 0,1,1 48,0 a24,24 0,1,1 -48,0" />
+
+    <!-- Business name text bar -->
+    <path
+        android:fillColor="#FF9E9E9E"
+        android:pathData="M114,64 L270,64 Q274,64 274,68 L274,80 Q274,84 270,84 L114,84 Q110,84 110,80 L110,68 Q110,64 114,64 Z" />
+
+    <!-- Distance chip -->
+    <path
+        android:fillColor="#FFCE93D8"
+        android:pathData="M114,92 L176,92 Q180,92 180,96 L180,108 Q180,112 176,112 L114,112 Q110,112 110,108 L110,96 Q110,92 114,92 Z" />
+
+    <!-- Status dot (green = installed) -->
+    <path
+        android:fillColor="#FF66BB6A"
+        android:pathData="M294,12 m-6,0 a6,6 0,1,1 12,0 a6,6 0,1,1 -12,0" />
+</vector>

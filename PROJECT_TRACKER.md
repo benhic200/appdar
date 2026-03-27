@@ -1374,3 +1374,19 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
 - **Git commit:** [`cbff2ee`](https://github.com/benhic200/appdar/commit/cbff2ee) – Build v79
 
 **Test v79:** Install and verify custom location feature via AddBusinessScreen. GPS coordinates can be manually entered or selected from map.
+
+**v80 Built (Google Play AAB + APK) – 2026‑03‑27 12:22 GMT**
+**Features added:**
+- **Google Play AAB** – Android App Bundle (debug‑signed) ready for Play Store beta testing.
+- **Manifest‑merge fix** – Added `tools:replace="android:label"` to widget provider in app manifest.
+
+**Build details:**
+- **VersionCode 80** (versionName "1.80")
+- **APK SHA‑256:** `ea146077169e5cd8ee6ca24fedce033325a4bf188b20f1fb2a135d44a8d79886`
+- **AAB SHA‑256:** `a88af8dd5234d8c2c78f13133fb117eb6fe7a2d818ff8b2ab73ebe87e0015d7f`
+- **Download:** `http://192.168.0.111:8080/nearby‑apps‑widget‑v80.apk` (APK) / `.aab` (AAB)
+- **External:** `https://hickielaptopkali.tail25553f.ts.net:8081/nearby‑apps‑widget‑v80.apk` / `.aab`
+- **Build log:** APK success (2m 7s), AAB bundleDebug success (13s)
+- **Git commit:** [`cc90651`](https://github.com/benhic200/appdar/commit/cc90651) – Build v80
+
+**Test v80:** Install APK or upload AAB to Google Play Console for internal testing.
