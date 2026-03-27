@@ -1390,3 +1390,18 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
 - **Git commit:** [`cc90651`](https://github.com/benhic200/appdar/commit/cc90651) – Build v80
 
 **Test v80:** Install APK or upload AAB to Google Play Console for internal testing.
+
+**v81 Built (Release‑signed AAB for Google Play) – 2026‑03‑27 13:06 GMT**
+**Features added:**
+- **Release‑signed AAB** – Android App Bundle signed with upload‑keystore.jks (storePassword/keyPassword: android) ready for Google Play beta upload.
+- **Signing configuration** – Added signingConfigs block in app/build.gradle.kts, keystore properties in local.properties.
+
+**Build details:**
+- **VersionCode 81** (versionName "1.81")
+- **AAB SHA‑256:** `4a3b469dca83c61545ce49dbbca024f87303f4521f8ca720e9e8955b13b8adc0`
+- **Download:** `http://192.168.0.111:8080/nearby‑apps‑widget‑v81.aab` (copied to project directory at 13:46 GMT)
+- **External:** `https://hickielaptopkali.tail25553f.ts.net:8081/nearby‑apps‑widget‑v81.aab`
+- **Build log:** Success (2m 21s, 216 tasks executed, 85 executed, 131 up‑to‑date)
+- **Git commit:** [`3593fe9`](https://github.com/benhic200/appdar/commit/3593fe9) – Build v81
+
+**Test v81:** Upload AAB to Google Play Console → Internal/Closed testing track. Ensure "All uploaded bundles must be signed" error is resolved.
