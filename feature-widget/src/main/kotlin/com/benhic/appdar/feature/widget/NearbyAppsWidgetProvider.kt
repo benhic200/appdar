@@ -72,7 +72,8 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                 NearbyAppsWidgetProvider::class.java,
                 NearbyAppsWidgetProviderNano::class.java,
                 NearbyAppsWidgetProviderStrip::class.java,
-                NearbyAppsWidgetProviderGrid::class.java
+                NearbyAppsWidgetProviderGrid::class.java,
+                NearbyAppsWidgetProviderNarrow::class.java
             )
             for (cls in allClasses) {
                 val ids = mgr.getAppWidgetIds(android.content.ComponentName(context, cls))

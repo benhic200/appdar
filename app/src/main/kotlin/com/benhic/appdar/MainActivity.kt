@@ -160,33 +160,38 @@ class MainActivity : ComponentActivity() {
             MaterialTheme(
                 colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme()
             ) {
-                if (!onboardingComplete) {
-                    OnboardingScreen(
-                        permissionState = _permissionState.value,
-                        onRequestPermission = { requestLocationPermission() },
-                        onOpenAppSettings = { openAppSettings() },
-                        onOpenBatterySettings = { openBatterySettings() },
-                        onComplete = {
-                            appPrefs.edit().putBoolean("onboarding_complete", true).apply()
-                            _onboardingComplete.value = true
-                            // Trigger database seed if not done yet
-                            if (!_dbSeeded.value) seedDatabase()
-                        }
-                    )
-                } else {
-                    TabbedAppScreen(
-                        repository = repository,
-                        permissionState = _permissionState.value,
-                        dbSeeded = _dbSeeded.value,
-                        isPro = _isPro.value,
-                        onUpgradeTapped = { billingManager.launchPurchaseFlow(this@MainActivity) },
-                        onRestorePurchase = { billingManager.checkExistingPurchases() },
-                        onRequestPermission = { requestLocationPermission() },
-                        onSeedDatabase = { seedDatabase() },
-                        onOpenAppSettings = { openAppSettings() },
-                        onOpenBatterySettings = { openBatterySettings() },
-                        onFinishSetup = { finish() }
-                    )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    if (!onboardingComplete) {
+                        OnboardingScreen(
+                            permissionState = _permissionState.value,
+                            onRequestPermission = { requestLocationPermission() },
+                            onOpenAppSettings = { openAppSettings() },
+                            onOpenBatterySettings = { openBatterySettings() },
+                            onComplete = {
+                                appPrefs.edit().putBoolean("onboarding_complete", true).apply()
+                                _onboardingComplete.value = true
+                                // Trigger database seed if not done yet
+                                if (!_dbSeeded.value) seedDatabase()
+                            }
+                        )
+                    } else {
+                        TabbedAppScreen(
+                            repository = repository,
+                            permissionState = _permissionState.value,
+                            dbSeeded = _dbSeeded.value,
+                            isPro = _isPro.value,
+                            onUpgradeTapped = { billingManager.launchPurchaseFlow(this@MainActivity) },
+                            onRestorePurchase = { billingManager.checkExistingPurchases() },
+                            onRequestPermission = { requestLocationPermission() },
+                            onSeedDatabase = { seedDatabase() },
+                            onOpenAppSettings = { openAppSettings() },
+                            onOpenBatterySettings = { openBatterySettings() },
+                            onFinishSetup = { finish() }
+                        )
+                    }
                 }
             }
         }

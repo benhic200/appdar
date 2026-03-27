@@ -30,4 +30,5 @@
     <string name="widget_name_nano">Nearby — Single Place</string>
     <string name="widget_name_strip">Nearby — Quick Strip</string>
     <string name="widget_name_grid">Nearby — Grid</string>
+    <string name="widget_name_narrow">Nearby — Narrow Column</string>
 </resources>
