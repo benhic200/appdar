@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.nearbyappswidget.core"
+    namespace = "com.benhic.appdar.core"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

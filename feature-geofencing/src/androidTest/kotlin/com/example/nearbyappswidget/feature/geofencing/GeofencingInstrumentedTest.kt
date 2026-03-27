@@ -1,9 +1,9 @@
-package com.example.nearbyappswidget.feature.geofencing
+package com.benhic.appdar.feature.geofencing
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.example.nearbyappswidget.core.testutils.LocationTestHelper
-import com.example.nearbyappswidget.core.testutils.MockLocationProviderRule
+import com.benhic.appdar.core.testutils.LocationTestHelper
+import com.benhic.appdar.core.testutils.MockLocationProviderRule
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
 import com.google.android.gms.location.GeofencingRequest
@@ -64,7 +64,7 @@ class GeofencingInstrumentedTest {
     fun permissionGranted_startsGeofencingAutomatically() {
         // Grant location permission via UiAutomator
         InstrumentationRegistry.getInstrumentation().uiAutomation
-            .executeShellCommand("pm grant com.example.nearbyappswidget android.permission.ACCESS_FINE_LOCATION")
+            .executeShellCommand("pm grant com.benhic.appdar android.permission.ACCESS_FINE_LOCATION")
         // Wait a bit for geofence registration
         Thread.sleep(2000)
         // Verify geofences are registered (could query GeofencingClient)

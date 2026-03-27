@@ -54,7 +54,7 @@
 
         <!-- Widget provider -->
         <receiver
-            android:name="com.example.nearbyappswidget.feature.widget.NearbyAppsWidgetProvider"
+            android:name="com.benhic.appdar.feature.widget.NearbyAppsWidgetProvider"
             android:exported="true"
             android:label="@string/widget_name"
             tools:replace="android:label">
@@ -68,7 +68,7 @@
 
         <!-- Geofence broadcast receiver -->
         <receiver
-            android:name="com.example.nearbyappswidget.feature.geofencing.GeofenceBroadcastReceiver"
+            android:name="com.benhic.appdar.feature.geofencing.GeofenceBroadcastReceiver"
             android:exported="false" />
 
         <!-- Foreground service for Android 10+ background location (geofencing) -->

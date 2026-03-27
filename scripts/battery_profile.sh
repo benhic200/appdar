@@ -26,7 +26,7 @@ fi
 echo "Target device: $DEVICE"
 
 # Install app if not already installed
-APP_ID="com.example.nearbyappswidget"
+APP_ID="com.benhic.appdar"
 if ! adb shell pm list packages | grep -q "$APP_ID"; then
     echo "Installing app..."
     APK_PATH="./app/build/outputs/apk/debug/app-debug.apk"
@@ -63,7 +63,7 @@ for i in $(seq 0 $STEPS); do
     LAT=$(echo "$LONDON_LAT + ($MANCHESTER_LAT - $LONDON_LAT) * $i / $STEPS" | bc -l)
     LNG=$(echo "$LONDON_LNG + ($MANCHESTER_LNG - $LONDON_LNG) * $i / $STEPS" | bc -l)
     echo "Setting location: $LAT, $LNG"
-    adb shell "am broadcast -a com.example.nearbyappswidget.SET_MOCK_LOCATION --ef lat $LAT --ef lng $LNG" >/dev/null 2>&1 || true
+    adb shell "am broadcast -a com.benhic.appdar.SET_MOCK_LOCATION --ef lat $LAT --ef lng $LNG" >/dev/null 2>&1 || true
     sleep 5
 done
 

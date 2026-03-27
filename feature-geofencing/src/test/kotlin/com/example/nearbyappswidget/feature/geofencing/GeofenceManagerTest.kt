@@ -1,9 +1,9 @@
-package com.example.nearbyappswidget.feature.geofencing
+package com.benhic.appdar.feature.geofencing
 
 import android.content.Context
 import android.location.LocationManager
 import androidx.test.core.app.ApplicationProvider
-import com.example.nearbyappswidget.data.repository.BusinessAppRepository
+import com.benhic.appdar.data.repository.BusinessAppRepository
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
 import com.google.android.gms.location.GeofencingRequest

@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.nearbyappswidget.feature.geofencing"
+    namespace = "com.benhic.appdar.feature.geofencing"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

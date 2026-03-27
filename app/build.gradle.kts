@@ -8,15 +8,15 @@ plugins {
 import java.util.Properties
 
 android {
-    namespace = "com.example.nearbyappswidget"
+    namespace = "com.benhic.appdar"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.example.nearbyappswidget"
+        applicationId = "com.benhic.appdar"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 81
-        versionName = "1.80"
+        versionCode = 82
+        versionName = "1.82"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

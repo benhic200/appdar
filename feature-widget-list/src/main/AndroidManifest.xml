@@ -17,7 +17,7 @@
             android:name=".WidgetClickReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.example.nearbyappswidget.ACTION_WIDGET_ITEM_CLICK" />
+                <action android:name="com.benhic.appdar.ACTION_WIDGET_ITEM_CLICK" />
             </intent-filter>
         </receiver>
 

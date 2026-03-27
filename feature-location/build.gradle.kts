@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.nearbyappswidget.feature.location"
+    namespace = "com.benhic.appdar.feature.location"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

@@ -1,4 +1,4 @@
-package com.example.nearbyappswidget.core.testutils
+package com.benhic.appdar.core.testutils
 
 import android.content.Context
 import android.location.Location

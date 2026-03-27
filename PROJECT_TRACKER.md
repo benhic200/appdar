@@ -1405,3 +1405,20 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
 - **Git commit:** [`3593fe9`](https://github.com/benhic200/appdar/commit/3593fe9) – Build v81
 
 **Test v81:** Upload AAB to Google Play Console → Internal/Closed testing track. Ensure "All uploaded bundles must be signed" error is resolved.
+
+**v82 Built (Package rename to com.benhic.appdar) – 2026‑03‑27 14:00 GMT**
+**Features added:**
+- **Package rename** – Changed package from `com.example.nearbyappswidget` to `com.benhic.appdar` to satisfy Google Play restrictions.
+- **Version bump** – VersionCode 82, versionName "1.82".
+- **Script updates** – Updated `scripts/battery_profile.sh` with new package name.
+- **Directory restructure** – Moved source directories from `com/example/nearbyappswidget` to `com/benhic/appdar`.
+
+**Build details:**
+- **VersionCode 82** (versionName "1.82")
+- **AAB SHA‑256:** `TBD` (will update after build)
+- **Download:** `http://192.168.0.111:8080/nearby‑apps‑widget‑v82.aab`
+- **External:** `https://hickielaptopkali.tail25553f.ts.net:8081/nearby‑apps‑widget‑v82.aab`
+- **Build log:** Pending
+- **Git commit:** `TBD`
+
+**Test v82:** Upload AAB to Google Play Console. The "com.example is restricted" error should now be resolved.
