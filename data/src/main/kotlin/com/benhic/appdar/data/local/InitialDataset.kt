@@ -14,15 +14,15 @@ object InitialDataset {
 
         // ── UK Supermarkets ───────────────────────────────────────────────────
         createMapping("Tesco",        "com.tesco.grocery.view",         "Tesco",             "supermarket", 51.5074, -0.1278),
-        createMapping("Sainsbury's",  "com.sainsburys.smkt.android.shop","Sainsbury's",       "supermarket", 51.5074, -0.1279),
+        createMapping("Sainsbury's",  "com.sainsburys.gol","Sainsbury's",       "supermarket", 51.5074, -0.1279),
         createMapping("Asda",         "com.asda.android",               "Asda Groceries",    "supermarket", 51.5074, -0.1280),
-        createMapping("Morrisons",    "com.morrisons.ecommerce",        "Morrisons Grocery", "supermarket", 51.5074, -0.1281),
-        createMapping("Aldi",         "com.aldi.offers",                "Aldi Offers",       "supermarket", 51.5074, -0.1282),
+        createMapping("Morrisons",    "com.morrisons.atm.mobile.android","Morrisons Grocery", "supermarket", 51.5074, -0.1281),
+        createMapping("Aldi",         "de.apptiv.business.android.aldi_uk","Aldi Offers",       "supermarket", 51.5074, -0.1282),
         createMapping("Lidl",         "com.lidl.eci.lidlplus",          "Lidl Plus",         "supermarket", 51.5074, -0.1283),
-        createMapping("Waitrose",     "com.waitrose.picnic",            "Waitrose",          "supermarket", 51.5074, -0.1284),
-        createMapping("M&S",          "com.marks.spencer.android",      "M&S",               "supermarket", 51.5074, -0.1285),
+        createMapping("Waitrose",     "com.waitrose.groceries",         "Waitrose",          "supermarket", 51.5074, -0.1284),
+        createMapping("M&S",          "com.marksandspencer.app",        "M&S",               "supermarket", 51.5074, -0.1285),
         createMapping("Iceland",      "com.iceland.android",            "Iceland",           "supermarket", 51.5074, -0.1286),
-        createMapping("Co-op",        "uk.co.coop.android",             "Co-op",             "supermarket", 51.5074, -0.1287),
+        createMapping("Co-op",        "uk.co.coop.app",                "Co-op",             "supermarket", 51.5074, -0.1287),
 
         // ── UK Coffee & Bakery ────────────────────────────────────────────────
         createMapping("Costa Coffee", "uk.co.club.costa.costa",         "Costa Coffee",      "coffee",   51.5075, -0.1278),
@@ -34,22 +34,22 @@ object InitialDataset {
         // ── UK Fast Food ──────────────────────────────────────────────────────
         createMapping("McDonald's",   "com.mcdonalds.app.uk",           "McDonald's",        "fast_food", 51.5076, -0.1278),
         createMapping("Burger King",  "com.emn8.mobilem8.nativeapp.bkuk","Burger King",      "fast_food", 51.5076, -0.1279),
-        createMapping("KFC",          "uk.co.kfc.kfc_app",              "KFC",               "fast_food", 51.5076, -0.1280),
+        createMapping("KFC",          "com.yum.colonelsclub",           "KFC",               "fast_food", 51.5076, -0.1280),
         createMapping("Subway",       "com.subway.mobile.subwayapp03",  "Subway",            "fast_food", 51.5076, -0.1281),
-        createMapping("Nando's",      "com.nandos.android.activity",    "Nando's",           "fast_food", 51.5076, -0.1282),
+        createMapping("Nando's",      "nandos.android.app",             "Nando's",           "fast_food", 51.5076, -0.1282),
         createMapping("Five Guys",    "com.fiveguys.fiveguys",          "Five Guys",         "fast_food", 51.5076, -0.1283),
         createMapping("Wagamama",     "uk.co.wagamama",                 "wagamama",          "fast_food", 51.5076, -0.1284),
         createMapping("Domino's",     "uk.co.dominos.android",          "Domino's",          "fast_food", 51.5076, -0.1285),
         createMapping("Papa John's",  "com.papajohns.android",          "Papa John's",       "fast_food", 51.5076, -0.1286),
-        createMapping("Pizza Hut",    "com.pizzahutuk",                 "Pizza Hut",         "fast_food", 51.5076, -0.1287),
+        createMapping("Pizza Hut",    "com.pizzahutuk.orderingApp",     "Pizza Hut",         "fast_food", 51.5076, -0.1287),
         createMapping("Leon",         "com.leon.leon",                  "Leon",              "fast_food", 51.5076, -0.1288),
 
         // ── UK Casual Dining / Pubs ───────────────────────────────────────────
-        createMapping("Wetherspoons", "com.jdwetherspoon.apps.android", "Wetherspoons",      "pub",      51.5077, -0.1278),
+        createMapping("Wetherspoons", "com.wetherspoon.orderandpay",    "Wetherspoons",      "pub",      51.5077, -0.1278),
 
         // ── UK Pharmacy & Retail ──────────────────────────────────────────────
-        createMapping("Boots",        "com.boots",                      "Boots",             "pharmacy", 51.5077, -0.1279),
-        createMapping("WHSmith",      "com.whsmith.android",            "WHSmith",           "retail",   51.5077, -0.1280),
+        createMapping("Boots",        "com.boots.flagship.android",     "Boots",             "pharmacy", 51.5077, -0.1279),
+        createMapping("WHSmith",      "com.whsmith.mywhsmith.android",  "WHSmith",           "retail",   51.5077, -0.1280),
 
         // ── UK Hotels ─────────────────────────────────────────────────────────
         createMapping("Premier Inn",  "com.whitbread.premierinn",       "Premier Inn",       "hotel",    51.5077, -0.1281),
