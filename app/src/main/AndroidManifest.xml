@@ -38,7 +38,7 @@
         android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@style/Theme.NearbyAppsWidget"
+        android:theme="@style/Theme.Appdar"
         tools:targetApi="31">
 
         <!-- Launcher activity (for app icon and explanation) -->

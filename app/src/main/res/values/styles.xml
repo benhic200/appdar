@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Base application theme. -->
-    <style name="Theme.NearbyAppsWidget" parent="Theme.Material3.DayNight">
+    <style name="Theme.Appdar" parent="Theme.Material3.DayNight">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/purple_500</item>
         <item name="colorOnPrimary">@color/white</item>
@@ -16,7 +16,7 @@
     </style>
 
     <!-- Widget style -->
-    <style name="Widget.NearbyAppsWidget" parent="android:Widget">
+    <style name="Widget.Appdar" parent="android:Widget">
         <item name="android:background">@android:color/transparent</item>
     </style>
 

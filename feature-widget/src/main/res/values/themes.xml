@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Base theme for widget configuration activity (if any) -->
-    <style name="Theme.NearbyAppsWidget" parent="Theme.Material3.DayNight">
+    <style name="Theme.Appdar" parent="Theme.Material3.DayNight">
         <!-- Customize your theme here -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorOnPrimary">@color/on_primary</item>
@@ -12,22 +12,22 @@
     </style>
 
     <!-- Base widget style -->
-    <style name="Widget.NearbyAppsWidget" parent="android:Widget">
+    <style name="Widget.Appdar" parent="android:Widget">
         <item name="android:background">@android:color/transparent</item>
     </style>
 
     <!-- Widget-specific theme attributes -->
-    <style name="Widget.NearbyAppsWidget.Container">
+    <style name="Widget.Appdar.Container">
         <item name="android:background">?android:attr/colorBackground</item>
         <item name="android:padding">@dimen/widget_padding</item>
     </style>
 
-    <style name="Widget.NearbyAppsWidget.Item">
+    <style name="Widget.Appdar.Item">
         <item name="android:minHeight">@dimen/widget_item_min_height</item>
         <item name="android:paddingVertical">@dimen/widget_item_vertical_padding</item>
     </style>
 
-    <style name="Widget.NearbyAppsWidget.Button">
+    <style name="Widget.Appdar.Button">
         <item name="android:minWidth">@dimen/button_min_width</item>
         <item name="android:minHeight">@dimen/button_min_height</item>
         <item name="android:background">?attr/selectableItemBackground</item>

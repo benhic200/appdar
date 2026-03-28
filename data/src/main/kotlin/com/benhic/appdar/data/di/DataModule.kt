@@ -68,7 +68,7 @@ object DataModule {
 
         val userAgentInterceptor = Interceptor { chain ->
             val request = chain.request().newBuilder()
-                .header("User-Agent", "NearbyAppsWidget/1.0")
+                .header("User-Agent", "Appdar/1.0")
                 .build()
             chain.proceed(request)
         }

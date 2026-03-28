@@ -15,7 +15,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "NearbyAppsWidget"
+rootProject.name = "Appdar"
 
 include(":app")
 include(":core")

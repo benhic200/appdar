@@ -81,6 +81,7 @@ class NearbyBranchFinder @Inject constructor(
             "Wetherspoons"    to "Wetherspoons",
             "Boots"           to "Boots",
             "WHSmith"         to "WH Smith",
+            "IKEA"            to "IKEA",
             // Hotels (global)
             "Premier Inn"     to "Premier Inn",
             "Travelodge"      to "Travelodge",
@@ -110,7 +111,7 @@ class NearbyBranchFinder @Inject constructor(
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
         .build()
 
     /**
@@ -188,7 +189,7 @@ class NearbyBranchFinder @Inject constructor(
                 val escaped = trimmed.replace("\"", "\\\"")
                 val areaFilter = if (userLat != null && userLon != null)
                     "(around:100000,$userLat,$userLon)" else ""
-                val timeout = if (areaFilter.isEmpty()) 30 else 15
+                val timeout = 30
                 val query = """[out:json][timeout:$timeout];nwr["brand"="$escaped"]$areaFilter;out ids 1;"""
                 val body = "data=${Uri.encode(query)}"
                     .toRequestBody("application/x-www-form-urlencoded".toMediaType())

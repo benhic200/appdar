@@ -1423,3 +1423,61 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
 - **Git commit:** [`acde6ac`](https://github.com/benhic200/appdar/commit/acde6ac) – Build v82
 
 **Test v82:** Upload AAB to Google Play Console. The "com.example is restricted" error should now be resolved.
+
+**Database Package‑Name Verification & Corrections – 2026‑03‑28 11:00 GMT**
+- **Verification method**: Curl requests to Play Store URLs (`https://play.google.com/store/apps/details?id=<package>`); 404 indicates invalid package.
+- **Invalid packages identified & corrected** (12):
+  - Sainsbury's → `com.sainsburys.gol`
+  - Morrisons → `com.morrisons.atm.mobile.android`
+  - Aldi → `de.apptiv.business.android.aldi_uk`
+  - Waitrose → `com.waitrose.groceries`
+  - M&S → `com.marksandspencer.app`
+  - Co‑op → `uk.co.coop.app`
+  - KFC → `com.yum.colonelsclub`
+  - Boots → `com.boots.flagship.android`
+  - WHSmith → `com.whsmith.mywhsmith.android`
+  - Pizza Hut → `com.pizzahutuk.orderingApp`
+  - Nando's → `nandos.android.app`
+  - Wetherspoons → `com.wetherspoon.orderandpay`
+- **Still invalid (404)** – need correct package names:
+  - Wagamama (`uk.co.wagamama`)
+  - Five Guys (`com.fiveguys.fiveguys`)
+  - Leon (`com.leon.leon`)
+- **Updated** `data/src/main/kotlin/com/benhic/appdar/data/local/InitialDataset.kt` with corrected packages.
+
+**v83 – v89 Builds (2026‑03‑28)**
+- **v83–v86**: Various fixes (not documented in tracker).
+- **v87**: Database corrections applied (12 packages), APK built.
+- **v88**: (Build attempt with minify enabled – hung on R8; killed).
+- **v89**: Built with `isMinifyEnabled = false` (R8 timeout issue). Includes all corrected packages.
+
+**v89 Build Details – 2026‑03‑28 11:30 GMT**
+- **VersionCode 89** (versionName "1.89")
+- **APK SHA‑256:** `5bfc72544d621ee57e312bfe06499d22b80eb69936902734f4f64c96b5688b2e`
+- **AAB SHA‑256:** `05b860718829a9a77bd78d5bbca5147507298d96fc42405fe1ca41d70f3a5d92`
+- **Download URLs:**
+  - APK: `http://192.168.0.111:8080/nearby‑apps‑widget‑v89.apk`
+  - AAB: `http://192.168.0.111:8080/nearby‑apps‑widget‑v89.aab`
+  - External: `https://hickielaptopkali.tail25553f.ts.net:8081/nearby‑apps‑widget‑v89.aab`
+- **Git commit:** [`...`](https://github.com/benhic200/appdar/commit/...) – Build v89
+
+**Package Corrections Completed – 2026‑03‑28 13:00 GMT**
+- **Five Guys** → `com.fiveguys.fiveguysuk` (valid)
+- **Wagamama** → `com.wagamama.soulclubapp` (valid)
+- **Leon** removed from dataset (not found)
+- **IKEA** added with package `com.ingka.ikea.app` and OSM brand mapping.
+- **Geocoding timeouts increased** (Overpass timeout 30 s, read timeout 30 s) to improve brand validation.
+- **R8 minification** re‑enabled with heap increased to 4 GB.
+
+**v90 Build Complete – 2026‑03‑28 13:30 GMT**
+- **VersionCode 90** (versionName "1.90")
+- **SHA‑256 (APK):** `6f21d83f98e4e68b0ef7863d02a9f541117c2d3e7a3d8aa7ee5cfb1529f3f50f`
+- **SHA‑256 (AAB):** `823a5a10883ede47831779320515c0ca06ed373a97c2ef8051bb0316b3204a53`
+- **Download URLs:**
+  - APK: `http://192.168.0.111:8080/nearby‑apps‑widget‑v90.apk`
+  - AAB: `http://192.168.0.111:8080/nearby‑apps‑widget‑v90.aab`
+  - External: `https://hickielaptopkali.tail25553f.ts.net:8081/nearby‑apps‑widget‑v90.aab`
+
+**Next Steps:**
+1. **Upload v90 AAB to Google Play Console** for testing.
+2. **Verify custom‑place addition** (IKEA) works in companion app.
