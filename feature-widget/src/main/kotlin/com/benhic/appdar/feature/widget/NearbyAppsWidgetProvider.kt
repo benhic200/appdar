@@ -1182,12 +1182,12 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                 Business("McDonald's", 450, "com.mcdonalds.app.uk"),
                 Business("Greggs", 920, "com.mobile5.greggs"),
                 Business("Costa Coffee", 120, "uk.co.club.costa.costa"),
-                Business("Asda", 300, "com.asda.rewards"),
+                Business("Asda", 300, "com.asda.android"),
                 Business("Lidl", 400, "com.lidl.eci.lidlplus"),
                 Business("Premier Inn", 600, "com.whitbread.premierinn"),
                 Business("Starbucks", 320, "com.starbucks.mobilecard"),
-                Business("Boots", 750, "com.boots"),
-                Business("WHSmith", 560, "com.whsmith.android")
+                Business("Boots", 750, "com.boots.flagship.android"),
+                Business("WHSmith", 560, "com.whsmith.mywhsmith.android")
             )
         }
 

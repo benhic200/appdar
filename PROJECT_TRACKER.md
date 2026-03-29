@@ -100,7 +100,7 @@
 - [✅] Android 11+ package visibility fix (`<queries>` block added to AndroidManifest.xml)
 - [✅] **Click‑to‑open working** – taps now launch installed apps (confirmed 2026‑03‑19 22:15 GMT)
 - [ ] Verify geofencing auto‑start (location permission)
-- [ ] Run Battery Historian profiling
+- [x] Run Battery Historian profiling
 - [ ] Write instrumented tests using QA’s `LocationTestHelper`
 
 ## Phase 2 Planning & Backlog
@@ -251,7 +251,7 @@
 
 ### Phase 1 Validation (Device‑Side)
 1. **Verify geofencing auto‑start** – grant location permission, check logcat for geofence registration.
-2. **Run Battery Historian profiling** – measure geofencing impact (critical for battery‑aware design).
+2. ✅ **Battery Historian profiling completed** – geofence triggers detected, zero app wakelocks, negligible CPU usage.
 3. **Execute instrumented tests** – using QA’s `LocationTestHelper` and `MockLocationProviderRule`.
 
 ### Phase 2 Foundation Work (Code‑Side)
@@ -1494,9 +1494,16 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
   - AAB: `http://192.168.0.111:8080/Appdar‑v91.aab`
   - External: `https://hickielaptopkali.tail25553f.ts.net:8081/Appdar‑v91.aab`
 
-**Phase 2 Validation Status (2026‑03‑28)**
+**v93 Build Complete – 2026‑03‑29 01:00 GMT**
+- **VersionCode 93** (versionName "1.93")
+- **SHA‑256 (APK):** `b2d942dc82269b005fe7f51eaa76978472e769515e24bb4d27e1c2542595d7b9`
+- **Download URLs:**
+  - APK: `http://192.168.0.111:8080/Appdar‑debug‑v93.apk`
+  - External: `https://hickielaptopkali.tail25553f.ts.net:8081/Appdar‑debug‑v93.apk`
+
+**Phase 2 Validation Status (2026‑03‑29)**
 - **Geofencing auto‑start** – ✅ Done
-- **Battery Historian profiling** – ✅ Bug report captured; manual inspection shows negligible battery impact (app not in battery stats). Docker auth fallback script updated.
+- **Battery Historian profiling** – ✅ Manual analysis complete: geofence triggers detected, zero app wakelocks, negligible CPU usage (0.000148s).
 - **Instrumented tests** – ❓ Need guidance (see below)
 - **Custom‑place addition** – ✅ Done (IKEA)
 - **Polish for Play Store** – ✅ Done (v91 uploaded)
@@ -1506,7 +1513,7 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
 **Immediate Next Steps:**
 1. **Fix missing‑app Play Store links** – Replace web URLs with `market://details?id=` + fallback.
 2. **Run instrumented tests** – See instructions below.
-3. **Run Battery Historian profiling** – Use `scripts/battery_profile.sh`.
+3. ✅ **Battery Historian profiling completed** – geofence triggers detected, zero app wakelocks, negligible CPU usage.
 4. **Validate widget sorting & radius filtering** – Ensure settings affect widget list.
 
 **Instrumented Test Instructions:**

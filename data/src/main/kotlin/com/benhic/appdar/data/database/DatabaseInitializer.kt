@@ -46,6 +46,35 @@ object DatabaseInitializer {
             dao.insertAll(allDataset)
             Log.d(TAG, "Seeding complete")
         } else {
+            // Update existing entries where business name matches but package name differs
+            var updatedCount = 0
+            for (datasetMapping in allDataset) {
+                val existing = dao.getByBusinessName(datasetMapping.businessName)
+                if (existing != null && existing.packageName != datasetMapping.packageName) {
+                    // Update package name (and other fields from dataset) while preserving user toggles
+                    val updated = existing.copy(
+                        packageName = datasetMapping.packageName,
+                        appName = datasetMapping.appName,
+                        category = datasetMapping.category,
+                        latitude = datasetMapping.latitude,
+                        longitude = datasetMapping.longitude,
+                        geofenceRadius = datasetMapping.geofenceRadius,
+                        minLat = datasetMapping.minLat,
+                        maxLat = datasetMapping.maxLat,
+                        minLon = datasetMapping.minLon,
+                        maxLon = datasetMapping.maxLon,
+                        version = datasetMapping.version,
+                        lastUpdated = System.currentTimeMillis()
+                        // Keep existing isEnabled, isCustom, osmBrandTag
+                    )
+                    dao.update(updated)
+                    updatedCount++
+                    Log.d(TAG, "Updated package name for ${datasetMapping.businessName}: ${existing.packageName} -> ${datasetMapping.packageName}")
+                }
+            }
+            if (updatedCount > 0) {
+                Log.d(TAG, "Updated $updatedCount package names")
+            }
             // Insert any new entries added since the user first installed
             val newEntries = allDataset.filter { dao.getByPackageName(it.packageName) == null }
             if (newEntries.isNotEmpty()) {
