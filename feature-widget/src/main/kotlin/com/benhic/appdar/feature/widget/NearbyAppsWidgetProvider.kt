@@ -225,7 +225,9 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                                 calc.calculateDistanceMeters(location.latitude, location.longitude, lat, lon).toInt()
                             else m.geofenceRadius
                             m.packageName to dist
-                        }.sortedBy { it.second }.take(iconCount).map { it.first }
+                        }.sortedBy { it.second }
+                            .let { if (location != null) it.filter { it.second <= prefs.searchRadiusMeters } else it }
+                            .take(iconCount).map { it.first }
                     }
 
                     icons.preloadIcons(packages)
@@ -312,7 +314,8 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                                 calc.calculateDistanceMeters(location.latitude, location.longitude, lat, lon).toInt()
                             else m.geofenceRadius
                             m.packageName to dist
-                        }.minByOrNull { it.second }?.first
+                        }.let { if (location != null) it.filter { it.second <= prefs.searchRadiusMeters } else it }
+                            .minByOrNull { it.second }?.first
                     }
 
                     if (pkg != null) {
@@ -515,6 +518,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                         } else m.geofenceRadius
                         Triple(m, dist, installed)
                     }.sortedBy { it.second }
+                        .let { if (location != null) it.filter { it.second <= prefs.searchRadiusMeters } else it }
 
                     icons.preloadIcons(allItems.map { it.first.packageName })
 
@@ -641,7 +645,8 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                             context.packageManager.getPackageInfo(m.packageName, PackageManager.MATCH_ALL); true
                         } catch (_: PackageManager.NameNotFoundException) { false }
                         Triple(m, dist, installed)
-                    }.minByOrNull { it.second }
+                    }.let { if (location != null) it.filter { it.second <= prefs.searchRadiusMeters } else it }
+                        .minByOrNull { it.second }
 
                     if (closest != null) {
                         val (m, dist, installed) = closest
@@ -784,7 +789,9 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                         } catch (_: PackageManager.NameNotFoundException) { false }
                         WidgetDisplayItem(m.packageName, m.businessName,
                             calc.formatDistanceWithPreferences(dist.toDouble(), prefs), installed) to dist
-                    }.sortedBy { it.second }.take(itemCount).map { it.first }
+                    }.sortedBy { it.second }
+                        .let { if (location != null) it.filter { it.second <= prefs.searchRadiusMeters } else it }
+                        .take(itemCount).map { it.first }
 
                     icons.preloadIcons(sorted.map { it.packageName })
 
@@ -1099,7 +1106,10 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                         } else {
                             // Last resort: try to open app info in settings
                             Log.w(TAG, "No launcher activity found for $packageName, falling back to Play Store")
-                            null
+                            Intent(Intent.ACTION_VIEW).apply {
+                                data = Uri.parse("market://details?id=$packageName")
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
                         }
                     }
                 } catch (e: PackageManager.NameNotFoundException) {
@@ -1111,8 +1121,11 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                         
                         val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
                         launchIntent ?: run {
-                            Log.w(TAG, "No launch intent even though app exists")
-                            null
+                            Log.w(TAG, "No launch intent even though app exists, opening Play Store")
+                            Intent(Intent.ACTION_VIEW).apply {
+                                data = Uri.parse("market://details?id=$packageName")
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
                         }
                     } catch (e2: PackageManager.NameNotFoundException) {
                         Log.d(TAG, "Package $packageName not found by getApplicationInfo either, checking all packages")
@@ -1123,17 +1136,29 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                         Log.d(TAG, "Package $packageName exists in getInstalledPackages: $matching")
                         Log.d(TAG, "Total packages: ${allPackages.size}")
                         
-                        null
+                        Intent(Intent.ACTION_VIEW).apply {
+                            data = Uri.parse("market://details?id=$packageName")
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
                     } catch (e2: Exception) {
                         Log.e(TAG, "Exception in getApplicationInfo for $packageName", e2)
-                        null
+                        Intent(Intent.ACTION_VIEW).apply {
+                            data = Uri.parse("market://details?id=$packageName")
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
                     }
                 } catch (e: SecurityException) {
                     Log.e(TAG, "SecurityException checking package $packageName", e)
-                    null
+                    Intent(Intent.ACTION_VIEW).apply {
+                        data = Uri.parse("market://details?id=$packageName")
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
                 } catch (e: Exception) {
                     Log.e(TAG, "Exception checking package $packageName", e)
-                    null
+                    Intent(Intent.ACTION_VIEW).apply {
+                        data = Uri.parse("market://details?id=$packageName")
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
                 }
             } ?: run {
                 Log.d(TAG, "No package name or fallback, opening Play Store search for ${business.name}")

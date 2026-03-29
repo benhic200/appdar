@@ -70,8 +70,8 @@ private fun SettingsCards(
                     Slider(
                         value = userPreferences.searchRadiusMeters.toFloat(),
                         onValueChange = { viewModel.updateSearchRadius(it.toInt()) },
-                        valueRange = 100f..2000f,
-                        steps = 19, // 100 m increments
+                        valueRange = 500f..10000f,
+                        steps = 19, // 500 m increments
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

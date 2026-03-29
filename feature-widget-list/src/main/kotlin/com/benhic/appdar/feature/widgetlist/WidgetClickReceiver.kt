@@ -39,12 +39,24 @@ class WidgetClickReceiver : BroadcastReceiver() {
             launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
             context.startActivity(launchIntent)
         } else {
-            Log.d(TAG, "App not installed, opening Play Store")
-            val playStoreIntent = Intent(Intent.ACTION_VIEW).apply {
-                data = android.net.Uri.parse("https://play.google.com/store/apps/details?id=$packageName")
+            Log.d(TAG, "App not installed, opening Play Store for: $packageName")
+            // Try market:// scheme first (opens Play Store app)
+            val marketIntent = Intent(Intent.ACTION_VIEW).apply {
+                data = android.net.Uri.parse("market://details?id=$packageName")
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
-            context.startActivity(playStoreIntent)
+            try {
+                context.startActivity(marketIntent)
+                Log.d(TAG, "Opened Play Store via market://")
+            } catch (e: android.content.ActivityNotFoundException) {
+                // Fallback to web URL
+                Log.w(TAG, "Play Store app not found, falling back to web")
+                val webIntent = Intent(Intent.ACTION_VIEW).apply {
+                    data = android.net.Uri.parse("https://play.google.com/store/apps/details?id=$packageName")
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(webIntent)
+            }
         }
     }
 }

@@ -297,7 +297,9 @@ internal class NearbyAppsWidgetListFactory(
                     )
                 }
                 // Sort by distance (nearest first)
-                businessItems = itemsWithDistance.sortedBy { it.distanceMeters }
+                businessItems = itemsWithDistance
+                    .let { if (currentLocation != null) it.filter { item -> item.distanceMeters <= (userPreferences?.searchRadiusMeters ?: Int.MAX_VALUE) } else it }
+                    .sortedBy { it.distanceMeters }
                 // Log final distances
                 businessItems.forEachIndexed { idx, item ->
                     Log.d(TAG, "Item ${idx+1}: ${item.name} - ${item.distanceMeters}m")
@@ -347,10 +349,10 @@ internal class NearbyAppsWidgetListFactory(
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                     )
                 } else {
-                    // App not installed — open Play Store
+                    // App not installed — open Play Store via market:// (direct app) or fallback to web
                     Log.d(TAG, "App not installed, opening Play Store for: ${business.packageName}")
                     val playStoreIntent = Intent(Intent.ACTION_VIEW).apply {
-                        data = android.net.Uri.parse("https://play.google.com/store/apps/details?id=${business.packageName}")
+                        data = android.net.Uri.parse("market://details?id=${business.packageName}")
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
                     PendingIntent.getActivity(

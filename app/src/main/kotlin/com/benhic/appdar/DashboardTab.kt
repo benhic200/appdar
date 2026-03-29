@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -51,7 +52,9 @@ data class DashboardItem(
     val packageName: String,
     val subtitle: String,   // distance string or profile name
     val isInstalled: Boolean,
-    val iconBitmap: android.graphics.Bitmap?
+    val iconBitmap: android.graphics.Bitmap?,
+    val branchLat: Double? = null,
+    val branchLon: Double? = null
 )
 
 sealed class DashboardState {
@@ -138,7 +141,9 @@ class DashboardViewModel @Inject constructor(
                         packageName = m.packageName,
                         subtitle = formatDist(dist, prefs.distanceUnit),
                         isInstalled = isInstalled(m.packageName),
-                        iconBitmap = appIconLoader.getIconBitmap(m.packageName)
+                        iconBitmap = appIconLoader.getIconBitmap(m.packageName),
+                        branchLat = lat,
+                        branchLon = lon
                     )
                 }.sortedBy { item ->
                     val (lat, lon) = branches[item.label] ?: return@sortedBy Int.MAX_VALUE
@@ -244,7 +249,7 @@ private fun DashboardItemCard(item: DashboardItem, context: Context) {
             .clickable {
                 val intent = context.packageManager.getLaunchIntentForPackage(item.packageName)
                     ?: Intent(Intent.ACTION_VIEW).apply {
-                        data = android.net.Uri.parse("https://play.google.com/store/apps/details?id=${item.packageName}")
+                        data = android.net.Uri.parse("market://details?id=${item.packageName}")
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
                 context.startActivity(intent)
@@ -282,6 +287,23 @@ private fun DashboardItemCard(item: DashboardItem, context: Context) {
                 }
                 Text(item.subtitle, style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary)
+            }
+            if (item.branchLat != null && item.branchLon != null) {
+                IconButton(onClick = {
+                    val encodedName = android.net.Uri.encode(item.label)
+                    val uri = android.net.Uri.parse(
+                        "geo:${item.branchLat},${item.branchLon}?q=${item.branchLat},${item.branchLon}($encodedName)"
+                    )
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, uri).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                    )
+                }) {
+                    Icon(
+                        Icons.Filled.Directions,
+                        contentDescription = "Navigate to ${item.label}",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }

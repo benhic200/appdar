@@ -1478,6 +1478,44 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
   - AAB: `http://192.168.0.111:8080/nearby‑apps‑widget‑v90.aab`
   - External: `https://hickielaptopkali.tail25553f.ts.net:8081/nearby‑apps‑widget‑v90.aab`
 
-**Next Steps:**
-1. **Upload v90 AAB to Google Play Console** for testing.
+**v91 Build – 2026‑03‑28 19:40 GMT (Appdar Naming)**
+- **Bug fixes implemented** (per user request):
+  - Package name corrections (Five Guys, Wagamama, Leon removed)
+  - IKEA added with package `com.ingka.ikea.app` and OSM brand mapping
+  - Geocoding timeouts increased (Overpass 30 s, read timeout 30 s)
+  - R8 minification heap increased to 4 GB (succeeded)
+- **All code names changed to Appdar** (user‑completed)
+- **Skill scripts updated**: APK/AAB output files now named `Appdar‑v{version}.apk/.aab` (debug: `Appdar‑debug‑v`)
+- **VersionCode 91** (versionName "1.91")
+- **SHA‑256 (APK):** `86fe84a3d120eab6812f88c716559a51be45fccfdd30ba91121df0ebdcd7b42c`
+- **SHA‑256 (AAB):** `7f352d7e71c227332a927d7d3b63fdef73ca0174ed6c847fc99fa51efdecb8ae`
+- **Download URLs:**
+  - APK: `http://192.168.0.111:8080/Appdar‑v91.apk`
+  - AAB: `http://192.168.0.111:8080/Appdar‑v91.aab`
+  - External: `https://hickielaptopkali.tail25553f.ts.net:8081/Appdar‑v91.aab`
+
+**Phase 2 Validation Status (2026‑03‑28)**
+- **Geofencing auto‑start** – ✅ Done
+- **Battery Historian profiling** – ✅ Bug report captured; manual inspection shows negligible battery impact (app not in battery stats). Docker auth fallback script updated.
+- **Instrumented tests** – ❓ Need guidance (see below)
+- **Custom‑place addition** – ✅ Done (IKEA)
+- **Polish for Play Store** – ✅ Done (v91 uploaded)
+- **Missing app links** – ⚠️ Needs fix (Play Store web links not working)
+- **Geocoding UI** – ⏸️ Deferred (optional dashboard button later)
+
+**Immediate Next Steps:**
+1. **Fix missing‑app Play Store links** – Replace web URLs with `market://details?id=` + fallback.
+2. **Run instrumented tests** – See instructions below.
+3. **Run Battery Historian profiling** – Use `scripts/battery_profile.sh`.
+4. **Validate widget sorting & radius filtering** – Ensure settings affect widget list.
+
+**Instrumented Test Instructions:**
+- Connect device/emulator with location services enabled.
+- Run `./gradlew :feature‑geofencing:connectedDebugAndroidTest` to execute geofencing tests.
+- Run `./gradlew connectedDebugAndroidTest` to run all instrumented tests.
+- Test utilities: `LocationTestHelper` and `MockLocationProviderRule` (core module).
+
+**Next Steps (Longer Term):**
+1. **Upload v91 AAB to Google Play Console** for testing.
 2. **Verify custom‑place addition** (IKEA) works in companion app.
+3. **Test widget after rename** (Appdar naming).

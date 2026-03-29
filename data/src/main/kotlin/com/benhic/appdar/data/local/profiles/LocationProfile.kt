@@ -26,4 +26,5 @@ enum class ProfileId(val key: String, val displayName: String) {
     val lonKey get() = doublePreferencesKey("profile_${key}_lon")
     val labelKey get() = stringPreferencesKey("profile_${key}_label")
     val appsKey get() = stringPreferencesKey("profile_${key}_apps")
+    val nameKey get() = stringPreferencesKey("profile_${key}_display_name")
 }

@@ -190,7 +190,7 @@ class NearbyBranchFinder @Inject constructor(
                 val areaFilter = if (userLat != null && userLon != null)
                     "(around:100000,$userLat,$userLon)" else ""
                 val timeout = 30
-                val query = """[out:json][timeout:$timeout];nwr["brand"="$escaped"]$areaFilter;out ids 1;"""
+                val query = """[out:json][timeout:$timeout];nwr["brand"~"^${escaped}${"$"}","i"]$areaFilter;out ids 1;"""
                 val body = "data=${Uri.encode(query)}"
                     .toRequestBody("application/x-www-form-urlencoded".toMediaType())
                 val request = Request.Builder().url(OVERPASS_URL).post(body).build()

@@ -299,6 +299,9 @@ fun TabbedAppScreen(
     val nearbyViewModel = hiltViewModel<NearbyAppsViewModel>()
     val dashboardViewModel = hiltViewModel<DashboardViewModel>()
     val settingsViewModel = hiltViewModel<SettingsViewModel>()
+    val profileViewModel = hiltViewModel<LocationProfileViewModel>()
+    val custom1Profile by profileViewModel.profileState(ProfileId.CUSTOM1).collectAsState()
+    val custom2Profile by profileViewModel.profileState(ProfileId.CUSTOM2).collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
     var currentScreen by remember { mutableStateOf("dashboard") }
@@ -321,8 +324,8 @@ fun TabbedAppScreen(
         "home"    -> "Home Apps"
         "work"    -> "Work Apps"
         "gym"     -> "Gym Apps"
-        "custom1" -> "Custom Location 1"
-        "custom2" -> "Custom Location 2"
+        "custom1" -> custom1Profile.displayName
+        "custom2" -> custom2Profile.displayName
         "settings" -> "Settings"
         "setup"   -> "Setup"
         "guide"   -> "User Guide"
@@ -415,7 +418,7 @@ fun TabbedAppScreen(
                     NavigationDrawerItem(
                         modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
                         icon = { Icon(if (isPro) Icons.Filled.Apps else Icons.Filled.Lock, contentDescription = null) },
-                        label = { Text("Custom Location 1") },
+                        label = { Text(custom1Profile.displayName) },
                         badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
                         selected = currentScreen == "custom1",
                         onClick = {
@@ -426,7 +429,7 @@ fun TabbedAppScreen(
                     NavigationDrawerItem(
                         modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
                         icon = { Icon(if (isPro) Icons.Filled.Apps else Icons.Filled.Lock, contentDescription = null) },
-                        label = { Text("Custom Location 2") },
+                        label = { Text(custom2Profile.displayName) },
                         badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
                         selected = currentScreen == "custom2",
                         onClick = {

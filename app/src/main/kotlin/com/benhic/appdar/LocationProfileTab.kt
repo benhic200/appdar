@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Android
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -118,6 +119,12 @@ class LocationProfileViewModel @Inject constructor(
             locationProfileRepository.updateSelectedApps(profileId, packageNames)
         }
     }
+
+    fun updateDisplayName(profileId: ProfileId, name: String) {
+        viewModelScope.launch {
+            locationProfileRepository.updateDisplayName(profileId, name)
+        }
+    }
 }
 
 @Composable
@@ -130,7 +137,7 @@ fun LocationProfileScreen(
     val isSettingLocation by viewModel.isSettingLocation.collectAsState()
     var showAppPicker by remember { mutableStateOf(false) }
 
-    val profileName = profileId.displayName.substringBefore(" Apps")
+    val profileName = profile.displayName.substringBefore(" Apps")
     val locationSet = profile.latitude != null && profile.longitude != null
     val appsSet = profile.selectedApps.isNotEmpty()
     val isReady = locationSet && appsSet
@@ -140,6 +147,34 @@ fun LocationProfileScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+
+        // ── Rename card (Custom profiles only) ───────────────────────────────
+        if (profileId == ProfileId.CUSTOM1 || profileId == ProfileId.CUSTOM2) {
+            item {
+                var nameText by remember(profileName) { mutableStateOf(profileName) }
+                val isDirty = nameText.isNotBlank() && nameText != profileName
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Location Name", style = MaterialTheme.typography.titleMedium)
+                        OutlinedTextField(
+                            value = nameText,
+                            onValueChange = { nameText = it },
+                            label = { Text("Name") },
+                            placeholder = { Text(profileId.displayName) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = {
+                                if (isDirty) {
+                                    IconButton(onClick = { viewModel.updateDisplayName(profileId, nameText.trim()) }) {
+                                        Icon(Icons.Filled.Check, contentDescription = "Save name")
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
 
         // ── How it works banner (shown until fully configured) ────────────────
         if (!isReady) {

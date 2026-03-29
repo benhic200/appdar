@@ -15,7 +15,7 @@ class LocationProfileRepository @Inject constructor(
     fun getProfile(profileId: ProfileId): Flow<LocationProfile> = dataStore.data.map { prefs ->
         LocationProfile(
             id = profileId.key,
-            displayName = profileId.displayName,
+            displayName = prefs[profileId.nameKey] ?: profileId.displayName,
             latitude = prefs[profileId.latKey],
             longitude = prefs[profileId.lonKey],
             locationLabel = prefs[profileId.labelKey],
@@ -37,6 +37,12 @@ class LocationProfileRepository @Inject constructor(
             prefs.remove(profileId.latKey)
             prefs.remove(profileId.lonKey)
             prefs.remove(profileId.labelKey)
+        }
+    }
+
+    suspend fun updateDisplayName(profileId: ProfileId, name: String) {
+        dataStore.edit { prefs ->
+            prefs[profileId.nameKey] = name
         }
     }
 
