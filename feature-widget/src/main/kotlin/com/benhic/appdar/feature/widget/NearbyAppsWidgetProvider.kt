@@ -39,6 +39,7 @@ private const val TAG = "NearbyAppsWidget"
  * Updates the widget with data from the local repository.
  */
 open class NearbyAppsWidgetProvider : AppWidgetProvider() {
+    private val fallbackPackageMap by lazy { getFallbackBusinesses().associate { it.name to it.packageName } }
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)

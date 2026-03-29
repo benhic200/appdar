@@ -49,27 +49,35 @@ object DatabaseInitializer {
             // Update existing entries where business name matches but package name differs
             var updatedCount = 0
             for (datasetMapping in allDataset) {
+                Log.d(TAG, "Checking ${datasetMapping.businessName} (dataset package: ${datasetMapping.packageName})")
                 val existing = dao.getByBusinessName(datasetMapping.businessName)
-                if (existing != null && existing.packageName != datasetMapping.packageName) {
-                    // Update package name (and other fields from dataset) while preserving user toggles
-                    val updated = existing.copy(
-                        packageName = datasetMapping.packageName,
-                        appName = datasetMapping.appName,
-                        category = datasetMapping.category,
-                        latitude = datasetMapping.latitude,
-                        longitude = datasetMapping.longitude,
-                        geofenceRadius = datasetMapping.geofenceRadius,
-                        minLat = datasetMapping.minLat,
-                        maxLat = datasetMapping.maxLat,
-                        minLon = datasetMapping.minLon,
-                        maxLon = datasetMapping.maxLon,
-                        version = datasetMapping.version,
-                        lastUpdated = System.currentTimeMillis()
-                        // Keep existing isEnabled, isCustom, osmBrandTag
-                    )
-                    dao.update(updated)
-                    updatedCount++
-                    Log.d(TAG, "Updated package name for ${datasetMapping.businessName}: ${existing.packageName} -> ${datasetMapping.packageName}")
+                if (existing != null) {
+                    Log.d(TAG, "  Existing package: ${existing.packageName}")
+                    if (existing.packageName != datasetMapping.packageName) {
+                        // Update package name (and other fields from dataset) while preserving user toggles
+                        val updated = existing.copy(
+                            packageName = datasetMapping.packageName,
+                            appName = datasetMapping.appName,
+                            category = datasetMapping.category,
+                            latitude = datasetMapping.latitude,
+                            longitude = datasetMapping.longitude,
+                            geofenceRadius = datasetMapping.geofenceRadius,
+                            minLat = datasetMapping.minLat,
+                            maxLat = datasetMapping.maxLat,
+                            minLon = datasetMapping.minLon,
+                            maxLon = datasetMapping.maxLon,
+                            version = datasetMapping.version,
+                            lastUpdated = System.currentTimeMillis()
+                            // Keep existing isEnabled, isCustom, osmBrandTag
+                        )
+                        dao.update(updated)
+                        updatedCount++
+                        Log.d(TAG, "Updated package name for ${datasetMapping.businessName}: ${existing.packageName} -> ${datasetMapping.packageName}")
+                    } else {
+                        Log.d(TAG, "  Package already correct")
+                    }
+                } else {
+                    Log.d(TAG, "  No existing entry with this business name")
                 }
             }
             if (updatedCount > 0) {
