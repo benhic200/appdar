@@ -1500,6 +1500,13 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
 - **Download URLs:**
   - APK: `http://192.168.0.111:8080/Appdar‑debug‑v93.apk`
   - External: `https://hickielaptopkali.tail25553f.ts.net:8081/Appdar‑debug‑v93.apk`
+**v96 Build Complete – 2026‑03‑29 02:56 GMT**
+- **VersionCode 96** (versionName "1.96")
+- **SHA‑256 (APK):** `f2ab35511174dd478eceba922b1578ad4ec697062feb8b8346c9165b233e3423`
+- **Download URLs:**
+  - APK: `http://192.168.0.111:8080/Appdar‑debug‑v96.apk`
+  - External: `https://hickielaptopkali.tail25553f.ts.net:8081/Appdar‑debug‑v96.apk`
+
 
 **Phase 2 Validation Status (2026‑03‑29)**
 - **Geofencing auto‑start** – ✅ Done

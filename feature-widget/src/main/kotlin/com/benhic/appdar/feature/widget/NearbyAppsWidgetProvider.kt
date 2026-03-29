@@ -1164,7 +1164,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
             } ?: run {
                 Log.d(TAG, "No package name or fallback, opening Play Store search for ${business.name}")
                 Intent(Intent.ACTION_VIEW).apply {
-                    data = Uri.parse("https://play.google.com/store/search?q=${business.name}")
+                    data = Uri.parse("market://search?q=${business.name}")
                 }
             }
             
