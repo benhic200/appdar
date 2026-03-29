@@ -21,6 +21,18 @@
         android:paddingEnd="1dp">
 
         <ImageView
+            android:id="@+id/narrow_settings"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_settings_gear"
+            android:contentDescription="Open Appdar"
+            android:padding="2dp"
+            android:tint="#FFCE93D8"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="@drawable/widget_ripple_icon" />
+
+        <ImageView
             android:id="@+id/narrow_refresh"
             android:layout_width="18dp"
             android:layout_height="18dp"

@@ -182,6 +182,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                              else WidgetListR.layout.widget_narrow_column
             val views = RemoteViews(context.packageName, rootLayout)
             views.setOnClickPendingIntent(WidgetListR.id.narrow_refresh, buildRefreshPi(context, appWidgetId))
+            views.setOnClickPendingIntent(WidgetListR.id.narrow_settings, buildLaunchAppPi(context, appWidgetId))
             // Reserve 20dp for the refresh button at the top
             val iconCount = ((minHeightDp - 24) / 50).coerceIn(1, 8)
 
@@ -215,7 +216,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     } else {
                         val branchFinder = ep.nearbyBranchFinder()
                         val nearestBranches = if (location != null) {
-                            withTimeoutOrNull(10000L) {
+                            withTimeoutOrNull(25000L) {
                                 branchFinder.findNearestBranches(location.latitude, location.longitude)
                             } ?: emptyMap()
                         } else emptyMap()
@@ -304,7 +305,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     val pkg = matchedPkg ?: run {
                         val branchFinder = ep.nearbyBranchFinder()
                         val nearestBranches = if (location != null) {
-                            withTimeoutOrNull(10000L) {
+                            withTimeoutOrNull(25000L) {
                                 branchFinder.findNearestBranches(location.latitude, location.longitude)
                             } ?: emptyMap()
                         } else emptyMap()
@@ -500,7 +501,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     // Falls back to database coordinates if offline or no result within 15 km.
                     val branchFinder = ep.nearbyBranchFinder()
                     val nearestBranches = if (location != null) {
-                        withTimeoutOrNull(10000L) {
+                        withTimeoutOrNull(25000L) {
                             branchFinder.findNearestBranches(location.latitude, location.longitude)
                         } ?: emptyMap()
                     } else emptyMap()
@@ -573,6 +574,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
 
             val refreshPi = buildRefreshPi(context, appWidgetId)
             views.setOnClickPendingIntent(WidgetListR.id.nano_refresh, refreshPi)
+            views.setOnClickPendingIntent(WidgetListR.id.nano_settings, buildLaunchAppPi(context, appWidgetId))
 
             runBlocking {
                 try {
@@ -631,7 +633,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
 
                     val branchFinder = ep.nearbyBranchFinder()
                     val nearestBranches = if (location != null) {
-                        withTimeoutOrNull(10000L) {
+                        withTimeoutOrNull(25000L) {
                             branchFinder.findNearestBranches(location.latitude, location.longitude)
                         } ?: emptyMap()
                     } else emptyMap()
@@ -701,10 +703,13 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     if (darkTheme) WidgetListR.layout.widget_strip_dark else WidgetListR.layout.widget_strip)
             }
 
+            val settingsPi = buildLaunchAppPi(context, appWidgetId)
             if (isHorizontal) {
                 views.setOnClickPendingIntent(WidgetListR.id.strip_h_refresh, buildRefreshPi(context, appWidgetId))
+                views.setOnClickPendingIntent(WidgetListR.id.strip_h_settings, settingsPi)
             } else {
                 views.setOnClickPendingIntent(WidgetListR.id.strip_refresh, buildRefreshPi(context, appWidgetId))
+                views.setOnClickPendingIntent(WidgetListR.id.strip_settings, settingsPi)
             }
 
             val itemCount = if (isHorizontal) {
@@ -774,7 +779,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
 
                     val branchFinder = ep.nearbyBranchFinder()
                     val nearestBranches = if (location != null) {
-                        withTimeoutOrNull(10000L) {
+                        withTimeoutOrNull(25000L) {
                             branchFinder.findNearestBranches(location.latitude, location.longitude)
                         } ?: emptyMap()
                     } else emptyMap()
@@ -854,6 +859,14 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
             val prefs = runBlocking { ep.settingsRepository().getCurrentPreferences() }
             resolveWidgetDark(context, prefs.widgetTheme)
         } catch (_: Exception) { false }
+
+        private fun buildLaunchAppPi(context: Context, appWidgetId: Int): android.app.PendingIntent {
+            val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+                ?.apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                ?: Intent(Intent.ACTION_MAIN).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+            return PendingIntent.getActivity(context, appWidgetId + 500, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        }
 
         private fun buildRefreshPi(context: Context, appWidgetId: Int): android.app.PendingIntent {
             val intent = Intent(context, NearbyAppsWidgetProvider::class.java).apply {

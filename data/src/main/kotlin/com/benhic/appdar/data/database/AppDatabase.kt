@@ -19,7 +19,7 @@ import android.database.sqlite.SQLiteException
         CachedAddress::class,
         LocationHistory::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -232,6 +232,26 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_7_8 = object : Migration(7, 8) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE `business_app_mappings` ADD COLUMN `osm_brand_tag` TEXT")
+            }
+        }
+
+        /**
+         * Migration from version 8 to 9.
+         * Nulls out the London/NY city-centre placeholder coordinates that were hard-coded in
+         * InitialDataset for all non-custom entries. Real branch coordinates are now resolved
+         * from OpenStreetMap at runtime (50 km search radius) and persisted back to the DB by
+         * NearbyBranchFinder. Businesses without a nearby branch are excluded from the widget
+         * rather than showing a misleading placeholder location.
+         */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    UPDATE business_app_mappings
+                    SET latitude = NULL, longitude = NULL,
+                        min_lat = NULL, max_lat = NULL,
+                        min_lon = NULL, max_lon = NULL
+                    WHERE is_custom = 0
+                """.trimIndent())
             }
         }
     }

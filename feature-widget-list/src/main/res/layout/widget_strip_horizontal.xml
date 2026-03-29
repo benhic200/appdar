@@ -21,6 +21,19 @@
         android:paddingBottom="2dp" />
 
     <ImageView
+        android:id="@+id/strip_h_settings"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_gravity="top|start"
+        android:src="@drawable/ic_settings_gear"
+        android:contentDescription="Open Appdar"
+        android:padding="2dp"
+        android:tint="#FFAB47BC"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="@drawable/widget_ripple_icon" />
+
+    <ImageView
         android:id="@+id/strip_h_refresh"
         android:layout_width="20dp"
         android:layout_height="20dp"

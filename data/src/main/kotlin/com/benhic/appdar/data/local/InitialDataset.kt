@@ -2,100 +2,101 @@ package com.benhic.appdar.data.local
 
 /**
  * Initial hard-coded dataset of business chains — UK + US.
- * Coordinates are approximate city-centre fallbacks only; real branch locations
- * are resolved at runtime from OpenStreetMap via NearbyBranchFinder.
+ * No coordinates are stored here; real branch locations are resolved at runtime
+ * from OpenStreetMap via NearbyBranchFinder and then persisted back to the
+ * database, so the widget remains accurate even when offline.
  *
- * UK entries use London coords; US entries use New York coords as seed fallback.
- * All entries are disabled by default for users outside the relevant market — they can
- * toggle them on/off from the Places screen.
+ * Businesses without a nearby OSM result are excluded from the widget rather
+ * than showing a misleading placeholder location.
+ *
+ * All entries are disabled by default — they can be toggled on/off from the
+ * Places screen.
  */
 object InitialDataset {
     fun getMappings(): List<BusinessAppMapping> = listOf(
 
         // ── UK Supermarkets ───────────────────────────────────────────────────
-        createMapping("Tesco",        "com.tesco.grocery.view",         "Tesco",             "supermarket", 51.5074, -0.1278),
-        createMapping("Sainsbury's",  "com.sainsburys.gol","Sainsbury's",       "supermarket", 51.5074, -0.1279),
-        createMapping("Asda",         "com.asda.android",               "Asda Groceries",    "supermarket", 51.5074, -0.1280),
-        createMapping("Morrisons",    "com.morrisons.atm.mobile.android","Morrisons Grocery", "supermarket", 51.5074, -0.1281),
-        createMapping("Aldi",         "de.apptiv.business.android.aldi_uk","Aldi Offers",       "supermarket", 51.5074, -0.1282),
-        createMapping("Lidl",         "com.lidl.eci.lidlplus",          "Lidl Plus",         "supermarket", 51.5074, -0.1283),
-        createMapping("Waitrose",     "com.waitrose.groceries",         "Waitrose",          "supermarket", 51.5074, -0.1284),
-        createMapping("M&S",          "com.marksandspencer.app",        "M&S",               "supermarket", 51.5074, -0.1285),
-        createMapping("Iceland",      "com.iceland.android",            "Iceland",           "supermarket", 51.5074, -0.1286),
-        createMapping("Co-op",        "uk.co.coop.app",                "Co-op",             "supermarket", 51.5074, -0.1287),
+        createMapping("Tesco",        "com.tesco.grocery.view",         "Tesco",             "supermarket"),
+        createMapping("Sainsbury's",  "com.sainsburys.gol",             "Sainsbury's",       "supermarket"),
+        createMapping("Asda",         "com.asda.android",               "Asda Groceries",    "supermarket"),
+        createMapping("Morrisons",    "com.morrisons.atm.mobile.android","Morrisons Grocery", "supermarket"),
+        createMapping("Aldi",         "de.apptiv.business.android.aldi_uk","Aldi Offers",    "supermarket"),
+        createMapping("Lidl",         "com.lidl.eci.lidlplus",          "Lidl Plus",         "supermarket"),
+        createMapping("Waitrose",     "com.waitrose.groceries",         "Waitrose",          "supermarket"),
+        createMapping("M&S",          "com.marksandspencer.app",        "M&S",               "supermarket"),
+        createMapping("Iceland",      "com.iceland.android",            "Iceland",           "supermarket"),
+        createMapping("Co-op",        "uk.co.coop.app",                 "Co-op",             "supermarket"),
 
         // ── UK Coffee & Bakery ────────────────────────────────────────────────
-        createMapping("Costa Coffee", "uk.co.club.costa.costa",         "Costa Coffee",      "coffee",   51.5075, -0.1278),
-        createMapping("Starbucks",    "com.starbucks.mobilecard",       "Starbucks",         "coffee",   51.5075, -0.1279),
-        createMapping("Caffè Nero",   "com.caffenero.mobile",           "Caffè Nero",        "coffee",   51.5075, -0.1280),
-        createMapping("Pret A Manger","com.pret.amangerapp",            "Pret A Manger",     "coffee",   51.5075, -0.1281),
-        createMapping("Greggs",       "com.mobile5.greggs",             "Greggs",            "bakery",   51.5075, -0.1282),
+        createMapping("Costa Coffee", "uk.co.club.costa.costa",         "Costa Coffee",      "coffee"),
+        createMapping("Starbucks",    "com.starbucks.mobilecard",       "Starbucks",         "coffee"),
+        createMapping("Caffè Nero",   "com.caffenero.mobile",           "Caffè Nero",        "coffee"),
+        createMapping("Pret A Manger","com.pret.amangerapp",            "Pret A Manger",     "coffee"),
+        createMapping("Greggs",       "com.mobile5.greggs",             "Greggs",            "bakery"),
 
         // ── UK Fast Food ──────────────────────────────────────────────────────
-        createMapping("McDonald's",   "com.mcdonalds.app.uk",           "McDonald's",        "fast_food", 51.5076, -0.1278),
-        createMapping("Burger King",  "com.emn8.mobilem8.nativeapp.bkuk","Burger King",      "fast_food", 51.5076, -0.1279),
-        createMapping("KFC",          "com.yum.colonelsclub",           "KFC",               "fast_food", 51.5076, -0.1280),
-        createMapping("Subway",       "com.subway.mobile.subwayapp03",  "Subway",            "fast_food", 51.5076, -0.1281),
-        createMapping("Nando's",      "nandos.android.app",             "Nando's",           "fast_food", 51.5076, -0.1282),
-        createMapping("Five Guys",    "com.fiveguys.fiveguysuk",        "Five Guys",         "fast_food", 51.5076, -0.1283),
-        createMapping("Wagamama",     "com.wagamama.soulclubapp",       "wagamama",          "fast_food", 51.5076, -0.1284),
-        createMapping("Domino's",     "uk.co.dominos.android",          "Domino's",          "fast_food", 51.5076, -0.1285),
-        createMapping("Papa John's",  "com.papajohns.android",          "Papa John's",       "fast_food", 51.5076, -0.1286),
-        createMapping("Pizza Hut",    "com.pizzahutuk.orderingApp",     "Pizza Hut",         "fast_food", 51.5076, -0.1287),
+        createMapping("McDonald's",   "com.mcdonalds.app.uk",           "McDonald's",        "fast_food"),
+        createMapping("Burger King",  "com.emn8.mobilem8.nativeapp.bkuk","Burger King",      "fast_food"),
+        createMapping("KFC",          "com.yum.colonelsclub",           "KFC",               "fast_food"),
+        createMapping("Subway",       "com.subway.mobile.subwayapp03",  "Subway",            "fast_food"),
+        createMapping("Nando's",      "nandos.android.app",             "Nando's",           "fast_food"),
+        createMapping("Five Guys",    "com.fiveguys.fiveguysuk",        "Five Guys",         "fast_food"),
+        createMapping("Wagamama",     "com.wagamama.soulclubapp",       "wagamama",          "fast_food"),
+        createMapping("Domino's",     "uk.co.dominos.android",          "Domino's",          "fast_food"),
+        createMapping("Papa John's",  "com.papajohns.android",          "Papa John's",       "fast_food"),
+        createMapping("Pizza Hut",    "com.pizzahutuk.orderingApp",     "Pizza Hut",         "fast_food"),
 
         // ── UK Casual Dining / Pubs ───────────────────────────────────────────
-        createMapping("Wetherspoons", "com.wetherspoon.orderandpay",    "Wetherspoons",      "pub",      51.5077, -0.1278),
+        createMapping("Wetherspoons", "com.wetherspoon.orderandpay",    "Wetherspoons",      "pub"),
 
         // ── UK Pharmacy & Retail ──────────────────────────────────────────────
-        createMapping("Boots",        "com.boots.flagship.android",     "Boots",             "pharmacy", 51.5077, -0.1279),
-        createMapping("WHSmith",      "com.whsmith.mywhsmith.android",  "WHSmith",           "retail",   51.5077, -0.1280),
-        createMapping("IKEA",         "com.ingka.ikea.app",             "IKEA",              "retail",   51.5077, -0.12805),
+        createMapping("Boots",        "com.boots.flagship.android",     "Boots",             "pharmacy"),
+        createMapping("WHSmith",      "com.whsmith.mywhsmith.android",  "WHSmith",           "retail"),
+        createMapping("IKEA",         "com.ingka.ikea.app",             "IKEA",              "retail"),
 
         // ── UK Hotels ─────────────────────────────────────────────────────────
-        createMapping("Premier Inn",  "com.whitbread.premierinn",       "Premier Inn",       "hotel",    51.5077, -0.1281),
-        createMapping("Travelodge",   "com.travelodge.rooms",           "Travelodge",        "hotel",    51.5077, -0.1282),
+        createMapping("Premier Inn",  "com.whitbread.premierinn",       "Premier Inn",       "hotel"),
+        createMapping("Travelodge",   "com.travelodge.rooms",           "Travelodge",        "hotel"),
 
         // ── Global Hotels (also useful in US) ────────────────────────────────
-        createMapping("Hilton",       "com.hilton.android.hhonors",     "Hilton Honors",     "hotel",    51.5077, -0.1283),
-        createMapping("Marriott",     "com.marriott.mrt",               "Marriott Bonvoy",   "hotel",    51.5077, -0.1284),
-        createMapping("Holiday Inn",  "com.ihg.apps.android",           "IHG Hotels",        "hotel",    51.5077, -0.1285),
+        createMapping("Hilton",       "com.hilton.android.hhonors",     "Hilton Honors",     "hotel"),
+        createMapping("Marriott",     "com.marriott.mrt",               "Marriott Bonvoy",   "hotel"),
+        createMapping("Holiday Inn",  "com.ihg.apps.android",           "IHG Hotels",        "hotel"),
 
         // ── US Supermarkets & Retail ──────────────────────────────────────────
-        createMapping("Walmart",      "com.walmart.android",            "Walmart",           "supermarket", 40.7128, -74.0060),
-        createMapping("Target",       "com.target.ui",                  "Target",            "retail",      40.7128, -74.0061),
-        createMapping("Costco",       "com.costco.mobileapp",           "Costco",            "supermarket", 40.7128, -74.0062),
-        createMapping("Whole Foods",  "com.amazon.wholefoods",          "Whole Foods",       "supermarket", 40.7128, -74.0063),
-        createMapping("Walgreens",    "com.walgreens",                  "Walgreens",         "pharmacy",    40.7128, -74.0064),
-        createMapping("CVS",          "com.cvs.launchers.cvs",          "CVS Pharmacy",      "pharmacy",    40.7128, -74.0065),
+        createMapping("Walmart",      "com.walmart.android",            "Walmart",           "supermarket"),
+        createMapping("Target",       "com.target.ui",                  "Target",            "retail"),
+        createMapping("Costco",       "com.costco.mobileapp",           "Costco",            "supermarket"),
+        createMapping("Whole Foods",  "com.amazon.wholefoods",          "Whole Foods",       "supermarket"),
+        createMapping("Walgreens",    "com.walgreens",                  "Walgreens",         "pharmacy"),
+        createMapping("CVS",          "com.cvs.launchers.cvs",          "CVS Pharmacy",      "pharmacy"),
 
         // ── US Fast Food & Coffee ─────────────────────────────────────────────
-        createMapping("McDonald's (US)",  "com.mcdonalds.app",                "McDonald's",        "fast_food", 40.7129, -74.0060),
-        createMapping("Burger King (US)", "com.emn8.mobilem8.nativeapp.bk",   "Burger King",       "fast_food", 40.7129, -74.0061),
-        createMapping("KFC (US)",         "com.yum.kfc",                      "KFC",               "fast_food", 40.7129, -74.0062),
-        createMapping("Taco Bell",        "com.tacobell.android.activity",    "Taco Bell",         "fast_food", 40.7129, -74.0063),
-        createMapping("Chipotle",         "com.chipotle.mobile",              "Chipotle",          "fast_food", 40.7129, -74.0064),
-        createMapping("Chick-fil-A",      "com.chickfila.cfaone",             "Chick-fil-A",       "fast_food", 40.7129, -74.0065),
-        createMapping("Dunkin'",          "com.dunkindonuts.mobile",          "Dunkin'",           "coffee",    40.7129, -74.0066),
-        createMapping("Panera Bread",     "com.panerabread.app",              "Panera Bread",      "fast_food", 40.7129, -74.0067),
-        createMapping("Shake Shack",      "com.shackshack.app",               "Shake Shack",       "fast_food", 40.7129, -74.0068),
-        createMapping("Domino's (US)",    "com.dominospizza",                 "Domino's",          "fast_food", 40.7129, -74.0069)
+        createMapping("McDonald's (US)",  "com.mcdonalds.app",              "McDonald's",    "fast_food"),
+        createMapping("Burger King (US)", "com.emn8.mobilem8.nativeapp.bk", "Burger King",   "fast_food"),
+        createMapping("KFC (US)",         "com.yum.kfc",                    "KFC",           "fast_food"),
+        createMapping("Taco Bell",        "com.tacobell.android.activity",  "Taco Bell",     "fast_food"),
+        createMapping("Chipotle",         "com.chipotle.mobile",            "Chipotle",      "fast_food"),
+        createMapping("Chick-fil-A",      "com.chickfila.cfaone",           "Chick-fil-A",   "fast_food"),
+        createMapping("Dunkin'",          "com.dunkindonuts.mobile",        "Dunkin'",       "coffee"),
+        createMapping("Panera Bread",     "com.panerabread.app",            "Panera Bread",  "fast_food"),
+        createMapping("Shake Shack",      "com.shackshack.app",             "Shake Shack",   "fast_food"),
+        createMapping("Domino's (US)",    "com.dominospizza",               "Domino's",      "fast_food")
 
-    ).mapNotNull { it.withBoundingBox() }
+    )
 
     private fun createMapping(
         businessName: String,
         packageName: String,
         appName: String,
-        category: String,
-        latitude: Double,
-        longitude: Double
+        category: String
     ): BusinessAppMapping = BusinessAppMapping(
         businessName = businessName,
         packageName = packageName,
         appName = appName,
         category = category,
-        latitude = latitude,
-        longitude = longitude,
+        latitude = null,
+        longitude = null,
         geofenceRadius = 200,
         version = 1
     )

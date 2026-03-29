@@ -123,7 +123,7 @@ class DashboardViewModel @Inject constructor(
                 businessAppRepository.initialize()
                 val mappings = businessAppRepository.getAllMappings().first().filter { it.isEnabled }
                 val branches = if (location != null) {
-                    withTimeoutOrNull(10_000L) {
+                    withTimeoutOrNull(25_000L) {
                         nearbyBranchFinder.findNearestBranches(location.latitude, location.longitude)
                     } ?: emptyMap()
                 } else emptyMap()

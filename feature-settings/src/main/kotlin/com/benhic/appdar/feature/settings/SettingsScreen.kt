@@ -29,9 +29,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.benhic.appdar.data.local.settings.DistanceUnit
 import com.benhic.appdar.data.local.settings.ThemeMode
@@ -285,6 +287,26 @@ private fun SettingsCards(
                             }
                         }
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.padding(8.dp))
+
+            // About
+            val context = LocalContext.current
+            val packageInfo = remember(context) {
+                runCatching {
+                    context.packageManager.getPackageInfo(context.packageName, 0)
+                }.getOrNull()
+            }
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("About", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.padding(4.dp))
+                    Text(
+                        text = "Appdar  v${packageInfo?.versionName ?: "—"}  (build ${packageInfo?.longVersionCode ?: "—"})",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
 }

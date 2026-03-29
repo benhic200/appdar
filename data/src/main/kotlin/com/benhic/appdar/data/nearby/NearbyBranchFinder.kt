@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.benhic.appdar.data.local.BusinessAppMappingDao
+import com.benhic.appdar.data.local.withBoundingBox
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -37,7 +38,7 @@ class NearbyBranchFinder @Inject constructor(
     companion object {
         private const val TAG = "NearbyBranchFinder"
         private const val OVERPASS_URL = "https://overpass-api.de/api/interpreter"
-        private const val SEARCH_RADIUS_M = 15000
+        private const val SEARCH_RADIUS_M = 50000
         private const val CACHE_TTL_MS = 6 * 60 * 60 * 1000L   // 6 hours
         private const val LOCATION_THRESHOLD_M = 2000.0          // 2 km
         private const val PREFS = "NearbyBranchCache"
@@ -145,6 +146,7 @@ class NearbyBranchFinder @Inject constructor(
             try {
                 val result = fetchFromOverpass(userLat, userLon, allBrands)
                 saveCache(userLat, userLon, result)
+                persistBranchCoordinates(result)
                 Log.d(TAG, "Overpass returned ${result.size} nearest branches")
                 result
             } catch (e: Exception) {
@@ -214,6 +216,27 @@ class NearbyBranchFinder @Inject constructor(
         }
     }
 
+    /**
+     * Writes the Overpass-resolved branch coordinates back to the database so they
+     * persist across sessions. Next time the widget updates offline, the DB already
+     * has real coords — not the London/NY placeholder from InitialDataset.
+     */
+    private suspend fun persistBranchCoordinates(branches: Map<String, Pair<Double, Double>>) {
+        if (branches.isEmpty()) return
+        branches.forEach { (businessName, coords) ->
+            try {
+                val existing = dao.getByBusinessName(businessName) ?: return@forEach
+                val updated = existing.copy(
+                    latitude  = coords.first,
+                    longitude = coords.second
+                ).let { it.withBoundingBox() ?: it }
+                dao.update(updated)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to persist coords for $businessName", e)
+            }
+        }
+    }
+
     private fun fetchFromOverpass(
         userLat: Double,
         userLon: Double,
@@ -225,7 +248,7 @@ class NearbyBranchFinder @Inject constructor(
             val escaped = brand.replace("\"", "\\\"")
             """  nwr["brand"="$escaped"](around:$SEARCH_RADIUS_M,$userLat,$userLon);"""
         }
-        val query = "[out:json][timeout:20];\n(\n$brandsQuery\n);\nout center;"
+        val query = "[out:json][timeout:30];\n(\n$brandsQuery\n);\nout center;"
 
         val body = "data=${Uri.encode(query)}"
             .toRequestBody("application/x-www-form-urlencoded".toMediaType())

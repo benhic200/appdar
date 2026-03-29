@@ -103,7 +103,7 @@ class NearbyAppsViewModel @Inject constructor(
 
                 // Resolve nearest real branch coordinates from Overpass (cached after first call).
                 val nearestBranches = if (currentLocation != null) {
-                    withTimeoutOrNull(10_000L) {
+                    withTimeoutOrNull(25_000L) {
                         nearbyBranchFinder.findNearestBranches(
                             currentLocation.latitude,
                             currentLocation.longitude

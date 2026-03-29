@@ -68,6 +68,20 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- Settings button pinned to top-left corner -->
+    <ImageView
+        android:id="@+id/nano_settings"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_gravity="top|start"
+        android:src="@drawable/ic_settings_gear"
+        android:contentDescription="Open Appdar"
+        android:padding="2dp"
+        android:tint="#FFCE93D8"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="@drawable/widget_ripple_icon" />
+
     <!-- Tiny refresh button pinned to top-right corner -->
     <ImageView
         android:id="@+id/nano_refresh"
