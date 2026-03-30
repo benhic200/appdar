@@ -3,6 +3,8 @@ package com.benhic.appdar
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,6 +39,7 @@ import com.benhic.appdar.feature.widgetlist.util.AppIconLoader
 import com.benhic.appdar.feature.location.DistanceCalculator
 import com.benhic.appdar.feature.location.LocationProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -50,6 +53,7 @@ data class NearbyAppsUiState(
     val businesses: List<BusinessItem> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
+    val locationAvailable: Boolean = true,
     val distanceUnit: DistanceUnit = DistanceUnit.METERS
 )
 
@@ -78,6 +82,8 @@ class NearbyAppsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(NearbyAppsUiState(isLoading = true))
     val uiState: StateFlow<NearbyAppsUiState> = _uiState.asStateFlow()
 
+    private var refreshJob: Job? = null
+
     init {
         loadBusinesses()
         // Keep distanceUnit in sync so BusinessCard re-renders immediately on settings change.
@@ -93,23 +99,27 @@ class NearbyAppsViewModel @Inject constructor(
     }
 
     private fun loadBusinesses() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null, locationAvailable = true) }
             try {
                 businessAppRepository.initialize()
                 val mappings = businessAppRepository.getAllMappings().first()
                 val preferences = settingsRepository.getCurrentPreferences()
                 val currentLocation = locationProvider.getCurrentLocation()
 
-                // Resolve nearest real branch coordinates from Overpass (cached after first call).
-                val nearestBranches = if (currentLocation != null) {
-                    withTimeoutOrNull(25_000L) {
-                        nearbyBranchFinder.findNearestBranches(
-                            currentLocation.latitude,
-                            currentLocation.longitude
-                        )
-                    } ?: emptyMap()
-                } else emptyMap()
+                if (currentLocation == null) {
+                    _uiState.update { it.copy(isLoading = false, locationAvailable = false) }
+                    return@launch
+                }
+
+                // Signal all screens that loading is in progress, then fire the Overpass
+                // call in a sibling coroutine. The mutex in NearbyBranchFinder means only
+                // one network request runs even when Dashboard and Nearby both start together.
+                // We then collect reactively — no timeout needed, no duplicate calls.
+                nearbyBranchFinder.markLoading()
+                launch { nearbyBranchFinder.findNearestBranches(currentLocation.latitude, currentLocation.longitude) }
+                val nearestBranches = nearbyBranchFinder.fetchState.first { !it.isLoading }.branches
 
                 val businessItems = mappings.mapNotNull { mapping ->
                     val (branchLat, branchLon) = nearestBranches[mapping.businessName]
@@ -196,12 +206,9 @@ fun NearbyAppsContent(viewModel: NearbyAppsViewModel, context: Context) {
         modifier = Modifier.fillMaxSize()
     ) {
         if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
+            LoadingContent()
+        } else if (!uiState.locationAvailable) {
+            LocationUnavailableContent(context)
         } else if (uiState.error != null) {
             Box(
                 modifier = Modifier.fillMaxSize(),

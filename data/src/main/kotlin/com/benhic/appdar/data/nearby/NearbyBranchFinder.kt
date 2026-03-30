@@ -7,6 +7,12 @@ import com.benhic.appdar.data.local.BusinessAppMappingDao
 import com.benhic.appdar.data.local.withBoundingBox
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -110,48 +116,78 @@ class NearbyBranchFinder @Inject constructor(
         )
     }
 
+    /**
+     * Shared state observed by all screens. All callers collect this instead of each
+     * waiting individually — one Overpass call, result pushed to everyone at once.
+     */
+    data class BranchFetch(
+        val branches: Map<String, Pair<Double, Double>> = emptyMap(),
+        val isLoading: Boolean = false
+    )
+
+    private val _fetchState = MutableStateFlow(BranchFetch())
+    val fetchState: StateFlow<BranchFetch> = _fetchState.asStateFlow()
+
+    /** Call before launching [findNearestBranches] so collectors see isLoading = true immediately. */
+    fun markLoading() {
+        _fetchState.update { it.copy(isLoading = true) }
+    }
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
 
+    // Prevents concurrent Overpass requests (widget + dashboard + nearby tab all load together).
+    // First caller fetches; the rest wait, then hit the cache on the second check inside the lock.
+    private val fetchMutex = Mutex()
+
     /**
      * Returns a map of businessName → (latitude, longitude) of the nearest branch
      * within [SEARCH_RADIUS_M] metres of ([userLat], [userLon]).
      *
-     * Includes both built-in businesses (from [BRAND_TAGS]) and custom places that
-     * have been validated against OSM (non-null [osmBrandTag] in the database).
-     *
-     * Businesses not found in the search area are omitted from the result —
-     * callers should fall back to the database coordinate in that case.
+     * Also updates [fetchState] so all screens react simultaneously without needing
+     * their own Overpass call.
      */
     suspend fun findNearestBranches(
         userLat: Double,
         userLon: Double
     ): Map<String, Pair<Double, Double>> {
+        // Fast path — cache hit before acquiring the lock
         loadCache(userLat, userLon)?.let { cached ->
             Log.d(TAG, "Cache hit: ${cached.size} branches")
+            _fetchState.value = BranchFetch(branches = cached, isLoading = false)
             return cached
         }
 
-        Log.d(TAG, "Cache miss — querying Overpass for ($userLat, $userLon)")
+        return fetchMutex.withLock {
+            // Second check: another coroutine may have populated the cache while we waited
+            loadCache(userLat, userLon)?.let { cached ->
+                Log.d(TAG, "Cache hit (post-lock): ${cached.size} branches")
+                _fetchState.value = BranchFetch(branches = cached, isLoading = false)
+                return@withLock cached
+            }
 
-        // Merge built-in brands with any custom places the user has validated against OSM
-        val customBrands = withContext(Dispatchers.IO) {
-            dao.getCustomOsmBrandMappings().associate { it.businessName to it.osmBrandTag!! }
-        }
-        val allBrands = BRAND_TAGS + customBrands
+            Log.d(TAG, "Cache miss — querying Overpass for ($userLat, $userLon)")
 
-        return withContext(Dispatchers.IO) {
-            try {
-                val result = fetchFromOverpass(userLat, userLon, allBrands)
-                saveCache(userLat, userLon, result)
-                persistBranchCoordinates(result)
-                Log.d(TAG, "Overpass returned ${result.size} nearest branches")
-                result
-            } catch (e: Exception) {
-                Log.e(TAG, "Overpass query failed", e)
-                emptyMap()
+            val customBrands = withContext(Dispatchers.IO) {
+                dao.getCustomOsmBrandMappings().associate { it.businessName to it.osmBrandTag!! }
+            }
+            val allBrands = BRAND_TAGS + customBrands
+
+            withContext(Dispatchers.IO) {
+                try {
+                    val result = fetchFromOverpass(userLat, userLon, allBrands)
+                    saveCache(userLat, userLon, result)
+                    persistBranchCoordinates(result)
+                    Log.d(TAG, "Overpass returned ${result.size} nearest branches")
+                    _fetchState.value = BranchFetch(branches = result, isLoading = false)
+                    result
+                } catch (e: Exception) {
+                    Log.e(TAG, "Overpass query failed", e)
+                    _fetchState.value = BranchFetch(branches = emptyMap(), isLoading = false)
+                    emptyMap()
+                }
             }
         }
     }

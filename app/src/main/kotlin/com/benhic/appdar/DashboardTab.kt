@@ -3,6 +3,8 @@ package com.benhic.appdar
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -40,6 +44,8 @@ import com.benhic.appdar.feature.location.LocationProvider
 import com.benhic.appdar.feature.widgetlist.util.AppIconLoader
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -58,7 +64,8 @@ data class DashboardItem(
 )
 
 sealed class DashboardState {
-    object Loading : DashboardState()
+    object Loading    : DashboardState()
+    object NoLocation : DashboardState()
     data class AtProfile(val profileName: String, val apps: List<DashboardItem>) : DashboardState()
     data class Nearby(val items: List<DashboardItem>) : DashboardState()
     data class Error(val message: String) : DashboardState()
@@ -81,10 +88,13 @@ class DashboardViewModel @Inject constructor(
     private val _state = MutableStateFlow<DashboardState>(DashboardState.Loading)
     val state: StateFlow<DashboardState> = _state.asStateFlow()
 
+    private var refreshJob: Job? = null
+
     init { refresh() }
 
     fun refresh() {
-        viewModelScope.launch {
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch {
             _state.value = DashboardState.Loading
             try {
                 val prefs = settingsRepository.getCurrentPreferences()
@@ -119,14 +129,22 @@ class DashboardViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Not at any profile — show nearby businesses
+                // Not at any profile — need location for nearby search.
+                if (location == null) {
+                    _state.value = DashboardState.NoLocation
+                    return@launch
+                }
+
+                // markLoading() signals all screens immediately; the actual Overpass call
+                // runs in a sibling coroutine so this coroutine can collect reactively.
+                // The mutex in NearbyBranchFinder guarantees only one network call fires
+                // even when Dashboard and Nearby both start at the same time.
                 businessAppRepository.initialize()
                 val mappings = businessAppRepository.getAllMappings().first().filter { it.isEnabled }
-                val branches = if (location != null) {
-                    withTimeoutOrNull(25_000L) {
-                        nearbyBranchFinder.findNearestBranches(location.latitude, location.longitude)
-                    } ?: emptyMap()
-                } else emptyMap()
+
+                nearbyBranchFinder.markLoading()
+                launch { nearbyBranchFinder.findNearestBranches(location.latitude, location.longitude) }
+                val branches = nearbyBranchFinder.fetchState.first { !it.isLoading }.branches
 
                 val items = mappings.mapNotNull { m ->
                     val (lat, lon) = branches[m.businessName]
@@ -186,9 +204,8 @@ fun DashboardContent(viewModel: DashboardViewModel = hiltViewModel()) {
     val context = LocalContext.current
 
     when (val s = state) {
-        is DashboardState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
+        is DashboardState.Loading    -> LoadingContent()
+        is DashboardState.NoLocation -> LocationUnavailableContent(context)
         is DashboardState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Error", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error)
@@ -206,6 +223,93 @@ fun DashboardContent(viewModel: DashboardViewModel = hiltViewModel()) {
             items = s.items,
             context = context
         )
+    }
+}
+
+/**
+ * Full-screen loading indicator with the Appdar radar animation and cycling
+ * humorous messages. Shared by Dashboard and Nearby Apps.
+ */
+@Composable
+fun LoadingContent() {
+    val messages = listOf(
+        "Asking OpenStreetMap nicely...",
+        "Bribing Overpass with imaginary coffee...",
+        "Triangulating your nearest Costa Coffee...",
+        "Checking if there's a Greggs nearby (there is)",
+        "Calculating distances... maths is hard",
+        "Your location: confirmed. Nearest IKEA: pending...",
+        "Overpass API is doing its best, promise...",
+        "Rummaging through map data...",
+        "Finding the closest Nando's (mission critical)",
+        "Almost there... probably",
+        "Please don't refresh. Please.",
+        "Pinging satellites (not really, but it sounds impressive)"
+    )
+    var index by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(3_000L)
+            index = (index + 1) % messages.size
+        }
+    }
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            AppdarRadarAnimation(Modifier.size(96.dp))
+            Text(
+                text = messages[index],
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/**
+ * Shown when location permission is denied or timed out.
+ * Gives the user a clear explanation and a direct route to app settings.
+ * Used by both Dashboard and Nearby Apps (same package, no import needed).
+ */
+@Composable
+fun LocationUnavailableContent(context: Context) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(horizontal = 40.dp)
+        ) {
+            Icon(
+                Icons.Filled.LocationOff,
+                contentDescription = null,
+                modifier = Modifier.size(52.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                "Location unavailable",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                "Appdar needs your location to find nearby branches. " +
+                "Grant location permission and tap refresh.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(4.dp))
+            Button(onClick = {
+                context.startActivity(
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data  = Uri.fromParts("package", context.packageName, null)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                )
+            }) {
+                Text("Open App Settings")
+            }
+        }
     }
 }
 

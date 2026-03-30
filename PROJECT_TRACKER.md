@@ -1800,4 +1800,43 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
     - Delegated to **Android QA** – push v101 APK to device `xiaomi‑m2102j20sg.tail25553f.ts.net:5555` via ADB once available.
   - **Status**: Build in progress; awaiting completion and installation.
 
-**Current Status:** v101 build and installation in progress. Standing by for completion.
+- **2026‑03‑30 01:47 GMT+1 (00:47 GMT) – v101 Build Complete**
+  - **Version**: versionCode 101, versionName "1.101"
+  - **APK**: 6.2 MB, SHA‑256 `76e0b4c94a991a1603701d45c050635d587b8ebe3a5f0bbe6352f665b577b6a6`
+  - **AAB**: 7.2 MB, SHA‑256 `d39da8dee96be220e9e50e723570e7f149240a60c5a3fc24be57592a4a7bd8e7`
+  - **HTTP URLs**:
+    - APK: `http://192.168.0.111:8080/Appdar‑v101.apk`
+    - AAB: `http://192.168.0.111:8080/Appdar‑v101.aab`
+    - Mapping: `http://192.168.0.111:8080/Appdar‑v101‑mapping.txt`
+    - Latest symlinks: `Appdar‑latest.apk` → `Appdar‑v101.apk`
+  - **Git**: Changes committed and pushed to remote (branch main).
+  - **Status**: Build **COMPLETED**. Android QA installation pending.
+
+- **2026‑03‑30 01:47‑01:50 GMT+1 (approx) – v101 Installation Complete**
+  - **Android QA**: APK v101 downloaded from HTTP server (6.2 MB).
+  - **Device**: Connected (`xiaomi‑m2102j20sg.tail25553f.ts.net:5555`).
+  - **Installation**: Successful (`adb install -r` streamed install, no errors).
+  - **Status**: v101 **installed and ready** for closed‑testing.
+
+- **2026‑03‑30 10:04 GMT+1 (09:04 GMT) – Logcat Data Pull Request**
+  - **User request**: "Can you pull the logcat data relating to appdar app from my phone and put it in the project folder and tell me where you've put it"
+  - **Interpretation**: Capture logcat logs filtered for Appdar app from device via ADB, save to project folder, report file path.
+  - **Actions taken**: Delegated to Android QA.
+  - **Status**: Task in progress; awaiting completion.
+
+- **2026‑03‑30 ~10:28 GMT+1 (09:28 GMT) – Logcat Data Pull Complete**
+  - **File saved**: `/root/.openclaw/Adroid_Dev/nearby-apps-widget/phase1/logcat_appdar_20260330_1004.txt`
+  - **Size**: 333 KB, 60 lines.
+  - **Contents**: Logcat dump filtered for “appdar” / `com.benhic.appdar` (case‑insensitive), includes NearbyBranchFinder stack traces.
+  - **Device**: Connected via Tailscale (`xiaomi‑m2102j20sg.tail25553f.ts.net:5555`).
+  - **Status**: **COMPLETED** – logs saved successfully.
+
+- **2026‑03‑30 20:35 GMT+1 (19:35 GMT) – v102 Build Task**
+  - **User request**: "please build next version and push it to my phone"
+  - **Interpretation**: Build next version (versionCode 102, v102) and push via ADB to device.
+  - **Actions taken**:
+    1. **Delegated to Android Release** – build v102 APK/AAB using `apk‑build‑host` skill, serve via HTTP (port 8080).
+    2. **Delegated to Android QA** – push v102 APK to device `xiaomi‑m2102j20sg.tail25553f.ts.net:5555` via ADB once available.
+  - **Status**: Task in progress; awaiting completion.
+
+**Current Status:** v102 build and installation in progress. Awaiting completion.
