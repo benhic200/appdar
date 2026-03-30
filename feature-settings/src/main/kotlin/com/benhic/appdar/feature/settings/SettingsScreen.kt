@@ -33,6 +33,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.benhic.appdar.data.local.settings.DistanceUnit
@@ -307,6 +310,42 @@ private fun SettingsCards(
                         text = "Appdar  v${packageInfo?.versionName ?: "—"}  (build ${packageInfo?.longVersionCode ?: "—"})",
                         style = MaterialTheme.typography.bodyMedium
                     )
+                    Spacer(modifier = Modifier.padding(6.dp))
+                    OutlinedButton(
+                        onClick = {
+                            val version  = packageInfo?.versionName ?: "unknown"
+                            val build    = packageInfo?.longVersionCode?.toString() ?: "unknown"
+                            val device   = "${Build.MANUFACTURER} ${Build.MODEL}"
+                            val android  = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"
+                            val body = """
+                                **App version:** $version (build $build)
+                                **Device:** $device
+                                **OS:** $android
+
+                                **Steps to reproduce:**
+                                1.
+
+                                **Expected behaviour:**
+
+                                **Actual behaviour:**
+                            """.trimIndent()
+                            val url = Uri.Builder()
+                                .scheme("https")
+                                .authority("github.com")
+                                .appendPath("benhic200").appendPath("appdar")
+                                .appendPath("issues").appendPath("new")
+                                .appendQueryParameter("title", "Bug report")
+                                .appendQueryParameter("body", body)
+                                .build()
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, url)
+                                    .apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Report a bug on GitHub")
+                    }
                 }
             }
 }

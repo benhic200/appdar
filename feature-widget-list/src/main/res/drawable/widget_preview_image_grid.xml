@@ -9,7 +9,7 @@
 
     <!-- Card background -->
     <path
-        android:fillColor="#FFFDF8FF"
+        android:fillColor="#FF1C1A2E"
         android:pathData="M8,0 L312,0 Q320,0 320,8 L320,312 Q320,320 312,320 L8,320 Q0,320 0,312 L0,8 Q0,0 8,0 Z" />
 
     <!-- Header bar background -->
@@ -24,12 +24,12 @@
 
     <!-- Header: settings icon circle -->
     <path
-        android:fillColor="#FFAB47BC"
+        android:fillColor="#FFCE93D8"
         android:pathData="M280,20 m-10,0 a10,10 0,1,1 20,0 a10,10 0,1,1 -20,0" />
 
     <!-- Header: refresh icon circle -->
     <path
-        android:fillColor="#FFAB47BC"
+        android:fillColor="#FFCE93D8"
         android:pathData="M305,20 m-8,0 a8,8 0,1,1 16,0 a8,8 0,1,1 -16,0" />
 
     <!-- Grid column divider -->
@@ -58,7 +58,7 @@
         android:pathData="M178,128 L300,128 Q302,128 302,131 L302,137 Q302,140 300,140 L178,140 Q176,140 176,137 L176,131 Q176,128 178,128 Z" />
 
     <!-- Cell (2,1): icon -->
-    <path android:fillColor="#FFAB47BC"
+    <path android:fillColor="#FFCE93D8"
         android:pathData="M80,182 m-32,0 a32,32 0,1,1 64,0 a32,32 0,1,1 -64,0" />
     <!-- Cell (2,1): name bar -->
     <path android:fillColor="#FF9E9E9E"

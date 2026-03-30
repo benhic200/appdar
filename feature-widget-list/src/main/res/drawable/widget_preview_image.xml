@@ -15,7 +15,7 @@
     <!-- Widget card background: faint lavender, rounded corners -->
     <path
         android:pathData="M 12,0 L 308,0 Q 320,0 320,12 L 320,148 Q 320,160 308,160 L 12,160 Q 0,160 0,148 L 0,12 Q 0,0 12,0 Z"
-        android:fillColor="#FFFDF8FF" />
+        android:fillColor="#FF1C1A2E" />
 
     <!-- Header bar background -->
     <path
@@ -31,17 +31,17 @@
     <path
         android:pathData="M 302,11 A 8,8,0,1,0,310,19"
         android:fillColor="#00000000"
-        android:strokeColor="#FFAB47BC"
+        android:strokeColor="#FFCE93D8"
         android:strokeWidth="2"
         android:strokeLineCap="round" />
     <path
         android:pathData="M 310,19 L 313,15 L 307,15 Z"
-        android:fillColor="#FFAB47BC" />
+        android:fillColor="#FFCE93D8" />
 
     <!-- Header: settings gear dot (simplified) -->
     <path
         android:pathData="M 283,18 A 5,5,0,1,0,283,18.01 Z"
-        android:fillColor="#FFAB47BC" />
+        android:fillColor="#FFCE93D8" />
 
     <!-- Divider below header -->
     <path
@@ -54,7 +54,7 @@
     <!-- Status dot: installed (purple) -->
     <path
         android:pathData="M 14,60 A 4,4,0,1,0,14,60.01 Z"
-        android:fillColor="#FFAB47BC" />
+        android:fillColor="#FFCE93D8" />
 
     <!-- App icon placeholder (rounded square) -->
     <path
@@ -72,12 +72,12 @@
         android:fillColor="#FFF3E5F5" />
     <path
         android:pathData="M 62,64 L 90,64 Q 92,64 92,66 L 92,68 Q 92,70 90,70 L 62,70 Q 60,70 60,68 L 60,64 Q 60,64 62,64 Z"
-        android:fillColor="#FFAB47BC" />
+        android:fillColor="#FFCE93D8" />
 
     <!-- ── Row 2 ── -->
     <path
         android:pathData="M 14,100 A 4,4,0,1,0,14,100.01 Z"
-        android:fillColor="#FFAB47BC" />
+        android:fillColor="#FFCE93D8" />
 
     <path
         android:pathData="M 26,88 L 50,88 Q 54,88 54,92 L 54,108 Q 54,112 50,112 L 26,112 Q 22,112 22,108 L 22,92 Q 22,88 26,88 Z"
@@ -92,7 +92,7 @@
         android:fillColor="#FFF3E5F5" />
     <path
         android:pathData="M 62,104 L 100,104 Q 102,104 102,106 L 102,108 Q 102,110 100,110 L 62,110 Q 60,110 60,108 L 60,104 Q 60,104 62,104 Z"
-        android:fillColor="#FFAB47BC" />
+        android:fillColor="#FFCE93D8" />
 
     <!-- ── Row 3 (faded — not installed) ── -->
     <path

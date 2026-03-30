@@ -1,6 +1,8 @@
 package com.benhic.appdar
 
 import android.Manifest
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -9,6 +11,11 @@ import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
+import com.benhic.appdar.feature.widget.NearbyAppsWidgetProvider
+import com.benhic.appdar.feature.widget.NearbyAppsWidgetProviderGrid
+import com.benhic.appdar.feature.widget.NearbyAppsWidgetProviderNano
+import com.benhic.appdar.feature.widget.NearbyAppsWidgetProviderNarrow
+import com.benhic.appdar.feature.widget.NearbyAppsWidgetProviderStrip
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,6 +45,7 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -536,8 +544,56 @@ fun TabbedAppScreen(
                     title = { Text(screenTitle) },
                     actions = {
                         when (currentScreen) {
-                            "dashboard" -> IconButton(onClick = { dashboardViewModel.refresh() }) {
-                                Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+                            "dashboard" -> {
+                                var showWidgetPicker by remember { mutableStateOf(false) }
+                                val awm = AppWidgetManager.getInstance(context)
+
+                                IconButton(onClick = { showWidgetPicker = true }) {
+                                    Icon(Icons.Filled.Widgets, contentDescription = "Add widget")
+                                }
+                                IconButton(onClick = { dashboardViewModel.refresh() }) {
+                                    Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+                                }
+
+                                if (showWidgetPicker) {
+                                    val supported = awm.isRequestPinAppWidgetSupported
+                                    AlertDialog(
+                                        onDismissRequest = { showWidgetPicker = false },
+                                        title = { Text("Add widget") },
+                                        text = {
+                                            if (!supported) {
+                                                Text("Your launcher doesn't support adding widgets this way.\n\nLong-press your home screen → Widgets → Appdar to add one manually.")
+                                            } else {
+                                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                    Text("Choose a widget style:", style = MaterialTheme.typography.bodyMedium)
+                                                    listOf(
+                                                        "Grid / List"      to NearbyAppsWidgetProviderGrid::class.java,
+                                                        "Strip"            to NearbyAppsWidgetProviderStrip::class.java,
+                                                        "Nano (tiny)"      to NearbyAppsWidgetProviderNano::class.java,
+                                                        "Narrow column"    to NearbyAppsWidgetProviderNarrow::class.java,
+                                                        "Scrollable list"  to NearbyAppsWidgetProvider::class.java
+                                                    ).forEach { (label, cls) ->
+                                                        OutlinedButton(
+                                                            onClick = {
+                                                                awm.requestPinAppWidget(
+                                                                    ComponentName(context, cls), null, null
+                                                                )
+                                                                showWidgetPicker = false
+                                                            },
+                                                            modifier = Modifier.fillMaxWidth()
+                                                        ) { Text(label) }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        confirmButton = {},
+                                        dismissButton = {
+                                            TextButton(onClick = { showWidgetPicker = false }) {
+                                                Text("Cancel")
+                                            }
+                                        }
+                                    )
+                                }
                             }
                             "nearby" -> IconButton(onClick = { nearbyViewModel.refresh() }) {
                                 Icon(Icons.Filled.Refresh, contentDescription = "Refresh")

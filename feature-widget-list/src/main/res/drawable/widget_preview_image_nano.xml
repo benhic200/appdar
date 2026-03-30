@@ -8,7 +8,7 @@
 
     <!-- Card background -->
     <path
-        android:fillColor="#FFFDF8FF"
+        android:fillColor="#FF1C1A2E"
         android:pathData="M8,0 L312,0 Q320,0 320,8 L320,152 Q320,160 312,160 L8,160 Q0,160 0,152 L0,8 Q0,0 8,0 Z" />
 
     <!-- App icon circle (left side) -->
@@ -18,7 +18,7 @@
 
     <!-- Inner icon detail -->
     <path
-        android:fillColor="#FFAB47BC"
+        android:fillColor="#FFCE93D8"
         android:pathData="M56,80 m-24,0 a24,24 0,1,1 48,0 a24,24 0,1,1 -48,0" />
 
     <!-- Business name text bar -->

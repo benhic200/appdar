@@ -9,7 +9,7 @@
 
     <!-- Card background -->
     <path
-        android:fillColor="#FFFDF8FF"
+        android:fillColor="#FF1C1A2E"
         android:pathData="M8,0 L312,0 Q320,0 320,8 L320,72 Q320,80 312,80 L8,80 Q0,80 0,72 L0,8 Q0,0 8,0 Z" />
 
     <!-- Column 1 divider hint -->
@@ -37,7 +37,7 @@
         android:pathData="M88,65 L152,65 Q154,65 154,67 L154,71 Q154,73 152,73 L88,73 Q86,73 86,71 L86,67 Q86,65 88,65 Z" />
 
     <!-- Col 3: icon circle -->
-    <path android:fillColor="#FFAB47BC"
+    <path android:fillColor="#FFCE93D8"
         android:pathData="M199,40 m-22,0 a22,22 0,1,1 44,0 a22,22 0,1,1 -44,0" />
     <!-- Col 3: name bar -->
     <path android:fillColor="#FF9E9E9E"

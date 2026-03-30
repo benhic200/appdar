@@ -9,7 +9,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#FFFDF8FF">
+    android:background="#FF1C1A2E">
 
     <!-- Header: mirrors widget_nearby_apps_list.xml header exactly -->
     <LinearLayout
@@ -28,7 +28,7 @@
             android:layout_height="32dp"
             android:src="@android:drawable/ic_media_previous"
             android:padding="4dp"
-            android:tint="#FFAB47BC"
+            android:tint="#FFCE93D8"
             android:visibility="invisible"
             android:importantForAccessibility="no" />
 
@@ -47,7 +47,7 @@
             android:layout_height="32dp"
             android:src="@android:drawable/ic_media_next"
             android:padding="4dp"
-            android:tint="#FFAB47BC"
+            android:tint="#FFCE93D8"
             android:visibility="invisible"
             android:importantForAccessibility="no" />
 
@@ -62,7 +62,7 @@
             android:layout_height="32dp"
             android:src="@drawable/ic_settings_gear"
             android:padding="4dp"
-            android:tint="#FFAB47BC"
+            android:tint="#FFCE93D8"
             android:contentDescription="Settings"
             android:importantForAccessibility="no" />
 
@@ -71,7 +71,7 @@
             android:layout_height="32dp"
             android:src="@android:drawable/ic_menu_rotate"
             android:padding="4dp"
-            android:tint="#FFAB47BC"
+            android:tint="#FFCE93D8"
             android:contentDescription="Refresh"
             android:importantForAccessibility="no" />
     </LinearLayout>
@@ -100,7 +100,7 @@
                 android:orientation="vertical"
                 android:gravity="center_horizontal"
                 android:padding="8dp"
-                android:background="#FFFDF8FF">
+                android:background="#FF1C1A2E">
 
                 <ImageView
                     android:layout_width="40dp"
@@ -123,7 +123,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:background="@drawable/chip_background"
+                    android:background="@drawable/chip_background_dark"
                     android:paddingStart="6dp"
                     android:paddingTop="2dp"
                     android:paddingEnd="6dp"
@@ -149,7 +149,7 @@
                 android:orientation="vertical"
                 android:gravity="center_horizontal"
                 android:padding="8dp"
-                android:background="#FFFDF8FF">
+                android:background="#FF1C1A2E">
 
                 <ImageView
                     android:layout_width="40dp"
@@ -172,7 +172,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:background="@drawable/chip_background"
+                    android:background="@drawable/chip_background_dark"
                     android:paddingStart="6dp"
                     android:paddingTop="2dp"
                     android:paddingEnd="6dp"
@@ -206,7 +206,7 @@
                 android:orientation="vertical"
                 android:gravity="center_horizontal"
                 android:padding="8dp"
-                android:background="#FFFDF8FF">
+                android:background="#FF1C1A2E">
 
                 <ImageView
                     android:layout_width="40dp"
@@ -229,7 +229,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:background="@drawable/chip_background"
+                    android:background="@drawable/chip_background_dark"
                     android:paddingStart="6dp"
                     android:paddingTop="2dp"
                     android:paddingEnd="6dp"
@@ -255,7 +255,7 @@
                 android:orientation="vertical"
                 android:gravity="center_horizontal"
                 android:padding="8dp"
-                android:background="#FFFDF8FF">
+                android:background="#FF1C1A2E">
 
                 <ImageView
                     android:layout_width="40dp"
@@ -278,7 +278,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:background="@drawable/chip_background"
+                    android:background="@drawable/chip_background_dark"
                     android:paddingStart="6dp"
                     android:paddingTop="2dp"
                     android:paddingEnd="6dp"

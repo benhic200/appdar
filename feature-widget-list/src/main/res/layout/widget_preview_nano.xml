@@ -9,7 +9,7 @@
     android:id="@+id/nano_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFDF8FF"
+    android:background="#FF1C1A2E"
     android:padding="6dp">
 
     <LinearLayout
@@ -80,7 +80,7 @@
         android:src="@android:drawable/ic_menu_rotate"
         android:contentDescription="@string/refresh"
         android:padding="2dp"
-        android:tint="#FFAB47BC"
+        android:tint="#FFCE93D8"
         android:importantForAccessibility="no"
         android:background="#00000000" />
 
