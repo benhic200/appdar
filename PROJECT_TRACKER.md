@@ -1839,4 +1839,33 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
     2. **Delegated to Android QA** – push v102 APK to device `xiaomi‑m2102j20sg.tail25553f.ts.net:5555` via ADB once available.
   - **Status**: Task in progress; awaiting completion.
 
-**Current Status:** v102 build and installation in progress. Awaiting completion.
+- **2026‑03‑30 20:56 GMT+1 (19:56 GMT) – v102 Build Complete**
+  - **Version**: versionCode 102, versionName "1.102"
+  - **APK**: 6.2 MB, SHA‑256 `92bd486d3267fa1815f374200bc517d8b69ac5a0ab0cfc70eff46bf564495108`
+  - **AAB**: 7.2 MB, SHA‑256 `16e27088334fc68c46b3b3690bb44e31160ba975e007431d9780cb1987f24c73`
+  - **HTTP URLs**:
+    - APK: `http://192.168.0.111:8080/Appdar‑v102.apk`
+    - AAB: `http://192.168.0.111:8080/Appdar‑v102.aab`
+    - Mapping: `http://192.168.0.111:8080/Appdar‑v102‑mapping.txt`
+    - Latest symlinks: `Appdar‑latest.apk` → `Appdar‑v102.apk`
+  - **Git**: Changes committed and pushed to remote (branch main).
+  - **Status**: Build **COMPLETED**.
+
+- **2026‑03‑30 ~20:57 GMT+1 (approx) – v102 Installation Attempt**
+  - **Android QA**: APK v102 downloaded, SHA‑256 verified.
+  - **Device**: Connected (`xiaomi‑m2102j20sg.tail25553f.ts.net:5555`).
+  - **Result**: **FAILED – user restriction** (`INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`).
+  - **Root cause**: MIUI security prompt requires user confirmation on device screen (update via USB blocked). ADB cannot bypass interactive restriction.
+  - **Status**: Installation **BLOCKED** awaiting user action.
+
+- **2026‑03‑30 21:27 GMT+1 (20:27 GMT) – User Feedback**
+  - **Message**: "still not received"
+  - **Interpretation**: No MIUI prompt visible on device screen; user hasn't received the security dialog to allow update via ADB.
+  - **Action**: Provide troubleshooting steps (manual install, check Developer options, verify ADB connection).
+
+- **2026‑03‑30 21:39 GMT+1 (20:39 GMT) – Retry Request**
+  - **Message**: "pleaae try again"
+  - **Interpretation**: User asks to retry ADB installation of v102.
+  - **Action**: Delegated to Android QA to attempt installation again.
+
+**Current Status:** v102 built; installation retry pending.

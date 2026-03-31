@@ -557,28 +557,54 @@ fun TabbedAppScreen(
 
                                 if (showWidgetPicker) {
                                     val supported = awm.isRequestPinAppWidgetSupported
+                                    // Tracks which widget class the user chose so we can show
+                                    // the "go to home screen" step before backgrounding the app.
+                                    var pendingCls by remember {
+                                        mutableStateOf<Class<*>?>(null)
+                                    }
                                     AlertDialog(
-                                        onDismissRequest = { showWidgetPicker = false },
-                                        title = { Text("Add widget") },
+                                        onDismissRequest = {
+                                            showWidgetPicker = false
+                                            pendingCls = null
+                                        },
+                                        title = { Text(if (pendingCls != null) "Place your widget" else "Add widget") },
                                         text = {
-                                            if (!supported) {
-                                                Text("Your launcher doesn't support adding widgets this way.\n\nLong-press your home screen → Widgets → Appdar to add one manually.")
+                                            if (pendingCls != null) {
+                                                // Step 2: user chose a style — tell them what to do next.
+                                                // This message covers both well-behaved launchers
+                                                // (placement prompt appears automatically) and MIUI /
+                                                // launchers that ignore the API (manual fallback).
+                                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                                    Text("1. Tap \"Go to Home Screen\" below.")
+                                                    Text("2. Your launcher should show a widget placement prompt — tap to confirm.")
+                                                    Text(
+                                                        "Nothing appeared? Long-press your home screen → Widgets → Appdar to add manually.",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            } else if (!supported) {
+                                                Text("Your launcher doesn't support quick-add.\n\nLong-press your home screen → Widgets → Appdar to add one manually.")
                                             } else {
                                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                                     Text("Choose a widget style:", style = MaterialTheme.typography.bodyMedium)
                                                     listOf(
-                                                        "Grid / List"      to NearbyAppsWidgetProviderGrid::class.java,
-                                                        "Strip"            to NearbyAppsWidgetProviderStrip::class.java,
-                                                        "Nano (tiny)"      to NearbyAppsWidgetProviderNano::class.java,
-                                                        "Narrow column"    to NearbyAppsWidgetProviderNarrow::class.java,
-                                                        "Scrollable list"  to NearbyAppsWidgetProvider::class.java
+                                                        "Grid / List"     to NearbyAppsWidgetProviderGrid::class.java,
+                                                        "Strip"           to NearbyAppsWidgetProviderStrip::class.java,
+                                                        "Nano (tiny)"     to NearbyAppsWidgetProviderNano::class.java,
+                                                        "Narrow column"   to NearbyAppsWidgetProviderNarrow::class.java,
+                                                        "Scrollable list" to NearbyAppsWidgetProvider::class.java
                                                     ).forEach { (label, cls) ->
                                                         OutlinedButton(
                                                             onClick = {
                                                                 awm.requestPinAppWidget(
                                                                     ComponentName(context, cls), null, null
                                                                 )
-                                                                showWidgetPicker = false
+                                                                // Show step-2 instructions regardless of
+                                                                // the return value — some launchers (MIUI)
+                                                                // return true but handle it silently, so
+                                                                // the manual fallback text is always shown.
+                                                                pendingCls = cls
                                                             },
                                                             modifier = Modifier.fillMaxWidth()
                                                         ) { Text(label) }
@@ -586,11 +612,20 @@ fun TabbedAppScreen(
                                                 }
                                             }
                                         },
-                                        confirmButton = {},
-                                        dismissButton = {
-                                            TextButton(onClick = { showWidgetPicker = false }) {
-                                                Text("Cancel")
+                                        confirmButton = {
+                                            if (pendingCls != null) {
+                                                Button(onClick = {
+                                                    showWidgetPicker = false
+                                                    pendingCls = null
+                                                    (context as? android.app.Activity)?.moveTaskToBack(true)
+                                                }) { Text("Go to Home Screen") }
                                             }
+                                        },
+                                        dismissButton = {
+                                            TextButton(onClick = {
+                                                showWidgetPicker = false
+                                                pendingCls = null
+                                            }) { Text(if (pendingCls != null) "Close" else "Cancel") }
                                         }
                                     )
                                 }

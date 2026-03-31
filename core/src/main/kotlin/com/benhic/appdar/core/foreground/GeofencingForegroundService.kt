@@ -20,7 +20,10 @@ import com.benhic.appdar.core.R
 class GeofencingForegroundService : Service() {
 
     companion object {
-        private const val NOTIFICATION_CHANNEL_ID = "geofencing_foreground"
+        // "v2" forces a new channel on existing installs — Android ignores importance
+        // changes to already-created channels, so a new ID is the only way to apply
+        // IMPORTANCE_MIN to users who had the old IMPORTANCE_LOW channel.
+        private const val NOTIFICATION_CHANNEL_ID = "geofencing_foreground_v2"
         private const val NOTIFICATION_ID = 1001
 
         /**
@@ -64,7 +67,7 @@ class GeofencingForegroundService : Service() {
             val channel = NotificationChannel(
                 NOTIFICATION_CHANNEL_ID,
                 getString(R.string.geofencing_foreground_channel_name),
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_MIN   // no status-bar icon, no sound
             ).apply {
                 description = getString(R.string.geofencing_foreground_channel_description)
                 setShowBadge(false)
@@ -79,9 +82,10 @@ class GeofencingForegroundService : Service() {
             .setContentTitle(getString(R.string.geofencing_notification_title))
             .setContentText(getString(R.string.geofencing_notification_text))
             .setSmallIcon(R.drawable.ic_notification)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_MIN)  // collapses to bottom of shade
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .setOngoing(true)
+            // Not setOngoing — lets users swipe it away (Android 13+ honours this;
+            // on older versions the OS re-posts it automatically as required).
             .build()
     }
 }

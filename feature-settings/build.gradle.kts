@@ -58,6 +58,10 @@ dependencies {
     // Material Components for theme attributes
     implementation(libs.material)
 
+    // Coil — animated WebP support
+    implementation(libs.coil.compose)
+    implementation(libs.coil.gif)
+
     // ViewModel
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)

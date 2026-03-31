@@ -113,13 +113,13 @@ class NearbyAppsViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Signal all screens that loading is in progress, then fire the Overpass
-                // call in a sibling coroutine. The mutex in NearbyBranchFinder means only
-                // one network request runs even when Dashboard and Nearby both start together.
-                // We then collect reactively — no timeout needed, no duplicate calls.
+                // The mutex inside findNearestBranches ensures only one Overpass call fires
+                // even when Dashboard and Nearby start simultaneously. If Dashboard already
+                // holds the mutex, this call waits then cache-hits — no duplicate request.
                 nearbyBranchFinder.markLoading()
-                launch { nearbyBranchFinder.findNearestBranches(currentLocation.latitude, currentLocation.longitude) }
-                val nearestBranches = nearbyBranchFinder.fetchState.first { !it.isLoading }.branches
+                val nearestBranches = withTimeoutOrNull(35_000L) {
+                    nearbyBranchFinder.findNearestBranches(currentLocation.latitude, currentLocation.longitude)
+                } ?: emptyMap()
 
                 val businessItems = mappings.mapNotNull { mapping ->
                     val (branchLat, branchLon) = nearestBranches[mapping.businessName]

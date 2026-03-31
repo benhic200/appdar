@@ -22,7 +22,10 @@ import com.benhic.appdar.feature.widgetlist.di.WidgetListEntryPoint
 import com.benhic.appdar.feature.widgetlist.util.AppIconLoader
 import com.benhic.appdar.feature.widgetlist.R as WidgetListR
 import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -60,25 +63,30 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
             android.widget.Toast.makeText(context, "Refreshing…", android.widget.Toast.LENGTH_SHORT).show()
         }
         if (intent.action == ACTION_SCHEDULED_UPDATE) {
-            // Skip auto-update if low power mode is enabled
-            try {
-                val ep = EntryPointAccessors.fromApplication(
-                    context.applicationContext, WidgetListEntryPoint::class.java
-                )
-                val prefs = runBlocking { ep.settingsRepository().getCurrentPreferences() }
-                if (prefs.lowPowerMode) return
-            } catch (_: Exception) { return }
-            val mgr = AppWidgetManager.getInstance(context)
-            val allClasses = listOf(
-                NearbyAppsWidgetProvider::class.java,
-                NearbyAppsWidgetProviderNano::class.java,
-                NearbyAppsWidgetProviderStrip::class.java,
-                NearbyAppsWidgetProviderGrid::class.java,
-                NearbyAppsWidgetProviderNarrow::class.java
-            )
-            for (cls in allClasses) {
-                val ids = mgr.getAppWidgetIds(android.content.ComponentName(context, cls))
-                for (id in ids) updateAppWidget(context, mgr, id)
+            val pending = goAsync()
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val ep = EntryPointAccessors.fromApplication(
+                        context.applicationContext, WidgetListEntryPoint::class.java
+                    )
+                    val prefs = ep.settingsRepository().getCurrentPreferences()
+                    if (prefs.lowPowerMode) return@launch
+                    val mgr = AppWidgetManager.getInstance(context)
+                    val allClasses = listOf(
+                        NearbyAppsWidgetProvider::class.java,
+                        NearbyAppsWidgetProviderNano::class.java,
+                        NearbyAppsWidgetProviderStrip::class.java,
+                        NearbyAppsWidgetProviderGrid::class.java,
+                        NearbyAppsWidgetProviderNarrow::class.java
+                    )
+                    for (cls in allClasses) {
+                        val ids = mgr.getAppWidgetIds(android.content.ComponentName(context, cls))
+                        for (id in ids) updateAppWidget(context, mgr, id)
+                    }
+                } catch (_: Exception) {
+                } finally {
+                    pending.finish()
+                }
             }
             return
         }
@@ -89,8 +97,15 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                 val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 val current = prefs.getInt("page_$widgetId", 0)
                 prefs.edit().putInt("page_$widgetId", maxOf(0, current + delta)).apply()
-                val mgr = AppWidgetManager.getInstance(context)
-                updateAppWidget(context, mgr, widgetId)
+                val pending = goAsync()
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val mgr = AppWidgetManager.getInstance(context)
+                        updateAppWidget(context, mgr, widgetId)
+                    } finally {
+                        pending.finish()
+                    }
+                }
             }
             return
         }
@@ -103,8 +118,18 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         Log.d(TAG, "onUpdate called for widget IDs: ${appWidgetIds.joinToString()}")
-        for (appWidgetId in appWidgetIds) {
-            updateAppWidget(context, appWidgetManager, appWidgetId)
+        // goAsync() keeps the BroadcastReceiver alive while we do the heavy work
+        // off the main thread, preventing the ANR that occurs when the Overpass
+        // mutex is held by the app and the widget blocks waiting for it.
+        val pending = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                for (appWidgetId in appWidgetIds) {
+                    updateAppWidget(context, appWidgetManager, appWidgetId)
+                }
+            } finally {
+                pending.finish()
+            }
         }
     }
 
@@ -116,7 +141,14 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
     ) {
         super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
         Log.d(TAG, "onAppWidgetOptionsChanged id=$appWidgetId")
-        updateAppWidget(context, appWidgetManager, appWidgetId)
+        val pending = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                updateAppWidget(context, appWidgetManager, appWidgetId)
+            } finally {
+                pending.finish()
+            }
+        }
     }
 
     companion object {

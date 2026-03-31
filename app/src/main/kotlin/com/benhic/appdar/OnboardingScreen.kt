@@ -261,7 +261,7 @@ private fun LocationStepContent(
                 }
             }
             PermissionState.UNKNOWN -> {
-                CircularProgressIndicator()
+                AppdarRadarAnimation(Modifier.size(96.dp))
             }
         }
     }

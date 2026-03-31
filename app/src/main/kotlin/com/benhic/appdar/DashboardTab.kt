@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material3.*
@@ -135,16 +136,17 @@ class DashboardViewModel @Inject constructor(
                     return@launch
                 }
 
-                // markLoading() signals all screens immediately; the actual Overpass call
-                // runs in a sibling coroutine so this coroutine can collect reactively.
-                // The mutex in NearbyBranchFinder guarantees only one network call fires
-                // even when Dashboard and Nearby both start at the same time.
+                // The mutex inside findNearestBranches ensures only one Overpass call fires
+                // even when Dashboard, Nearby, and the widget all start simultaneously.
+                // If another coroutine is already fetching, this call waits for the mutex
+                // and then cache-hits — no duplicate network call.
                 businessAppRepository.initialize()
                 val mappings = businessAppRepository.getAllMappings().first().filter { it.isEnabled }
 
                 nearbyBranchFinder.markLoading()
-                launch { nearbyBranchFinder.findNearestBranches(location.latitude, location.longitude) }
-                val branches = nearbyBranchFinder.fetchState.first { !it.isLoading }.branches
+                val branches = withTimeoutOrNull(35_000L) {
+                    nearbyBranchFinder.findNearestBranches(location.latitude, location.longitude)
+                } ?: emptyMap()
 
                 val items = mappings.mapNotNull { m ->
                     val (lat, lon) = branches[m.businessName]
@@ -327,6 +329,35 @@ private fun DashboardList(bannerText: String, items: List<DashboardItem>, contex
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
         }
+        // Uninstalled-apps hint — only shown when at least one listed app isn't on the device
+        val uninstalledCount = items.count { !it.isInstalled }
+        if (uninstalledCount > 0) {
+            Surface(
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                    Text(
+                        text = "$uninstalledCount app${if (uninstalledCount > 1) "s" else ""} shown " +
+                            "here ${if (uninstalledCount > 1) "aren't" else "isn't"} installed. " +
+                            "Go to Places to remove ${if (uninstalledCount > 1) "them" else "it"}.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                }
+            }
+        }
+
         if (items.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("No apps to show.", style = MaterialTheme.typography.bodyLarge)
