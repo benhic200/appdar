@@ -62,6 +62,37 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
             intent.hasExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS)) {
             android.widget.Toast.makeText(context, "Refreshing…", android.widget.Toast.LENGTH_SHORT).show()
         }
+
+        // Fired when the user dismisses the lock screen — refresh immediately and, if
+        // Screen-on Refresh is enabled, kick off the fast self-scheduling loop.
+        if (intent.action == Intent.ACTION_USER_PRESENT) {
+            val pending = goAsync()
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val ep = EntryPointAccessors.fromApplication(
+                        context.applicationContext, WidgetListEntryPoint::class.java
+                    )
+                    val prefs = ep.settingsRepository().getCurrentPreferences()
+                    if (prefs.lowPowerMode) return@launch
+                    val mgr = AppWidgetManager.getInstance(context)
+                    for (cls in ALL_WIDGET_CLASSES) {
+                        val ids = mgr.getAppWidgetIds(android.content.ComponentName(context, cls))
+                        for (id in ids) updateAppWidget(context, mgr, id)
+                    }
+                    if (prefs.screenOnRefreshEnabled) {
+                        // Switch from slow repeating alarm to fast self-scheduling loop.
+                        WidgetUpdateScheduler.cancel(context)
+                        val intervalMs = prefs.refreshIntervalSeconds.coerceAtLeast(1) * 1000L
+                        WidgetUpdateScheduler.scheduleScreenOnUpdate(context, intervalMs)
+                    }
+                } catch (_: Exception) {
+                } finally {
+                    pending.finish()
+                }
+            }
+            return
+        }
+
         if (intent.action == ACTION_SCHEDULED_UPDATE) {
             val pending = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
@@ -72,16 +103,21 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     val prefs = ep.settingsRepository().getCurrentPreferences()
                     if (prefs.lowPowerMode) return@launch
                     val mgr = AppWidgetManager.getInstance(context)
-                    val allClasses = listOf(
-                        NearbyAppsWidgetProvider::class.java,
-                        NearbyAppsWidgetProviderNano::class.java,
-                        NearbyAppsWidgetProviderStrip::class.java,
-                        NearbyAppsWidgetProviderGrid::class.java,
-                        NearbyAppsWidgetProviderNarrow::class.java
-                    )
-                    for (cls in allClasses) {
+                    for (cls in ALL_WIDGET_CLASSES) {
                         val ids = mgr.getAppWidgetIds(android.content.ComponentName(context, cls))
                         for (id in ids) updateAppWidget(context, mgr, id)
+                    }
+                    // Re-schedule based on current screen state.
+                    val pm = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+                    val intervalMs = prefs.refreshIntervalSeconds.coerceAtLeast(1) * 1000L
+                    if (pm.isInteractive && prefs.screenOnRefreshEnabled) {
+                        // Screen is on — cancel slow repeating, keep fast self-scheduling loop.
+                        WidgetUpdateScheduler.cancel(context)
+                        WidgetUpdateScheduler.scheduleScreenOnUpdate(context, intervalMs)
+                    } else {
+                        // Screen is off or feature disabled — cancel fast loop, resume slow repeating.
+                        WidgetUpdateScheduler.cancelScreenOnUpdate(context)
+                        WidgetUpdateScheduler.schedule(context, prefs.refreshIntervalSeconds)
                     }
                 } catch (_: Exception) {
                 } finally {
@@ -160,6 +196,14 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
     companion object {
         private val lastUpdateMs = java.util.concurrent.ConcurrentHashMap<Int, Long>()
         private const val MIN_UPDATE_INTERVAL_MS = 5_000L
+
+        internal val ALL_WIDGET_CLASSES = listOf(
+            NearbyAppsWidgetProvider::class.java,
+            NearbyAppsWidgetProviderNano::class.java,
+            NearbyAppsWidgetProviderStrip::class.java,
+            NearbyAppsWidgetProviderGrid::class.java,
+            NearbyAppsWidgetProviderNarrow::class.java
+        )
 
         // Width thresholds in dp
         private const val THRESHOLD_1X1_WIDTH_DP = 80

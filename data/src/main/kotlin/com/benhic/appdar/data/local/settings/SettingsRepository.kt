@@ -111,6 +111,15 @@ class SettingsRepository @Inject constructor(
     }
 
     /**
+     * Enables or disables screen-on continuous widget refresh.
+     */
+    suspend fun updateScreenOnRefreshEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SCREEN_ON_REFRESH_ENABLED] = enabled
+        }
+    }
+
+    /**
      * Resets all preferences to defaults.
      */
     suspend fun resetToDefaults() {

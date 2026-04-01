@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fallback previewImage for the narrow column (1×5) widget — shown on Android < 12 or when previewLayout fails. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="80dp"
+    android:height="320dp"
+    android:viewportWidth="80"
+    android:viewportHeight="320">
+
+    <!-- Card background -->
+    <path
+        android:fillColor="#FF1C1A2E"
+        android:pathData="M4,0 L76,0 Q80,0 80,4 L80,316 Q80,320 76,320 L4,320 Q0,320 0,316 L0,4 Q0,0 4,0 Z" />
+
+    <!-- Refresh icon (top-right) -->
+    <path
+        android:fillColor="#FFCE93D8"
+        android:pathData="M68,4 m-6,6 a5,5 0,1,1 10,0 a5,5 0,1,1 -10,0" />
+
+    <!-- Icon circle 1 -->
+    <path android:fillColor="#FFCE93D8"
+        android:pathData="M40,50 m-22,0 a22,22 0,1,1 44,0 a22,22 0,1,1 -44,0" />
+    <path android:fillColor="#FFCE93D8"
+        android:pathData="M40,50 m-13,0 a13,13 0,1,1 26,0 a13,13 0,1,1 -26,0" />
+
+    <!-- Icon circle 2 -->
+    <path android:fillColor="#FFCE93D8"
+        android:pathData="M40,112 m-22,0 a22,22 0,1,1 44,0 a22,22 0,1,1 -44,0" />
+    <path android:fillColor="#FFCE93D8"
+        android:pathData="M40,112 m-13,0 a13,13 0,1,1 26,0 a13,13 0,1,1 -26,0" />
+
+    <!-- Icon circle 3 -->
+    <path android:fillColor="#FFCE93D8"
+        android:pathData="M40,174 m-22,0 a22,22 0,1,1 44,0 a22,22 0,1,1 -44,0" />
+    <path android:fillColor="#FFCE93D8"
+        android:pathData="M40,174 m-13,0 a13,13 0,1,1 26,0 a13,13 0,1,1 -26,0" />
+
+    <!-- Icon circle 4 -->
+    <path android:fillColor="#FFCE93D8"
+        android:pathData="M40,236 m-22,0 a22,22 0,1,1 44,0 a22,22 0,1,1 -44,0" />
+    <path android:fillColor="#FFCE93D8"
+        android:pathData="M40,236 m-13,0 a13,13 0,1,1 26,0 a13,13 0,1,1 -26,0" />
+
+    <!-- Icon circle 5 -->
+    <path android:fillColor="#FFCE93D8"
+        android:pathData="M40,298 m-22,0 a22,22 0,1,1 44,0 a22,22 0,1,1 -44,0" />
+    <path android:fillColor="#FFCE93D8"
+        android:pathData="M40,298 m-13,0 a13,13 0,1,1 26,0 a13,13 0,1,1 -26,0" />
+
+</vector>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Horizontal strip cell (light) — fits inside a 4x1 widget (~60dp height).
+    Vertically centred: 32dp icon + 2dp margin + 10sp label (~13dp) = ~51dp total with padding.
+    Items added side-by-side via addView(); uses layout_weight="1" for equal sharing.
+    MIUI-safe: no Space, no ?android:attr/, no GridLayout.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/strip_h_item_root"
+    android:layout_width="0dp"
+    android:layout_height="match_parent"
+    android:layout_weight="1"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp"
+    android:paddingStart="2dp"
+    android:paddingEnd="2dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:background="@drawable/widget_ripple_row">
+
+    <ImageView
+        android:id="@+id/strip_h_app_icon"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:contentDescription="@string/app_icon_description"
+        android:importantForAccessibility="no" />
+
+    <TextView
+        android:id="@+id/strip_h_business_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:gravity="center"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textColor="#FF212121"
+        android:textSize="10sp" />
+
+</LinearLayout>

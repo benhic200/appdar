@@ -236,6 +236,38 @@ private fun SettingsCards(
 
     Spacer(modifier = Modifier.padding(8.dp))
 
+    // Screen-on Refresh
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Screen-on Refresh",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = if (userPreferences.screenOnRefreshEnabled)
+                        "Widget refreshes at your set rate while screen is on, and instantly on unlock"
+                    else
+                        "Widget refreshes at your set rate on a background schedule only",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = userPreferences.screenOnRefreshEnabled,
+                onCheckedChange = { viewModel.toggleScreenOnRefresh(it) }
+            )
+        }
+    }
+
+    Spacer(modifier = Modifier.padding(8.dp))
+
     // Low Power Mode
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(

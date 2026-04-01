@@ -24,7 +24,10 @@ data class UserPreferences(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val lowPowerMode: Boolean = false,
     val widgetTheme: WidgetTheme = WidgetTheme.SYSTEM,
-    val regionPreference: RegionPreference = RegionPreference.AUTO
+    val regionPreference: RegionPreference = RegionPreference.AUTO,
+    /** When true, widget self-schedules at the user's interval while the screen is on,
+     *  and immediately refreshes when the user unlocks their device. */
+    val screenOnRefreshEnabled: Boolean = true
 )
 
 /**
@@ -79,6 +82,7 @@ object PreferencesKeys {
     val LOW_POWER_MODE = booleanPreferencesKey("low_power_mode")
     val WIDGET_THEME = stringPreferencesKey("widget_theme")
     val REGION_PREFERENCE = stringPreferencesKey("region_preference")
+    val SCREEN_ON_REFRESH_ENABLED = booleanPreferencesKey("screen_on_refresh_enabled")
 }
 
 /**
@@ -104,5 +108,6 @@ fun Preferences.toUserPreferences(): UserPreferences = UserPreferences(
     } ?: WidgetTheme.SYSTEM,
     regionPreference = this[PreferencesKeys.REGION_PREFERENCE]?.let { s ->
         RegionPreference.values().find { it.name == s } ?: RegionPreference.AUTO
-    } ?: RegionPreference.AUTO
+    } ?: RegionPreference.AUTO,
+    screenOnRefreshEnabled = this[PreferencesKeys.SCREEN_ON_REFRESH_ENABLED] ?: true
 )

@@ -71,6 +71,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun toggleScreenOnRefresh(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateScreenOnRefreshEnabled(enabled)
+        }
+    }
+
     fun updateWidgetTheme(mode: WidgetTheme) {
         viewModelScope.launch {
             settingsRepository.updateWidgetTheme(mode)

@@ -60,6 +60,9 @@
             tools:replace="android:label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <!-- ACTION_USER_PRESENT fires when the user dismisses the lock screen.
+                     Exempt from Android 8+ implicit broadcast restrictions. -->
+                <action android:name="android.intent.action.USER_PRESENT" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

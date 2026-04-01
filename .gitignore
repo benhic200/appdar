@@ -32,3 +32,17 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Debug/analysis artifacts
+bugreport*/
+*.zip
+*.bak
+*.bak2
+logs/
+battery-historian
+analyze_battery.py
+appdar_loading.html
+logcat_*.txt
+build_log*.txt
+analysis_summary.txt
+historian_output*
