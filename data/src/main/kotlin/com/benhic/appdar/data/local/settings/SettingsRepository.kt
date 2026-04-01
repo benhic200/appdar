@@ -64,14 +64,13 @@ class SettingsRepository @Inject constructor(
     }
 
     /**
-     * Updates the widget refresh interval.
-     *
-     * @param minutes Interval in minutes (1–60)
+     * Updates the refresh interval in seconds (1–3600).
+     * Dashboard uses the exact value; widget clamps to ≥60s at the scheduler level.
      */
-    suspend fun updateRefreshInterval(minutes: Int) {
-        require(minutes in 1..60) { "Refresh interval must be between 1 and 60 minutes" }
+    suspend fun updateRefreshInterval(seconds: Int) {
+        require(seconds in 1..3600) { "Refresh interval must be between 1 and 3600 seconds" }
         dataStore.edit { preferences ->
-            preferences[PreferencesKeys.REFRESH_INTERVAL_MINUTES] = minutes
+            preferences[PreferencesKeys.REFRESH_INTERVAL_SECONDS] = seconds
         }
     }
 
@@ -99,6 +98,15 @@ class SettingsRepository @Inject constructor(
     suspend fun updateWidgetTheme(mode: WidgetTheme) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.WIDGET_THEME] = mode.name
+        }
+    }
+
+    /**
+     * Sets the region/country preference (Auto / UK / US).
+     */
+    suspend fun updateRegionPreference(pref: RegionPreference) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.REGION_PREFERENCE] = pref.name
         }
     }
 

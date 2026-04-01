@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
@@ -40,9 +41,12 @@ import com.benhic.appdar.feature.location.DistanceCalculator
 import com.benhic.appdar.feature.location.LocationProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+
 import javax.inject.Inject
 import dagger.hilt.android.qualifiers.ApplicationContext
 
@@ -54,7 +58,8 @@ data class NearbyAppsUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val locationAvailable: Boolean = true,
-    val distanceUnit: DistanceUnit = DistanceUnit.METERS
+    val distanceUnit: DistanceUnit = DistanceUnit.METERS,
+    val isOffline: Boolean = false
 )
 
 /**
@@ -83,6 +88,7 @@ class NearbyAppsViewModel @Inject constructor(
     val uiState: StateFlow<NearbyAppsUiState> = _uiState.asStateFlow()
 
     private var refreshJob: Job? = null
+    private var lastRefreshMs = 0L
 
     init {
         loadBusinesses()
@@ -92,9 +98,41 @@ class NearbyAppsViewModel @Inject constructor(
                 _uiState.update { it.copy(distanceUnit = prefs.distanceUnit) }
             }
         }
+        startPeriodicDistanceUpdate()
     }
 
-    fun refresh() {
+    /**
+     * Periodically re-calculates distances from the cached nearest-branch positions
+     * using the latest device location. No network call, no DB read — pure local maths.
+     * Interval matches the user's refresh setting (same as dashboard and widget).
+     */
+    private fun startPeriodicDistanceUpdate() {
+        viewModelScope.launch {
+            while (isActive) {
+                val intervalMs = settingsRepository.getCurrentPreferences().refreshIntervalSeconds * 1000L
+                delay(intervalMs)
+                val state = _uiState.value
+                if (state.isLoading || !state.locationAvailable || state.businesses.isEmpty()) continue
+                val location = withTimeoutOrNull(3_000L) {
+                    locationProvider.getCurrentLocation()
+                } ?: continue
+                val prefs = settingsRepository.getCurrentPreferences()
+                val branches = nearbyBranchFinder.fetchState.value.branches
+                val updated = state.businesses.map { item ->
+                    val (lat, lon) = branches[item.name] ?: return@map item
+                    item.copy(distanceMeters = distanceCalculator.calculateDistanceMeters(
+                        location.latitude, location.longitude, lat, lon
+                    ).toInt())
+                }.sortedBy { it.distanceMeters }
+                _uiState.update { it.copy(businesses = updated) }
+            }
+        }
+    }
+
+    fun refresh(force: Boolean = false) {
+        val now = System.currentTimeMillis()
+        if (!force && now - lastRefreshMs < 30_000L && _uiState.value.error == null) return
+        lastRefreshMs = now
         loadBusinesses()
     }
 
@@ -116,10 +154,13 @@ class NearbyAppsViewModel @Inject constructor(
                 // The mutex inside findNearestBranches ensures only one Overpass call fires
                 // even when Dashboard and Nearby start simultaneously. If Dashboard already
                 // holds the mutex, this call waits then cache-hits — no duplicate request.
+                // No timeout here — the download can take several minutes on first boot and
+                // must be allowed to complete.
                 nearbyBranchFinder.markLoading()
-                val nearestBranches = withTimeoutOrNull(35_000L) {
-                    nearbyBranchFinder.findNearestBranches(currentLocation.latitude, currentLocation.longitude)
-                } ?: emptyMap()
+                val nearestBranches = nearbyBranchFinder.findNearestBranches(
+                    currentLocation.latitude, currentLocation.longitude
+                )
+                val isOffline = nearbyBranchFinder.fetchState.value.isOffline
 
                 val businessItems = mappings.mapNotNull { mapping ->
                     val (branchLat, branchLon) = nearestBranches[mapping.businessName]
@@ -148,9 +189,12 @@ class NearbyAppsViewModel @Inject constructor(
                     it.copy(
                         businesses = businessItems,
                         isLoading = false,
-                        distanceUnit = preferences.distanceUnit
+                        distanceUnit = preferences.distanceUnit,
+                        isOffline = isOffline
                     )
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(isLoading = false, error = "Failed to load businesses: ${e.localizedMessage}")
@@ -183,7 +227,7 @@ fun NearbyAppsTab() {
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.refresh() }
+                onClick = { viewModel.refresh(force = true) }
             ) {
                 Icon(
                     imageVector = Icons.Filled.Refresh,
@@ -201,6 +245,10 @@ fun NearbyAppsTab() {
 @Composable
 fun NearbyAppsContent(viewModel: NearbyAppsViewModel, context: Context) {
     val uiState by viewModel.uiState.collectAsState()
+
+    // Refresh whenever this tab becomes visible (same behaviour as the refresh button,
+    // but throttled to once per 30 s so rapid tab-switching doesn't hammer the finder).
+    LaunchedEffect(Unit) { viewModel.refresh() }
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -228,7 +276,7 @@ fun NearbyAppsContent(viewModel: NearbyAppsViewModel, context: Context) {
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Button(
-                        onClick = { viewModel.refresh() }
+                        onClick = { viewModel.refresh(force = true) }
                     ) {
                         Text("Retry")
                     }
@@ -245,13 +293,26 @@ fun NearbyAppsContent(viewModel: NearbyAppsViewModel, context: Context) {
                 )
             }
         } else {
+            if (uiState.isOffline) {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "No internet — showing last known locations",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(16.dp)
             ) {
-                items(uiState.businesses, key = { it.packageName }) { business ->
-                    BusinessCard(business, uiState.distanceUnit, context)
+                itemsIndexed(uiState.businesses, key = { _, business -> business.packageName }) { index, business ->
+                    BusinessCard(business, index, uiState.distanceUnit, context)
                 }
             }
         }
@@ -259,7 +320,7 @@ fun NearbyAppsContent(viewModel: NearbyAppsViewModel, context: Context) {
 }
 
 @Composable
-private fun BusinessCard(business: BusinessItem, distanceUnit: DistanceUnit, context: Context) {
+private fun BusinessCard(business: BusinessItem, index: Int, distanceUnit: DistanceUnit, context: Context) {
     Card(
         modifier = Modifier
             .fillMaxWidth()

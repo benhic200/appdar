@@ -16,13 +16,21 @@ private const val REQUEST_CODE = 9901
  */
 object WidgetUpdateScheduler {
 
-    fun schedule(context: Context, intervalMinutes: Int = 5) {
-        val intervalMs = intervalMinutes.coerceIn(1, 60) * 60 * 1000L
+    /**
+     * Schedules the widget refresh alarm.
+     *
+     * @param intervalSeconds Desired interval in seconds.
+     *   Android's [AlarmManager.setInexactRepeating] enforces a minimum of 60 seconds —
+     *   values below that are silently clamped to 60s here.
+     */
+    fun schedule(context: Context, intervalSeconds: Int = 300) {
+        // setInexactRepeating minimum is ~60s on all Android versions.
+        val clampedMs = intervalSeconds.coerceAtLeast(60) * 1000L
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         alarmManager.setInexactRepeating(
             AlarmManager.ELAPSED_REALTIME_WAKEUP,
-            SystemClock.elapsedRealtime() + intervalMs,
-            intervalMs,
+            SystemClock.elapsedRealtime() + clampedMs,
+            clampedMs,
             buildPendingIntent(context)
         )
     }

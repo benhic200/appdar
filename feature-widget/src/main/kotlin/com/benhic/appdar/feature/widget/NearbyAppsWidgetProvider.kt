@@ -102,6 +102,8 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     try {
                         val mgr = AppWidgetManager.getInstance(context)
                         updateAppWidget(context, mgr, widgetId)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Page change widget update failed", e)
                     } finally {
                         pending.finish()
                     }
@@ -127,6 +129,8 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                 for (appWidgetId in appWidgetIds) {
                     updateAppWidget(context, appWidgetManager, appWidgetId)
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "onUpdate widget update failed", e)
             } finally {
                 pending.finish()
             }
@@ -145,6 +149,8 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 updateAppWidget(context, appWidgetManager, appWidgetId)
+            } catch (e: Exception) {
+                Log.e(TAG, "onAppWidgetOptionsChanged widget update failed", e)
             } finally {
                 pending.finish()
             }
@@ -152,6 +158,9 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
+        private val lastUpdateMs = java.util.concurrent.ConcurrentHashMap<Int, Long>()
+        private const val MIN_UPDATE_INTERVAL_MS = 5_000L
+
         // Width thresholds in dp
         private const val THRESHOLD_1X1_WIDTH_DP = 80
         private const val THRESHOLD_NANO_MAX_DP = 130    // ≤130dp → single-business nano card
@@ -164,6 +173,12 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int
         ) {
+            val now = System.currentTimeMillis()
+            if (now - (lastUpdateMs[appWidgetId] ?: 0L) < MIN_UPDATE_INTERVAL_MS) {
+                Log.d(TAG, "Debouncing widget update for id=$appWidgetId")
+                return
+            }
+            lastUpdateMs[appWidgetId] = now
             val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
             val minWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
             val minHeightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 200)
@@ -228,7 +243,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     val icons = ep.appIconLoader()
                     val prefs = ep.settingsRepository().getCurrentPreferences()
                     repo.initialize()
-                    val location = withTimeoutOrNull(5000L) { locProvider.getCurrentLocation() }
+                    val location = withTimeoutOrNull(10000L) { locProvider.getCurrentLocation() }
 
                     val profileRepo = ep.locationProfileRepository()
                     val matchedProfile = if (location != null) {
@@ -248,9 +263,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     } else {
                         val branchFinder = ep.nearbyBranchFinder()
                         val nearestBranches = if (location != null) {
-                            withTimeoutOrNull(25000L) {
-                                branchFinder.findNearestBranches(location.latitude, location.longitude)
-                            } ?: emptyMap()
+                            branchFinder.getLocalNearestBranches(location.latitude, location.longitude)
                         } else emptyMap()
                         repo.getAllMappings().first().filter { it.isEnabled }.mapNotNull { m ->
                             val (lat, lon) = nearestBranches[m.businessName]
@@ -318,7 +331,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     val icons = ep.appIconLoader()
                     val prefs = ep.settingsRepository().getCurrentPreferences()
                     repo.initialize()
-                    val location = withTimeoutOrNull(5000L) { locProvider.getCurrentLocation() }
+                    val location = withTimeoutOrNull(10000L) { locProvider.getCurrentLocation() }
 
                     // Profile-aware: show first app of matched profile, else nearest app
                     val profileRepo = ep.locationProfileRepository()
@@ -337,9 +350,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     val pkg = matchedPkg ?: run {
                         val branchFinder = ep.nearbyBranchFinder()
                         val nearestBranches = if (location != null) {
-                            withTimeoutOrNull(25000L) {
-                                branchFinder.findNearestBranches(location.latitude, location.longitude)
-                            } ?: emptyMap()
+                            branchFinder.getLocalNearestBranches(location.latitude, location.longitude)
                         } else emptyMap()
                         repo.getAllMappings().first().filter { it.isEnabled }.mapNotNull { m ->
                             val (lat, lon) = nearestBranches[m.businessName]
@@ -478,7 +489,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     repo.initialize()
                     val mappings = repo.getAllMappings().first().filter { it.isEnabled }
 
-                    val location = withTimeoutOrNull(5000L) { locProvider.getCurrentLocation() }
+                    val location = withTimeoutOrNull(10000L) { locProvider.getCurrentLocation() }
                     Log.d(TAG, "Location result: $location")
 
                     // Check if user is at a saved profile location — if so show that profile's apps.
@@ -533,11 +544,13 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     // Falls back to database coordinates if offline or no result within 15 km.
                     val branchFinder = ep.nearbyBranchFinder()
                     val nearestBranches = if (location != null) {
-                        withTimeoutOrNull(25000L) {
-                            branchFinder.findNearestBranches(location.latitude, location.longitude)
-                        } ?: emptyMap()
+                        branchFinder.getLocalNearestBranches(location.latitude, location.longitude)
                     } else emptyMap()
-                    Log.d(TAG, "Nearest branches resolved: ${nearestBranches.keys}")
+                    val widgetOffline = branchFinder.fetchState.value.isOffline
+                    if (widgetOffline) {
+                        views.setTextViewText(WidgetListR.id.tv_page_indicator, "Offline")
+                    }
+                    Log.d(TAG, "Nearest branches resolved: ${nearestBranches.keys} (offline=$widgetOffline)")
 
                     val allItems = mappings.mapNotNull { m ->
                         val installed = try {
@@ -618,7 +631,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     val icons = ep.appIconLoader()
                     val prefs = ep.settingsRepository().getCurrentPreferences()
                     repo.initialize()
-                    val location = withTimeoutOrNull(5000L) { locProvider.getCurrentLocation() }
+                    val location = withTimeoutOrNull(10000L) { locProvider.getCurrentLocation() }
 
                     // Check if at a saved profile location — if so, show that profile's first app.
                     val profileRepo = ep.locationProfileRepository()
@@ -665,9 +678,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
 
                     val branchFinder = ep.nearbyBranchFinder()
                     val nearestBranches = if (location != null) {
-                        withTimeoutOrNull(25000L) {
-                            branchFinder.findNearestBranches(location.latitude, location.longitude)
-                        } ?: emptyMap()
+                        branchFinder.getLocalNearestBranches(location.latitude, location.longitude)
                     } else emptyMap()
 
                     val closest = repo.getAllMappings().first().filter { it.isEnabled }.mapNotNull { m ->
@@ -762,7 +773,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     val icons = ep.appIconLoader()
                     val prefs = ep.settingsRepository().getCurrentPreferences()
                     repo.initialize()
-                    val location = withTimeoutOrNull(5000L) { locProvider.getCurrentLocation() }
+                    val location = withTimeoutOrNull(10000L) { locProvider.getCurrentLocation() }
 
                     // Check if at a saved profile location — if so, show that profile's apps.
                     val profileRepo = ep.locationProfileRepository()
@@ -811,9 +822,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
 
                     val branchFinder = ep.nearbyBranchFinder()
                     val nearestBranches = if (location != null) {
-                        withTimeoutOrNull(25000L) {
-                            branchFinder.findNearestBranches(location.latitude, location.longitude)
-                        } ?: emptyMap()
+                        branchFinder.getLocalNearestBranches(location.latitude, location.longitude)
                     } else emptyMap()
 
                     val sorted = repo.getAllMappings().first().filter { it.isEnabled }.mapNotNull { m ->

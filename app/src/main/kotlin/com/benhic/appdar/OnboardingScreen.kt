@@ -259,6 +259,14 @@ private fun LocationStepContent(
                         textAlign = TextAlign.Center
                     )
                 }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Android 12+: If asked to choose between \"Precise\" and \"Approximate\" location, select \"Precise\" for accurate distance calculations.",
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
             PermissionState.UNKNOWN -> {
                 AppdarRadarAnimation(Modifier.size(96.dp))
@@ -274,31 +282,18 @@ private fun BatteryStepContent(
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            text = "On MIUI/Xiaomi devices, apps are aggressively killed in the background. Two settings are needed to keep Appdar running.",
+            text = "For the widget to stay fresh, Appdar needs to run in the background. A couple of settings help on most devices.",
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodyLarge
         )
         Spacer(modifier = Modifier.height(20.dp))
 
+        // All devices — battery optimisation
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Step 1 — Enable Autostart", fontWeight = FontWeight.SemiBold)
+                Text("All devices — Disable Battery Optimisation", fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Settings → Apps → Appdar → Autostart → ON",
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedButton(onClick = onOpenAppSettings, modifier = Modifier.fillMaxWidth()) {
-                    Text("Open App Settings")
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Step 2 — Disable Battery Optimisation", fontWeight = FontWeight.SemiBold)
-                Text(
-                    "Battery & Performance → App Battery Saver → Appdar → No restrictions",
+                    "Settings → Apps → Appdar → Battery → Unrestricted (or \"No restrictions\")",
                     style = MaterialTheme.typography.bodySmall
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -307,11 +302,77 @@ private fun BatteryStepContent(
                 }
             }
         }
+
+        // Android 13+ notification permission
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Android 13+ — Allow Notifications", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Android 13 requires you to grant notification permission. " +
+                        "Appdar shows a brief notification during the initial branch data download.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedButton(onClick = onOpenAppSettings, modifier = Modifier.fillMaxWidth()) {
+                        Text("Open App Settings")
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Manufacturer-specific tips
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Manufacturer-specific steps", fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.height(8.dp))
+                ManufacturerTip(
+                    brand = "Xiaomi / MIUI",
+                    tip = "Settings → Apps → Appdar → Autostart → ON"
+                )
+                ManufacturerTip(
+                    brand = "Samsung / One UI",
+                    tip = "Settings → Device Care → Battery → Background usage limits → Never sleeping apps → add Appdar"
+                )
+                ManufacturerTip(
+                    brand = "Huawei / EMUI",
+                    tip = "Settings → Apps → Appdar → App Launch → Manage manually → enable Auto-launch and Run in background"
+                )
+                ManufacturerTip(
+                    brand = "OnePlus / OxygenOS",
+                    tip = "Settings → Battery → Battery optimisation → All apps → Appdar → Don't optimise"
+                )
+                ManufacturerTip(
+                    brand = "Oppo / Realme / ColorOS",
+                    tip = "Phone Manager → Privacy Permissions → Startup manager → enable Appdar"
+                )
+            }
+        }
+
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Not on MIUI? You can skip this step — standard Android manages this automatically.",
+            text = "Not sure which applies to you? Open Battery Settings above and search for Appdar.",
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun ManufacturerTip(brand: String, tip: String) {
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+        Text(
+            text = brand,
+            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.bodySmall
+        )
+        Text(
+            text = tip,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

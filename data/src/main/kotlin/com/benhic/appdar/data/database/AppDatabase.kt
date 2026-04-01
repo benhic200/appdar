@@ -5,6 +5,8 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.benhic.appdar.data.local.BranchLocation
+import com.benhic.appdar.data.local.BranchLocationDao
 import com.benhic.appdar.data.local.BusinessAppMapping
 import com.benhic.appdar.data.local.BusinessAppMappingDao
 import com.benhic.appdar.data.local.geocoding.CachedAddress
@@ -17,9 +19,10 @@ import android.database.sqlite.SQLiteException
     entities = [
         BusinessAppMapping::class,
         CachedAddress::class,
-        LocationHistory::class
+        LocationHistory::class,
+        BranchLocation::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -27,6 +30,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun businessAppMappingDao(): BusinessAppMappingDao
     abstract fun cachedAddressDao(): CachedAddressDao
     abstract fun locationHistoryDao(): LocationHistoryDao
+    abstract fun branchLocationDao(): BranchLocationDao
 
     companion object {
         /**
@@ -252,6 +256,27 @@ abstract class AppDatabase : RoomDatabase() {
                         min_lon = NULL, max_lon = NULL
                     WHERE is_custom = 0
                 """.trimIndent())
+            }
+        }
+
+        /**
+         * Migration from version 9 to 10.
+         * Adds branch_locations table to store ALL physical branches of each chain within
+         * the UK (downloaded once from Overpass, TTL 30 days). Nearest-branch calculation
+         * is now instant local maths — no Overpass call on location change.
+         */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `branch_locations` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `brand_tag` TEXT NOT NULL,
+                        `lat` REAL NOT NULL,
+                        `lon` REAL NOT NULL
+                    )
+                """.trimIndent())
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_branch_locations_brand_tag` ON `branch_locations` (`brand_tag`)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_branch_locations_lat_lon` ON `branch_locations` (`lat`, `lon`)")
             }
         }
     }

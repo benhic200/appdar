@@ -3,6 +3,7 @@ package com.benhic.appdar.data.di
 import android.content.Context
 import androidx.room.Room
 import com.benhic.appdar.data.database.AppDatabase
+import com.benhic.appdar.data.local.BranchLocationDao
 import com.benhic.appdar.data.local.geocoding.CachedAddressDao
 import com.benhic.appdar.data.local.location.LocationHistoryDao
 import com.benhic.appdar.data.local.location.LocationHistoryRepository
@@ -39,13 +40,16 @@ object DataModule {
             context,
             AppDatabase::class.java,
             "nearby-apps.db"
-        ).addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8, AppDatabase.MIGRATION_8_9)
+        ).addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8, AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10)
          .fallbackToDestructiveMigration()
          .build()
     }
 
     @Provides
     fun provideBusinessAppMappingDao(database: AppDatabase) = database.businessAppMappingDao()
+
+    @Provides
+    fun provideBranchLocationDao(database: AppDatabase) = database.branchLocationDao()
 
     @Provides
     fun provideCachedAddressDao(database: AppDatabase) = database.cachedAddressDao()

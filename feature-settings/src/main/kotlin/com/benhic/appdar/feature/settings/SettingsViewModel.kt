@@ -3,10 +3,12 @@ package com.benhic.appdar.feature.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.benhic.appdar.data.local.settings.DistanceUnit
+import com.benhic.appdar.data.local.settings.RegionPreference
 import com.benhic.appdar.data.local.settings.ThemeMode
 import com.benhic.appdar.data.local.settings.WidgetTheme
 import com.benhic.appdar.data.local.settings.UserPreferences
 import com.benhic.appdar.data.local.settings.SettingsRepository
+import com.benhic.appdar.data.nearby.NearbyBranchFinder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +18,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val nearbyBranchFinder: NearbyBranchFinder
 ) : ViewModel() {
 
     val userPreferences: StateFlow<UserPreferences> = settingsRepository.userPreferences
@@ -50,9 +53,9 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun updateRefreshInterval(hours: Int) {
+    fun updateRefreshInterval(seconds: Int) {
         viewModelScope.launch {
-            settingsRepository.updateRefreshInterval(hours)
+            settingsRepository.updateRefreshInterval(seconds)
         }
     }
 
@@ -72,5 +75,18 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.updateWidgetTheme(mode)
         }
+    }
+
+    fun updateRegionPreference(pref: RegionPreference) {
+        viewModelScope.launch {
+            settingsRepository.updateRegionPreference(pref)
+            // Clear branch cache so the correct region's data downloads on next open
+            nearbyBranchFinder.clearCache()
+        }
+    }
+
+    /** Clears the 30-day TTL so branch data re-downloads on next Dashboard/Nearby open. */
+    fun forceRedownloadBranchData() {
+        nearbyBranchFinder.clearCache()
     }
 }

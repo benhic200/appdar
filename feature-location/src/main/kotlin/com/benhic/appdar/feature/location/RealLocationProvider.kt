@@ -26,6 +26,8 @@ class RealLocationProvider @Inject constructor(
 
     companion object {
         private const val TAG = "RealLocationProvider"
+        private const val MAX_LOCATION_AGE_MS = 5 * 60 * 1000L // 5 minutes
+        private const val MIN_ACCURACY_METERS = 500.0f // Accept locations within 500m — good enough for a 50km business search
     }
 
     private val fusedClient: FusedLocationProviderClient by lazy {
@@ -70,8 +72,19 @@ class RealLocationProvider @Inject constructor(
             }
         }
         if (lastLocation != null) {
-            Log.d(TAG, "Last location obtained: (${lastLocation.latitude}, ${lastLocation.longitude}) accuracy=${lastLocation.accuracy}")
-            return lastLocation
+            Log.d(TAG, "Last location obtained: (${lastLocation.latitude}, ${lastLocation.longitude}) accuracy=${lastLocation.accuracy} age=${System.currentTimeMillis() - lastLocation.time}ms")
+            val ageMs = System.currentTimeMillis() - lastLocation.time
+            val isFresh = ageMs < MAX_LOCATION_AGE_MS
+            val isAccurate = lastLocation.hasAccuracy() && lastLocation.accuracy < MIN_ACCURACY_METERS
+            if (isFresh && isAccurate) {
+                Log.d(TAG, "Last location is fresh and accurate enough, using cached location")
+                return lastLocation
+            } else {
+                Log.d(TAG, "Last location is stale (age=${ageMs}ms) or inaccurate (accuracy=${lastLocation.accuracy}), requesting fresh fix")
+                // Continue to request fresh location
+            }
+        } else {
+            Log.d(TAG, "No last location available")
         }
 
         // No cached location — fall back to requesting a fresh fix.

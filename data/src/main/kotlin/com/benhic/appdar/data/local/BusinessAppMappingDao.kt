@@ -23,6 +23,10 @@ interface BusinessAppMappingDao {
     @Query("SELECT * FROM business_app_mappings WHERE latitude IS NOT NULL AND longitude IS NOT NULL")
     suspend fun getMappingsWithCoordinates(): List<BusinessAppMapping>
 
+    /** Returns business names that are enabled (built-in or custom). */
+    @Query("SELECT business_name FROM business_app_mappings WHERE is_enabled = 1")
+    suspend fun getEnabledBusinessNames(): List<String>
+
     /** Returns all enabled mappings that have a validated OSM brand tag (custom places using OSM lookup). */
     @Query("SELECT * FROM business_app_mappings WHERE osm_brand_tag IS NOT NULL AND is_enabled = 1")
     suspend fun getCustomOsmBrandMappings(): List<BusinessAppMapping>

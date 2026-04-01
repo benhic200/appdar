@@ -55,7 +55,7 @@ fun UserGuideScreen() {
         // ── Getting Started ────────────────────────────────────────────────
         GuideSection(title = "Getting Started") {
             GuideBullet("Grant location permission — tap Setup in the drawer and follow the steps.")
-            GuideBullet("Seed the database — tap \"Seed Database Now\" in Setup if it hasn't been done automatically.")
+            GuideBullet("On first launch, Appdar automatically downloads branch location data for your region (UK or US). A progress bar shows how the download is going — this only happens once.")
             GuideBullet("Add the widget to your home screen — long-press home screen → Widgets → Appdar → drag to place.")
             GuideBullet("Open the Dashboard to see nearby apps right away — no widget needed.")
             Spacer(modifier = Modifier.height(8.dp))
@@ -71,6 +71,7 @@ fun UserGuideScreen() {
             Spacer(modifier = Modifier.height(8.dp))
             GuideBullet("If you're at a saved profile location (Home, Work, Gym etc.) it shows those profile apps with a banner at the top.")
             GuideBullet("Otherwise it shows the nearest places from the business database, sorted by distance.")
+            GuideBullet("Distances update every 10 seconds automatically while the tab is open.")
             GuideBullet("Green dot = app is installed. Grey dot = not installed — tap to open the Play Store listing.")
             GuideBullet("Tap the refresh icon in the top bar to reload with your latest location.")
         }
@@ -112,8 +113,10 @@ fun UserGuideScreen() {
             )
             Spacer(modifier = Modifier.height(8.dp))
             GuideBullet("Distances are calculated from your live GPS position.")
-            GuideBullet("Branch locations are looked up in real time from OpenStreetMap — so you always see the nearest actual branch, not just a generic map pin.")
-            GuideBullet("Results are cached for 6 hours or until you move more than 2 km, whichever comes first.")
+            GuideBullet("Branch locations come from a local database downloaded from OpenStreetMap on first launch. No live network lookup is needed after that.")
+            GuideBullet("The local database covers UK and US branches and is automatically refreshed every 30 days.")
+            GuideBullet("Distances update every 10 seconds automatically while the tab is open.")
+            GuideBullet("Opening the Nearby Apps tab always refreshes your position — the same as tapping the refresh button.")
             GuideBullet("Green dot = app installed. Grey dot = not installed. Tap to open the Play Store.")
             GuideBullet("Tap the refresh button to force an update at any time.")
         }
@@ -126,9 +129,10 @@ fun UserGuideScreen() {
             Spacer(modifier = Modifier.height(8.dp))
             GuideSubheading("Built-in businesses")
             GuideText(
-                "Appdar comes pre-loaded with a UK & US database covering supermarkets, fast food, " +
+                "Appdar comes pre-loaded with a UK & Ireland and US database covering supermarkets, fast food, " +
                 "coffee shops, hotels, pharmacies and more — including Tesco, Sainsbury's, Morrisons, " +
-                "Aldi, Lidl, Waitrose, M&S, Co-op, Iceland, Costa, Starbucks, Caffè Nero, Pret, Greggs, " +
+                "Aldi, Lidl, Waitrose, M&S, Co-op, Iceland, Dunnes Stores, SuperValu, Centra, " +
+                "Costa, Starbucks, Caffè Nero, Pret, Greggs, " +
                 "McDonald's, Burger King, KFC, Nando's, Subway, Five Guys, Domino's, Pizza Hut, " +
                 "Boots, WHSmith, Wetherspoons, Premier Inn, Travelodge, Hilton, Marriott, " +
                 "Walmart, Target, Costco, Walgreens, CVS, Dunkin', Chick-fil-A, Taco Bell, Chipotle and more."
@@ -228,27 +232,65 @@ fun UserGuideScreen() {
             )
             Spacer(modifier = Modifier.height(8.dp))
             GuidePermission(
-                name = "Autostart — MIUI / Xiaomi devices",
-                why = "MIUI aggressively kills background apps. Enable Autostart to prevent the widget going stale: " +
-                      "Settings → Apps → Appdar → Autostart → ON. " +
-                      "Also turn off battery optimisation for Appdar in MIUI's battery settings."
+                name = "Notifications (Android 13+)",
+                why = "Android 13 requires explicit permission to show notifications. " +
+                      "Appdar uses a brief notification during the initial branch data download. " +
+                      "Grant it in App Settings → Notifications → Appdar."
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            GuidePermission(
+                name = "Battery Optimisation — All devices",
+                why = "Android may pause background apps to save battery. Disable battery optimisation for Appdar " +
+                      "in Settings → Apps → Appdar → Battery → Unrestricted."
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            GuidePermission(
+                name = "Autostart — Xiaomi / MIUI",
+                why = "MIUI aggressively kills background apps. Enable Autostart: " +
+                      "Settings → Apps → Appdar → Autostart → ON."
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            GuidePermission(
+                name = "Never sleeping apps — Samsung / One UI",
+                why = "Samsung's Device Care can restrict background apps. Add Appdar to the never-sleeping list: " +
+                      "Settings → Device Care → Battery → Background usage limits → Never sleeping apps → Add Appdar."
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            GuidePermission(
+                name = "App Launch — Huawei / EMUI",
+                why = "EMUI restricts background launches by default. Go to Settings → Apps → Appdar → App Launch " +
+                      "→ Manage manually → enable Auto-launch, Secondary launch, and Run in background."
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            GuidePermission(
+                name = "Battery optimisation — OnePlus / OxygenOS",
+                why = "Go to Settings → Battery → Battery optimisation → All apps → Appdar → Don't optimise."
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            GuidePermission(
+                name = "Startup manager — Oppo / Realme / ColorOS",
+                why = "Go to Phone Manager → Privacy Permissions → Startup manager → enable Appdar."
             )
         }
 
         // ── Settings Reference ─────────────────────────────────────────────
         GuideSection(title = "Settings Reference") {
-            GuideSettingRow("Search Radius",
-                "How far out Appdar looks for nearby businesses (100 m – 2000 m, default 200 m). " +
-                "This does not affect profile activation — profiles always activate within 300 m.")
+            GuideSettingRow("Detection Radius",
+                "How far out Appdar looks for nearby businesses (500 m – 10 km, default 5 km). " +
+                "Businesses further than this are hidden from the widget and Dashboard.")
             GuideSettingRow("Distance Unit",
-                "Choose how distances are displayed: metres, kilometres, miles, or feet.")
-            GuideSettingRow("Background Refresh",
-                "How often the widget automatically refreshes its data (1–60 min, default 5 min). " +
-                "Lower intervals keep the widget more up to date but use more battery. " +
-                "Overridden by Low Power Mode — enable that to stop auto-refresh entirely.")
+                "Choose how distances are displayed: kilometres or miles.")
+            GuideSettingRow("Widget Background Refresh",
+                "How often the home screen widget automatically updates (1–60 min, default 5 min). " +
+                "Lower intervals keep the widget more up to date but use slightly more battery. " +
+                "The in-app Dashboard and Nearby Apps tabs always refresh live while open — this setting only affects the widget. " +
+                "Overridden by Low Power Mode.")
             GuideSettingRow("Low Power Mode",
-                "Disables automatic background refresh entirely. " +
+                "Disables automatic widget background refresh entirely. " +
                 "The widget only updates when you tap the refresh button manually.")
+            GuideSettingRow("Branch Data",
+                "Branch locations are downloaded once on first launch and refreshed every 30 days. " +
+                "Use \"Force Re-download Branch Data\" if you want to trigger a fresh download immediately.")
             GuideSettingRow("App Theme",
                 "Light / Dark / System — controls the app's own colours.")
             GuideSettingRow("Widget Theme",
@@ -261,14 +303,19 @@ fun UserGuideScreen() {
 
         // ── Troubleshooting ────────────────────────────────────────────────
         GuideSection(title = "Troubleshooting") {
+            GuideSubheading("First-launch download")
+            GuideBullet("A progress bar (e.g. 1/5, 2/5…) appears on the Dashboard during the initial branch data download. This is normal — it only happens once.")
+            GuideBullet("If the download fails (no internet, or the server is busy), Appdar will show an offline state. Open the Dashboard or Nearby Apps tab when you have a connection to retry.")
+            GuideBullet("Branch data is refreshed automatically every 30 days in the background.")
+            Spacer(modifier = Modifier.height(8.dp))
             GuideSubheading("Widget problems")
             GuideBullet("Widget shows \"Can't load widget\" — remove it and re-add it after updating the app.")
             GuideBullet("Widget shows stale data — tap the refresh button; also check battery optimisation is disabled for Appdar.")
-            GuideBullet("Widget is blank — make sure the database is seeded (Setup screen → Seed Database Now).")
+            GuideBullet("Widget is blank — open the Dashboard to trigger the initial branch data download, then return to the widget.")
             GuideBullet("Tapping a widget item does nothing — on some launchers (MIUI) try the refresh button first; the widget may need one refresh before taps work.")
             Spacer(modifier = Modifier.height(8.dp))
             GuideSubheading("Location & profiles")
-            GuideBullet("No businesses shown — confirm location permission is \"Allow all the time\" and the database is seeded.")
+            GuideBullet("No businesses shown — confirm location permission is \"Allow all the time\" and the initial download has completed (open the Dashboard to check).")
             GuideBullet("Profile not activating — check the profile location is saved and you're within 300 m of it. Use the Dashboard to see which profile (if any) is currently active.")
             GuideBullet("Profile activating too far away — 300 m is fixed. If GPS accuracy is poor the effective range may appear larger. Moving to an open area improves accuracy.")
             Spacer(modifier = Modifier.height(8.dp))

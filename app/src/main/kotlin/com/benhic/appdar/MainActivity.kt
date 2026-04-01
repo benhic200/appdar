@@ -51,7 +51,15 @@ import androidx.compose.material.icons.filled.Work
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import com.benhic.appdar.feature.widget.WidgetUpdateScheduler
 import com.benhic.appdar.feature.settings.SettingsViewModel
 import androidx.compose.ui.res.stringResource
@@ -308,6 +316,9 @@ fun TabbedAppScreen(
     val dashboardViewModel = hiltViewModel<DashboardViewModel>()
     val settingsViewModel = hiltViewModel<SettingsViewModel>()
     val profileViewModel = hiltViewModel<LocationProfileViewModel>()
+    val homeProfile   by profileViewModel.profileState(ProfileId.HOME).collectAsState()
+    val workProfile   by profileViewModel.profileState(ProfileId.WORK).collectAsState()
+    val gymProfile    by profileViewModel.profileState(ProfileId.GYM).collectAsState()
     val custom1Profile by profileViewModel.profileState(ProfileId.CUSTOM1).collectAsState()
     val custom2Profile by profileViewModel.profileState(ProfileId.CUSTOM2).collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -317,11 +328,11 @@ fun TabbedAppScreen(
 
     // Manage auto-refresh alarm when low power mode or interval changes
     val settingsPrefs by settingsViewModel.userPreferences.collectAsState()
-    LaunchedEffect(settingsPrefs.lowPowerMode, settingsPrefs.refreshIntervalMinutes) {
+    LaunchedEffect(settingsPrefs.lowPowerMode, settingsPrefs.refreshIntervalSeconds) {
         if (settingsPrefs.lowPowerMode) {
             WidgetUpdateScheduler.cancel(context)
         } else {
-            WidgetUpdateScheduler.schedule(context, settingsPrefs.refreshIntervalMinutes)
+            WidgetUpdateScheduler.schedule(context, settingsPrefs.refreshIntervalSeconds)
         }
     }
 
@@ -329,9 +340,9 @@ fun TabbedAppScreen(
         "dashboard" -> "Dashboard"
         "nearby"  -> "Nearby Apps"
         "businesses" -> "Places"
-        "home"    -> "Home Apps"
-        "work"    -> "Work Apps"
-        "gym"     -> "Gym Apps"
+        "home"    -> homeProfile.displayName
+        "work"    -> workProfile.displayName
+        "gym"     -> gymProfile.displayName
         "custom1" -> custom1Profile.displayName
         "custom2" -> custom2Profile.displayName
         "settings" -> "Settings"
@@ -356,7 +367,7 @@ fun TabbedAppScreen(
                         modifier = Modifier.padding(start = 28.dp, bottom = 4.dp)
                     )
                     NavigationDrawerItem(
-                        icon = { Icon(Icons.Filled.Dashboard, contentDescription = null) },
+                        icon = { AnimatedNavIcon(selected = currentScreen == "dashboard") { Icon(Icons.Filled.Dashboard, contentDescription = null) } },
                         label = { Text("Dashboard") },
                         selected = currentScreen == "dashboard",
                         onClick = {
@@ -365,7 +376,7 @@ fun TabbedAppScreen(
                         }
                     )
                     NavigationDrawerItem(
-                        icon = { Icon(Icons.Filled.NearMe, contentDescription = null) },
+                        icon = { AnimatedNavIcon(selected = currentScreen == "nearby") { Icon(Icons.Filled.NearMe, contentDescription = null) } },
                         label = { Text("Nearby Apps") },
                         selected = currentScreen == "nearby",
                         onClick = {
@@ -374,7 +385,7 @@ fun TabbedAppScreen(
                         }
                     )
                     NavigationDrawerItem(
-                        icon = { Icon(Icons.Filled.List, contentDescription = null) },
+                        icon = { AnimatedNavIcon(selected = currentScreen == "businesses") { Icon(Icons.Filled.List, contentDescription = null) } },
                         label = { Text("Places") },
                         selected = currentScreen == "businesses",
                         onClick = {
@@ -383,8 +394,8 @@ fun TabbedAppScreen(
                         }
                     )
                     NavigationDrawerItem(
-                        icon = { Icon(Icons.Filled.Home, contentDescription = null) },
-                        label = { Text("Home Apps") },
+                        icon = { AnimatedNavIcon(selected = currentScreen == "home") { Icon(Icons.Filled.Home, contentDescription = null) } },
+                        label = { Text(homeProfile.displayName) },
                         selected = currentScreen == "home",
                         onClick = {
                             currentScreen = "home"
@@ -403,8 +414,8 @@ fun TabbedAppScreen(
                     )
                     NavigationDrawerItem(
                         modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
-                        icon = { Icon(if (isPro) Icons.Filled.Work else Icons.Filled.Lock, contentDescription = null) },
-                        label = { Text("Work Apps") },
+                        icon = { AnimatedNavIcon(selected = currentScreen == "work") { Icon(if (isPro) Icons.Filled.Work else Icons.Filled.Lock, contentDescription = null) } },
+                        label = { Text(workProfile.displayName) },
                         badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
                         selected = currentScreen == "work",
                         onClick = {
@@ -414,8 +425,8 @@ fun TabbedAppScreen(
                     )
                     NavigationDrawerItem(
                         modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
-                        icon = { Icon(if (isPro) Icons.Filled.FitnessCenter else Icons.Filled.Lock, contentDescription = null) },
-                        label = { Text("Gym Apps") },
+                        icon = { AnimatedNavIcon(selected = currentScreen == "gym") { Icon(if (isPro) Icons.Filled.FitnessCenter else Icons.Filled.Lock, contentDescription = null) } },
+                        label = { Text(gymProfile.displayName) },
                         badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
                         selected = currentScreen == "gym",
                         onClick = {
@@ -425,7 +436,7 @@ fun TabbedAppScreen(
                     )
                     NavigationDrawerItem(
                         modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
-                        icon = { Icon(if (isPro) Icons.Filled.Apps else Icons.Filled.Lock, contentDescription = null) },
+                        icon = { AnimatedNavIcon(selected = currentScreen == "custom1") { Icon(if (isPro) Icons.Filled.Apps else Icons.Filled.Lock, contentDescription = null) } },
                         label = { Text(custom1Profile.displayName) },
                         badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
                         selected = currentScreen == "custom1",
@@ -436,7 +447,7 @@ fun TabbedAppScreen(
                     )
                     NavigationDrawerItem(
                         modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
-                        icon = { Icon(if (isPro) Icons.Filled.Apps else Icons.Filled.Lock, contentDescription = null) },
+                        icon = { AnimatedNavIcon(selected = currentScreen == "custom2") { Icon(if (isPro) Icons.Filled.Apps else Icons.Filled.Lock, contentDescription = null) } },
                         label = { Text(custom2Profile.displayName) },
                         badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
                         selected = currentScreen == "custom2",
@@ -449,7 +460,7 @@ fun TabbedAppScreen(
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                     NavigationDrawerItem(
-                        icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                        icon = { AnimatedNavIcon(selected = currentScreen == "settings") { Icon(Icons.Filled.Settings, contentDescription = null) } },
                         label = { Text("Settings") },
                         selected = currentScreen == "settings",
                         onClick = {
@@ -458,7 +469,7 @@ fun TabbedAppScreen(
                         }
                     )
                     NavigationDrawerItem(
-                        icon = { Icon(Icons.Filled.Info, contentDescription = null) },
+                        icon = { AnimatedNavIcon(selected = currentScreen == "setup") { Icon(Icons.Filled.Info, contentDescription = null) } },
                         label = { Text("Setup") },
                         selected = currentScreen == "setup",
                         onClick = {
@@ -467,7 +478,7 @@ fun TabbedAppScreen(
                         }
                     )
                     NavigationDrawerItem(
-                        icon = { Icon(Icons.Filled.Help, contentDescription = null) },
+                        icon = { AnimatedNavIcon(selected = currentScreen == "guide") { Icon(Icons.Filled.Help, contentDescription = null) } },
                         label = { Text("Guide") },
                         selected = currentScreen == "guide",
                         onClick = {
@@ -551,7 +562,7 @@ fun TabbedAppScreen(
                                 IconButton(onClick = { showWidgetPicker = true }) {
                                     Icon(Icons.Filled.Widgets, contentDescription = "Add widget")
                                 }
-                                IconButton(onClick = { dashboardViewModel.refresh() }) {
+                                IconButton(onClick = { dashboardViewModel.refresh(force = true) }) {
                                     Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
                                 }
 
@@ -630,7 +641,7 @@ fun TabbedAppScreen(
                                     )
                                 }
                             }
-                            "nearby" -> IconButton(onClick = { nearbyViewModel.refresh() }) {
+                            "nearby" -> IconButton(onClick = { nearbyViewModel.refresh(force = true) }) {
                                 Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
                             }
                         }
@@ -639,7 +650,12 @@ fun TabbedAppScreen(
             }
         ) { paddingValues ->
             Box(modifier = Modifier.padding(paddingValues)) {
-                when (currentScreen) {
+            AnimatedContent(
+                targetState = currentScreen,
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                label = "screen_transition"
+            ) { screen ->
+                when (screen) {
                     "dashboard" -> DashboardContent(viewModel = dashboardViewModel)
                     "nearby"      -> NearbyAppsContent(viewModel = nearbyViewModel, context = context)
                     "businesses"  -> AddBusinessScreen()
@@ -688,10 +704,22 @@ fun TabbedAppScreen(
                     }
                     "guide"   -> UserGuideScreen()
                     "upgrade" -> ProUpgradeScreen(onUpgradeTapped = onUpgradeTapped)
+                    else -> DashboardContent(viewModel = dashboardViewModel)
                 }
+            } // AnimatedContent
             }
         }
     }
+}
+
+@Composable
+private fun AnimatedNavIcon(selected: Boolean, content: @Composable () -> Unit) {
+    val scale by animateFloatAsState(
+        targetValue = if (selected) 1.22f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "nav_icon_scale"
+    )
+    Box(modifier = Modifier.scale(scale)) { content() }
 }
 
 @Composable

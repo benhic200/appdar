@@ -27,6 +27,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.benhic.appdar.data.local.BusinessAppMapping
+import com.benhic.appdar.data.local.settings.RegionPreference
+import com.benhic.appdar.data.local.settings.SettingsRepository
 import com.benhic.appdar.data.nearby.NearbyBranchFinder
 import com.benhic.appdar.data.repository.BusinessAppRepository
 import com.benhic.appdar.feature.location.LocationProvider
@@ -54,6 +56,7 @@ class AddBusinessViewModel @Inject constructor(
     private val locationProvider: LocationProvider,
     private val appIconLoader: AppIconLoader,
     private val nearbyBranchFinder: NearbyBranchFinder,
+    private val settingsRepository: SettingsRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -69,9 +72,29 @@ class AddBusinessViewModel @Inject constructor(
     private val _osmState = MutableStateFlow<OsmValidationState>(OsmValidationState.Idle)
     val osmState: StateFlow<OsmValidationState> = _osmState.asStateFlow()
 
+    /**
+     * Effective region for the Places list — initialised immediately from the last known
+     * GPS region so UK-only brands are filtered instantly (no blank/UNKNOWN flash).
+     * Then updated from the user's regionPreference setting (or live GPS if AUTO).
+     */
+    private val _currentRegion = MutableStateFlow(nearbyBranchFinder.lastKnownRegion())
+    val currentRegion: StateFlow<NearbyBranchFinder.Region> = _currentRegion.asStateFlow()
+
     private var osmValidationJob: Job? = null
 
     init {
+        viewModelScope.launch(Dispatchers.IO) {
+            val pref = settingsRepository.getCurrentPreferences().regionPreference
+            _currentRegion.value = when (pref) {
+                RegionPreference.UK -> NearbyBranchFinder.Region.UK
+                RegionPreference.US -> NearbyBranchFinder.Region.US
+                RegionPreference.AUTO -> {
+                    val location = runCatching { locationProvider.getCurrentLocation() }.getOrNull()
+                    if (location != null) nearbyBranchFinder.detectRegion(location.latitude, location.longitude)
+                    else nearbyBranchFinder.lastKnownRegion()
+                }
+            }
+        }
         viewModelScope.launch {
             val apps = withContext(Dispatchers.IO) {
                 val pm = context.packageManager
@@ -140,6 +163,11 @@ class AddBusinessViewModel @Inject constructor(
                     // isCustom is set to true inside addCustomMapping
                 )
                 repository.addCustomMapping(mapping)
+                // If OSM-validated, download that brand's UK branches immediately in the background
+                // so the new place appears with correct distance on the next nearest-branch calculation.
+                if (osmBrandTag != null) {
+                    nearbyBranchFinder.downloadBrandAndStore(osmBrandTag)
+                }
                 onDone()
             } finally {
                 _isSaving.value = false
@@ -178,22 +206,38 @@ fun AddBusinessScreen(
 ) {
     val mappings by viewModel.mappings.collectAsState()
     val installedApps by viewModel.installedApps.collectAsState()
+    val currentRegion by viewModel.currentRegion.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
     val installedPackageNames = remember(installedApps) {
         installedApps.map { it.packageName }.toHashSet()
     }
-    // Counts drive the toggle label/action
-    val uninstalledEnabledCount = remember(mappings, installedPackageNames) {
-        mappings.count { it.isEnabled && it.packageName !in installedPackageNames }
+
+    // Brands hidden due to region mismatch (e.g. US-only brands hidden when in UK).
+    // Custom brands (isCustom = true) are always shown regardless of region.
+    val regionVisible = remember(mappings, currentRegion) {
+        mappings.filter { m ->
+            when (currentRegion) {
+                NearbyBranchFinder.Region.UK ->
+                    m.isCustom || m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                NearbyBranchFinder.Region.US ->
+                    m.isCustom || m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                NearbyBranchFinder.Region.UNKNOWN -> true
+            }
+        }
     }
-    val uninstalledDisabledCount = remember(mappings, installedPackageNames) {
-        mappings.count { !it.isEnabled && it.packageName !in installedPackageNames }
+
+    // Counts drive the toggle label/action — base on region-visible list
+    val uninstalledEnabledCount = remember(regionVisible, installedPackageNames) {
+        regionVisible.count { it.isEnabled && it.packageName !in installedPackageNames }
     }
-    val filtered = remember(mappings, searchQuery) {
-        if (searchQuery.isBlank()) mappings
-        else mappings.filter {
+    val uninstalledDisabledCount = remember(regionVisible, installedPackageNames) {
+        regionVisible.count { !it.isEnabled && it.packageName !in installedPackageNames }
+    }
+    val filtered = remember(regionVisible, searchQuery) {
+        if (searchQuery.isBlank()) regionVisible
+        else regionVisible.filter {
             it.businessName.contains(searchQuery, ignoreCase = true) ||
             it.appName.contains(searchQuery, ignoreCase = true)
         }
@@ -382,7 +426,7 @@ private fun AddBusinessDialog(
     var businessName by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
     var selectedApp by remember { mutableStateOf<InstalledApp?>(null) }
-    var useCurrentLocation by remember { mutableStateOf(true) }
+    var useCurrentLocation by remember { mutableStateOf(false) }
     var geofenceRadius by remember { mutableStateOf(200f) }
     var searchQuery by remember { mutableStateOf("") }
     var showAppPicker by remember { mutableStateOf(false) }

@@ -16,13 +16,15 @@ import androidx.datastore.preferences.core.stringPreferencesKey
  */
 data class UserPreferences(
     val searchRadiusMeters: Int = 5000,
-    val distanceUnit: DistanceUnit = DistanceUnit.KILOMETERS,
+    val distanceUnit: DistanceUnit = DistanceUnit.MILES,
     val enableGeocoding: Boolean = false,
-    val enableLocationHistory: Boolean = false,
-    val refreshIntervalMinutes: Int = 5,
+    val enableLocationHistory: Boolean = true,
+    /** Refresh interval in seconds. Dashboard uses exact value; widget clamps to ≥60s. */
+    val refreshIntervalSeconds: Int = 300,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val lowPowerMode: Boolean = false,
-    val widgetTheme: WidgetTheme = WidgetTheme.SYSTEM
+    val widgetTheme: WidgetTheme = WidgetTheme.SYSTEM,
+    val regionPreference: RegionPreference = RegionPreference.AUTO
 )
 
 /**
@@ -54,6 +56,16 @@ enum class WidgetTheme {
 }
 
 /**
+ * Region/country preference for branch data and Places list filtering.
+ * AUTO = detect from GPS on each lookup.
+ */
+enum class RegionPreference {
+    AUTO,
+    UK,
+    US
+}
+
+/**
  * DataStore preference keys for [UserPreferences].
  */
 object PreferencesKeys {
@@ -61,10 +73,12 @@ object PreferencesKeys {
     val DISTANCE_UNIT = stringPreferencesKey("distance_unit")
     val ENABLE_GEOCODING = booleanPreferencesKey("enable_geocoding")
     val ENABLE_LOCATION_HISTORY = booleanPreferencesKey("enable_location_history")
-    val REFRESH_INTERVAL_MINUTES = intPreferencesKey("refresh_interval_minutes")
+    val REFRESH_INTERVAL_MINUTES = intPreferencesKey("refresh_interval_minutes")  // legacy key — minutes
+    val REFRESH_INTERVAL_SECONDS = intPreferencesKey("refresh_interval_seconds")
     val THEME_MODE = stringPreferencesKey("theme_mode")
     val LOW_POWER_MODE = booleanPreferencesKey("low_power_mode")
     val WIDGET_THEME = stringPreferencesKey("widget_theme")
+    val REGION_PREFERENCE = stringPreferencesKey("region_preference")
 }
 
 /**
@@ -73,16 +87,22 @@ object PreferencesKeys {
 fun Preferences.toUserPreferences(): UserPreferences = UserPreferences(
     searchRadiusMeters = this[PreferencesKeys.SEARCH_RADIUS_METERS] ?: 5000,
     distanceUnit = this[PreferencesKeys.DISTANCE_UNIT]?.let { unitString ->
-        DistanceUnit.values().find { it.name == unitString } ?: DistanceUnit.KILOMETERS
-    } ?: DistanceUnit.KILOMETERS,
+        DistanceUnit.values().find { it.name == unitString } ?: DistanceUnit.MILES
+    } ?: DistanceUnit.MILES,
     enableGeocoding = this[PreferencesKeys.ENABLE_GEOCODING] ?: false,
-    enableLocationHistory = this[PreferencesKeys.ENABLE_LOCATION_HISTORY] ?: false,
-    refreshIntervalMinutes = this[PreferencesKeys.REFRESH_INTERVAL_MINUTES] ?: 5,
+    enableLocationHistory = this[PreferencesKeys.ENABLE_LOCATION_HISTORY] ?: true,
+    // Migrate: old users have refreshIntervalMinutes (1–60), multiply by 60 to get seconds.
+    // New users (or after first write) use REFRESH_INTERVAL_SECONDS directly.
+    refreshIntervalSeconds = this[PreferencesKeys.REFRESH_INTERVAL_SECONDS]
+        ?: ((this[PreferencesKeys.REFRESH_INTERVAL_MINUTES] ?: 5) * 60),
     themeMode = this[PreferencesKeys.THEME_MODE]?.let { modeString ->
         ThemeMode.values().find { it.name == modeString } ?: ThemeMode.SYSTEM
     } ?: ThemeMode.SYSTEM,
     lowPowerMode = this[PreferencesKeys.LOW_POWER_MODE] ?: false,
     widgetTheme = this[PreferencesKeys.WIDGET_THEME]?.let { s ->
         WidgetTheme.values().find { it.name == s } ?: WidgetTheme.SYSTEM
-    } ?: WidgetTheme.SYSTEM
+    } ?: WidgetTheme.SYSTEM,
+    regionPreference = this[PreferencesKeys.REGION_PREFERENCE]?.let { s ->
+        RegionPreference.values().find { it.name == s } ?: RegionPreference.AUTO
+    } ?: RegionPreference.AUTO
 )

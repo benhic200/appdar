@@ -1868,4 +1868,38 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
   - **Interpretation**: User asks to retry ADB installation of v102.
   - **Action**: Delegated to Android QA to attempt installation again.
 
-**Current Status:** v102 built; installation retry pending.
+- **2026‑03‑30 to 2026‑03‑31 – v103‑v111 built and installed via automation scripts**
+  - **v103**: First Tailscale ADB connection (`xiaomi‑m2102j20sg.tail25553f.ts.net:5555`).
+  - **v104‑v109**: Sequential debug builds pushed for testing (bugs discovered/fixed).
+  - **v110**: Release version built (APK+AAB) with changelog – ready for Google Play submission.
+  - **v111**: Bug‑fix test build installed (SHA‑256 `b4804d1ded32c8983c5a1e61ef12c919c57d7d6e445c7e86b6a7b332c5965184`).
+  - **Logcat**: Data pulled from device (`logcat_appdar_20260331_0815.txt`); shows NearbyBranchFinder parse/fetch errors.
+  - **Automation**: `build_and_install.sh` script automates version increment, build, and ADB installation; `build_release_and_host.sh` handles release builds with changelog.
+
+**Current Status:** v117 built, pending installation (user confirmation needed). Build includes v115 fixes plus missing `delay` import fix. Changes deployed:
+1. ✅ HTTP response validation in `fetchFromOverpass` – check `response.isSuccessful`, log error body.
+2. ✅ JSON parsing wrapped in `try`‑`catch` (`parseResponse`) – returns empty map instead of crash.
+3. ✅ Location‑acquisition timeout increased from 5 s to 10 s (five widget‑provider call‑sites).
+4. ✅ Location freshness check – reject cached location older than 5 minutes or inaccurate (>100 m).
+5. ✅ Current location display added to dashboard (coordinates, accuracy, age).
+6. ✅ Overpass reliability improvements – increased timeouts (15 s connect, 60 s read), 2‑attempt retry, fallback to persisted coordinates.
+7. ✅ Additional performance fixes (v115) – empty‑result caching disabled, disabled brands filtered, offline detection, widget debounce, background location monitoring, OkHttp cancellation, reduced timeouts, tab‑switch throttling, profile‑rename cards.
+
+**Issue (fixed in v114):** Widget shows “no businesses nearby” while app displays cached coordinates. Root cause: Overpass API timeouts (SocketTimeoutException observed in logs at 11:43:57) cause empty results; widget does not fall back to persisted Room‑database coordinates (which the app uses). **Fix deployed in v114.**
+
+**New Issue (fixed in v115):** User reports multiple apps not responding and Appdar taking long time to load (20:35 GMT+1). Logs show NearbyBranchFinder cache hits with 0 branches (empty result), no Overpass errors, no ANR traces. Root cause: Overpass timeout (60 s read + retry) blocking UI, empty results being cached, disabled brands still queried, and OkHttp blocking call ignoring coroutine cancellation.
+
+**Fixes deployed in v115 (via Claude implementation):**
+1. **Empty results no longer cached** – saveCache only called when Overpass returns data.
+2. **Disabled brands filtered from Overpass query** – only enabled brands queried (smaller query, faster).
+3. **Offline detection with fallback** – connectivity check, returns persisted coordinates immediately.
+4. **Widget debounce** – skips updates within 5 seconds (prevents thundering herd).
+5. **Background location monitoring** – PASSIVE_PROVIDER with 0.1 km threshold, triggers widget refresh on 2 km movement.
+6. **OkHttp blocking call cancellation** – call.cancel() via invokeOnCompletion, respects coroutine timeout.
+7. **Reduced Overpass timeouts** – 8 s connect / 20 s read (worst‑case 58 s, inside goAsync limit).
+8. **Tab‑switch refresh spam throttling** – auto‑refreshes limited to once per 30 seconds (manual refresh bypasses).
+9. **Location‑profile rename cards** – added for Home, Work, Gym profiles.
+
+**New Issue: Overpass API rate limiting (HTTP 429)** – Logs after v115 show Overpass API returning HTTP 429 (Too Many Requests) and HTTP 504 (Gateway Timeout) errors. The server appears to be rate‑limiting the app due to frequent queries. This may cause empty results and timeouts even with the reliability improvements.
+
+**Next:** Await user acceptance of installation prompt on device for v117; then test Overpass rate‑limiting behavior.
