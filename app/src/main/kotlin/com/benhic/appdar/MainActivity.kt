@@ -139,7 +139,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private val _permissionState = mutableStateOf(PermissionState.UNKNOWN)
-    private val _dbSeeded = mutableStateOf(false)
     private val _isPro = mutableStateOf(false)
 
     private lateinit var billingManager: BillingManager
@@ -189,20 +188,16 @@ class MainActivity : ComponentActivity() {
                             onComplete = {
                                 appPrefs.edit().putBoolean("onboarding_complete", true).apply()
                                 _onboardingComplete.value = true
-                                // Trigger database seed if not done yet
-                                if (!_dbSeeded.value) seedDatabase()
                             }
                         )
                     } else {
                         TabbedAppScreen(
                             repository = repository,
                             permissionState = _permissionState.value,
-                            dbSeeded = _dbSeeded.value,
                             isPro = _isPro.value,
                             onUpgradeTapped = { billingManager.launchPurchaseFlow(this@MainActivity) },
                             onRestorePurchase = { billingManager.checkExistingPurchases() },
                             onRequestPermission = { requestLocationPermission() },
-                            onSeedDatabase = { seedDatabase() },
                             onOpenAppSettings = { openAppSettings() },
                             onOpenBatterySettings = { openBatterySettings() },
                             onFinishSetup = { finish() }
@@ -213,13 +208,7 @@ class MainActivity : ComponentActivity() {
         }
         // Check permission on create
         checkLocationPermission()
-        // Check if database is already seeded
-        lifecycleScope.launch {
-            val count = repository.getMappingCount()
-            _dbSeeded.value = count > 0
-            Log.d(TAG, "Database mapping count: $count")
-            startGeofencingIfReady()
-        }
+        startGeofencingIfReady()
     }
 
     private fun checkLocationPermission() {
@@ -249,26 +238,8 @@ class MainActivity : ComponentActivity() {
         openAppSettings()
     }
 
-    private fun seedDatabase() {
-        Toast.makeText(this, "Seeding database...", Toast.LENGTH_SHORT).show()
-        lifecycleScope.launch {
-            try {
-                // Clear and re‑seed database (calls DatabaseInitializer.forceReseed)
-                repository.reseed()
-                val count = repository.getMappingCount()
-                _dbSeeded.value = true
-                Log.d(TAG, "Database seeded with $count mappings")
-                Toast.makeText(this@MainActivity, "Database seeded with $count businesses", Toast.LENGTH_SHORT).show()
-                startGeofencingIfReady()
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to seed database", e)
-                Toast.makeText(this@MainActivity, "Failed to seed database", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
     private fun startGeofencingIfReady() {
-        if (_permissionState.value == PermissionState.GRANTED && _dbSeeded.value) {
+        if (_permissionState.value == PermissionState.GRANTED) {
             lifecycleScope.launch {
                 try {
                     geofenceManager.startGeofencingForAllBusinesses()
@@ -302,12 +273,10 @@ class MainActivity : ComponentActivity() {
 fun TabbedAppScreen(
     repository: BusinessAppRepository,
     permissionState: PermissionState,
-    dbSeeded: Boolean,
     isPro: Boolean,
     onUpgradeTapped: () -> Unit,
     onRestorePurchase: () -> Unit,
     onRequestPermission: () -> Unit,
-    onSeedDatabase: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenBatterySettings: () -> Unit,
     onFinishSetup: () -> Unit
@@ -675,9 +644,7 @@ fun TabbedAppScreen(
                         HorizontalDivider()
                         SetupContent(
                             permissionState = permissionState,
-                            dbSeeded = dbSeeded,
                             onRequestPermission = onRequestPermission,
-                            onSeedDatabase = onSeedDatabase,
                             onOpenAppSettings = onOpenAppSettings,
                             onOpenBatterySettings = onOpenBatterySettings,
                             onRestorePurchase = onRestorePurchase,
@@ -693,9 +660,7 @@ fun TabbedAppScreen(
                     ) {
                         SetupContent(
                             permissionState = permissionState,
-                            dbSeeded = dbSeeded,
                             onRequestPermission = onRequestPermission,
-                            onSeedDatabase = onSeedDatabase,
                             onOpenAppSettings = onOpenAppSettings,
                             onOpenBatterySettings = onOpenBatterySettings,
                             onRestorePurchase = onRestorePurchase,
@@ -725,47 +690,12 @@ private fun AnimatedNavIcon(selected: Boolean, content: @Composable () -> Unit) 
 @Composable
 fun SetupContent(
     permissionState: PermissionState,
-    dbSeeded: Boolean,
     onRequestPermission: () -> Unit,
-    onSeedDatabase: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenBatterySettings: () -> Unit,
     onRestorePurchase: () -> Unit = {},
     onFinishSetup: () -> Unit
 ) {
-    // Database status
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = "Database",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            if (dbSeeded) {
-                Text("✅ Database seeded with UK & US businesses.")
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = onSeedDatabase,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Re‑seed Database")
-                }
-            } else {
-                Text("❌ Database not yet seeded.")
-                Button(
-                    onClick = onSeedDatabase,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Seed Database Now")
-                }
-            }
-        }
-    }
-
     // Location permission
     Card(
         modifier = Modifier.fillMaxWidth()

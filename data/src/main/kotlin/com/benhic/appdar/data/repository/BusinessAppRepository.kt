@@ -12,9 +12,6 @@ interface BusinessAppRepository {
     /** Ensure database is initialized (seeded if empty). Should be called before any queries. */
     suspend fun initialize()
 
-    /** Clear all existing data and re‑seed with the initial dataset. */
-    suspend fun reseed()
-
     // Local queries
     fun getAllMappings(): Flow<List<BusinessAppMapping>>
     suspend fun getMappingByBusinessName(businessName: String): BusinessAppMapping?

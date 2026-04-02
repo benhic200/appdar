@@ -94,15 +94,4 @@ object DatabaseInitializer {
         }
     }
 
-    /**
-     * Force re‑seed the database by clearing all existing data and inserting the initial dataset.
-     */
-    suspend fun forceReseed(dao: BusinessAppMappingDao) {
-        Log.d(TAG, "Force reseeding database")
-        dao.deleteAll()
-        val mappings = InitialDataset.getMappings()
-        Log.d(TAG, "Inserting ${mappings.size} mappings")
-        dao.insertAll(mappings)
-        Log.d(TAG, "Force reseed complete")
-    }
 }

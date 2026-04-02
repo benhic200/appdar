@@ -47,24 +47,43 @@ object InitialDataset {
         createMapping("Pizza Hut",    "com.pizzahutuk.orderingApp",     "Pizza Hut",         "fast_food"),
 
         // ── UK Casual Dining / Pubs ───────────────────────────────────────────
-        createMapping("Wetherspoons", "com.wetherspoon.orderandpay",    "Wetherspoons",      "pub"),
+        createMapping("Wetherspoons",  "com.wetherspoon.orderandpay",    "Wetherspoons",      "pub"),
+        createMapping("Pizza Express", "com.pizzaexpress.pizzaexpressapp","Pizza Express",    "casual_dining"),
+        createMapping("Zizzi",         "com.zizzi.app",                  "Zizzi",             "casual_dining"),
+        createMapping("Yo! Sushi",     "com.yo.sushi.vip",               "YO! Sushi",         "casual_dining"),
+        createMapping("TGI Fridays",   "com.tgifridays.loyalty.uk",      "TGI Fridays",       "casual_dining"),
 
         // ── UK Pharmacy & Retail ──────────────────────────────────────────────
-        createMapping("Boots",        "com.boots.flagship.android",     "Boots",             "pharmacy"),
-        createMapping("WHSmith",      "com.whsmith.mywhsmith.android",  "WHSmith",           "retail"),
-        createMapping("IKEA",         "com.ingka.ikea.app",             "IKEA",              "retail"),
+        createMapping("Boots",         "com.boots.flagship.android",     "Boots",             "pharmacy"),
+        createMapping("Superdrug",     "com.superdrug.beautycardapp",    "Superdrug",         "pharmacy"),
+        createMapping("WHSmith",       "com.whsmith.mywhsmith.android",  "WHSmith",           "retail"),
+        createMapping("Argos",         "com.argos.android",              "Argos",             "retail"),
+        createMapping("Next",          "com.next.android",               "Next",              "retail"),
+        createMapping("JD Sports",     "com.jdsports.android",           "JD Sports",         "retail"),
+        createMapping("Sports Direct", "com.sportsdirect.android",       "Sports Direct",     "retail"),
+        createMapping("Currys",        "uk.co.currys.android",           "Currys",            "retail"),
+        createMapping("IKEA",          "com.ingka.ikea.app",             "IKEA",              "retail"),
+
+        // ── UK Cinema ─────────────────────────────────────────────────────────
+        createMapping("Odeon",         "com.odeon.android",              "Odeon",             "entertainment"),
+        createMapping("Vue",           "com.vue.vueapp",                 "Vue Cinema",        "entertainment"),
+        createMapping("Cineworld",     "com.cineworld.android",          "Cineworld",         "entertainment"),
 
         // ── UK Hotels ─────────────────────────────────────────────────────────
-        createMapping("Premier Inn",  "com.whitbread.premierinn",       "Premier Inn",       "hotel"),
-        createMapping("Travelodge",   "com.travelodge.rooms",           "Travelodge",        "hotel"),
+        createMapping("Premier Inn",   "com.whitbread.premierinn",       "Premier Inn",       "hotel"),
+        createMapping("Travelodge",    "com.travelodge.rooms",           "Travelodge",        "hotel"),
 
         // ── Global Hotels (also useful in US) ────────────────────────────────
-        createMapping("Hilton",       "com.hilton.android.hhonors",     "Hilton Honors",     "hotel"),
-        createMapping("Marriott",     "com.marriott.mrt",               "Marriott Bonvoy",   "hotel"),
-        createMapping("Holiday Inn",  "com.ihg.apps.android",           "IHG Hotels",        "hotel"),
+        createMapping("Hilton",        "com.hilton.android.hhonors",     "Hilton Honors",     "hotel"),
+        createMapping("Marriott",      "com.marriott.mrt",               "Marriott Bonvoy",   "hotel"),
+        createMapping("Holiday Inn",   "com.ihg.apps.android",           "IHG Hotels",        "hotel"),
+
+        // ── Global Fuel ───────────────────────────────────────────────────────
+        createMapping("BP",            "com.bp.android.bpme",           "BPme",              "fuel"),
+        createMapping("Shell",         "com.shell.android",              "Shell Go+",         "fuel"),
 
         // ── US Supermarkets & Retail ──────────────────────────────────────────
-        createMapping("Walmart",      "com.walmart.android",            "Walmart",           "supermarket"),
+        createMapping("Walmart",       "com.walmart.android",            "Walmart",           "supermarket"),
         createMapping("Target",       "com.target.ui",                  "Target",            "retail"),
         createMapping("Costco",       "com.costco.mobileapp",           "Costco",            "supermarket"),
         createMapping("Whole Foods",  "com.amazon.wholefoods",          "Whole Foods",       "supermarket"),

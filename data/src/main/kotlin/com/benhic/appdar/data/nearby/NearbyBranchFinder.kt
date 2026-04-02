@@ -115,7 +115,7 @@ class NearbyBranchFinder @Inject constructor(
          * (e.g. Irish brands added in v1.120, regional UK/US split in v1.115).
          * Old installs store 0 (key absent), so any value > 0 triggers a one-time wipe + re-download.
          */
-        private const val BRAND_DB_VERSION = 2
+        private const val BRAND_DB_VERSION = 3
 
         private const val PREFS = "NearbyBranchCache"
         private const val PREF_BRAND_DB_VERSION = "brand_db_version"
@@ -167,9 +167,22 @@ class NearbyBranchFinder @Inject constructor(
             "Papa John's"    to "Papa John's",
             "Leon"           to "LEON",
             "Wetherspoons"   to "Wetherspoon",
+            "Pizza Express"  to "Pizza Express",
+            "Zizzi"          to "Zizzi",
+            "Yo! Sushi"      to "Yo! Sushi",
+            "TGI Fridays"    to "TGI Friday's",
             // ── UK retail & travel ───────────────────────────────────────────
             "Boots"          to "Boots",
+            "Superdrug"      to "Superdrug",
             "WHSmith"        to "WH Smith",
+            "Argos"          to "Argos",
+            "Next"           to "Next",
+            "JD Sports"      to "JD Sports",
+            "Sports Direct"  to "Sports Direct",
+            "Currys"         to "Currys",
+            "Odeon"          to "Odeon",
+            "Vue"            to "Vue",
+            "Cineworld"      to "Cineworld",
             "Premier Inn"    to "Premier Inn",
             "Travelodge"     to "Travelodge"
         )
@@ -205,7 +218,9 @@ class NearbyBranchFinder @Inject constructor(
             "IKEA"           to "IKEA",
             "Hilton"         to "Hilton",
             "Marriott"       to "Marriott",
-            "Holiday Inn"    to "Holiday Inn"
+            "Holiday Inn"    to "Holiday Inn",
+            "BP"             to "BP",
+            "Shell"          to "Shell"
         )
 
         /**

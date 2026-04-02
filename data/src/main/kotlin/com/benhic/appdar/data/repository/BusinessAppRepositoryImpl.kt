@@ -46,11 +46,6 @@ class BusinessAppRepositoryImpl @Inject constructor(
         ensureInitialized()
     }
 
-    override suspend fun reseed() {
-        DatabaseInitializer.forceReseed(dao)
-        isInitialized = true
-    }
-
     override fun getAllMappings(): Flow<List<BusinessAppMapping>> = dao.getAll()
 
     override suspend fun getMappingByBusinessName(businessName: String): BusinessAppMapping? {

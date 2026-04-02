@@ -225,10 +225,19 @@ private fun SettingsCards(
             if (currentSeconds < 60) {
                 Spacer(modifier = Modifier.padding(4.dp))
                 Text(
-                    text = "Widget refresh is limited to 60 seconds minimum (Android system constraint). " +
+                    text = if (userPreferences.screenOnRefreshEnabled)
+                        "The background schedule is limited to 60 seconds minimum (Android system constraint), " +
+                        "but Screen-on Refresh is enabled — the widget also updates on every screen unlock, " +
+                        "so your ${formatRefreshInterval(currentSeconds)} rate is effective while the screen is on."
+                    else
+                        "Widget refresh is limited to 60 seconds minimum (Android system constraint). " +
+                        "Enable Screen-on Refresh below to get sub-60 second updates while the screen is on. " +
                         "The Dashboard and Nearby Apps tabs will still refresh at ${formatRefreshInterval(currentSeconds)}.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.tertiary
+                    color = if (userPreferences.screenOnRefreshEnabled)
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    else
+                        MaterialTheme.colorScheme.tertiary
                 )
             }
         }

@@ -369,6 +369,7 @@ class DashboardViewModel @Inject constructor(
 
 @Composable
 fun DashboardContent(viewModel: DashboardViewModel = hiltViewModel()) {
+    val addBusinessViewModel: AddBusinessViewModel = hiltViewModel()
     val state by viewModel.state.collectAsState()
     val branchStatusMessage by viewModel.branchStatusMessage.collectAsState()
     val branchDownloadProgress by viewModel.branchDownloadProgress.collectAsState()
@@ -387,10 +388,11 @@ fun DashboardContent(viewModel: DashboardViewModel = hiltViewModel()) {
             }
         }
         is DashboardState.AtProfile -> DashboardList(
-            bannerText = "At ${s.profileName.substringBefore(" Apps")}",
+            bannerText = "At ${s.profileName.substringBefore(" Apps")} (${s.apps.size})",
             items = s.apps,
             context = context,
-            location = s.location
+            location = s.location,
+            onHideUninstalled = { installed -> addBusinessViewModel.disableUninstalled(installed) }
         )
         is DashboardState.Nearby -> Column {
             if (s.isOffline) {
@@ -406,7 +408,13 @@ fun DashboardContent(viewModel: DashboardViewModel = hiltViewModel()) {
                     )
                 }
             }
-            DashboardList(bannerText = "Nearby", items = s.items, context = context, location = s.location)
+            DashboardList(
+                bannerText = "Nearby (${s.items.size})",
+                items = s.items,
+                context = context,
+                location = s.location,
+                onHideUninstalled = { installed -> addBusinessViewModel.disableUninstalled(installed) }
+            )
         }
     }
 }
@@ -610,7 +618,13 @@ fun LocationUnavailableContent(context: Context) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DashboardList(bannerText: String, items: List<DashboardItem>, context: Context, location: Location?) {
+private fun DashboardList(
+    bannerText: String,
+    items: List<DashboardItem>,
+    context: Context,
+    location: Location?,
+    onHideUninstalled: (installedPackageNames: Set<String>) -> Unit = {}
+) {
     Column(Modifier.fillMaxSize()) {
         Surface(
             color = MaterialTheme.colorScheme.secondaryContainer,
@@ -656,28 +670,44 @@ private fun DashboardList(bannerText: String, items: List<DashboardItem>, contex
         // Uninstalled-apps hint — only shown when at least one listed app isn't on the device
         val uninstalledCount = items.count { !it.isInstalled }
         if (uninstalledCount > 0) {
+            val installedPackageNames = remember(items) {
+                items.filter { it.isInstalled }.map { it.packageName }.toHashSet()
+            }
             Surface(
                 color = MaterialTheme.colorScheme.tertiaryContainer,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Icon(
-                        Icons.Filled.Info,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
-                    Text(
-                        text = "$uninstalledCount app${if (uninstalledCount > 1) "s" else ""} shown " +
-                            "here ${if (uninstalledCount > 1) "aren't" else "isn't"} installed. " +
-                            "Go to Places to remove ${if (uninstalledCount > 1) "them" else "it"}.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.Info,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Text(
+                            text = "$uninstalledCount app${if (uninstalledCount > 1) "s" else ""} shown " +
+                                "here ${if (uninstalledCount > 1) "aren't" else "isn't"} installed. " +
+                                "Go to Places to remove ${if (uninstalledCount > 1) "them" else "it"}.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+                    TextButton(onClick = { onHideUninstalled(installedPackageNames) }) {
+                        Text(
+                            text = "Hide",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
                 }
             }
         }

@@ -275,7 +275,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(WidgetListR.id.narrow_refresh, buildRefreshPi(context, appWidgetId))
             views.setOnClickPendingIntent(WidgetListR.id.narrow_settings, buildLaunchAppPi(context, appWidgetId))
             // Reserve 20dp for the refresh button at the top
-            val iconCount = ((minHeightDp - 24) / 50).coerceIn(1, 8)
+            val iconCount = ((minHeightDp - 24) / 50).coerceIn(1, 14)
 
             runBlocking {
                 try {
@@ -984,11 +984,11 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
 
         /** How many item-rows fit in a grid widget of [heightDp] dp (header ~40dp, each compact row ~103dp). */
         private fun rowsPerColumn(heightDp: Int): Int =
-            ((heightDp - 40) / 105).coerceIn(1, 4)
+            ((heightDp - 40) / 105).coerceIn(1, 14)
 
         /** How many item-rows fit in a strip widget of [heightDp] dp (header ~30dp, each row ~42dp). */
         private fun rowsPerColumnStrip(heightDp: Int): Int =
-            ((heightDp - 30) / 42).coerceIn(1, 8)
+            ((heightDp - 30) / 42).coerceIn(1, 14)
 
         private data class WidgetDisplayItem(
             val packageName: String,
