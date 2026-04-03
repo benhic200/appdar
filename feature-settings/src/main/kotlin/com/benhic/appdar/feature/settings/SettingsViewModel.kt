@@ -91,8 +91,10 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    /** Clears the 30-day TTL so branch data re-downloads on next Dashboard/Nearby open. */
+    /** Wipes the local branch DB and TTL so the next Dashboard open does a full foreground re-download. */
     fun forceRedownloadBranchData() {
-        nearbyBranchFinder.clearCache()
+        viewModelScope.launch {
+            nearbyBranchFinder.clearCacheAndWipeDb()
+        }
     }
 }

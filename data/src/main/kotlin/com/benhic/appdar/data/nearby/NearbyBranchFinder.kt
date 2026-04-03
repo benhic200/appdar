@@ -310,6 +310,21 @@ class NearbyBranchFinder @Inject constructor(
         prefs.apply()
     }
 
+    /**
+     * Clears the TTL cache AND deletes all downloaded branch locations from the local DB.
+     *
+     * After this call [findNearestBranches] will follow the "DB empty" path and perform a
+     * foreground download (same as first launch), showing the progress indicator to the user.
+     *
+     * Use this for user-initiated "Force Re-download" so the dashboard always shows fresh
+     * data rather than serving stale results while quietly refreshing in the background.
+     */
+    suspend fun clearCacheAndWipeDb() {
+        clearCache()
+        withContext(Dispatchers.IO) { branchLocationDao.deleteAll() }
+        Log.i(TAG, "Branch DB wiped — next findNearestBranches will re-download")
+    }
+
     private fun isNetworkAvailable(): Boolean {
         val cm = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE)
                 as android.net.ConnectivityManager
@@ -412,11 +427,13 @@ class NearbyBranchFinder @Inject constructor(
         val nearestDist = mutableMapOf<String, Double>()
 
         for (branch in allBranches) {
-            if (branch.brandTag !in enabledBrandTags) continue
+            // Normalise curly apostrophe at read-time for rows stored before the parse-time fix.
+            val brandTag = branch.brandTag.replace('\u2019', '\'')
+            if (brandTag !in enabledBrandTags) continue
             val dist = haversineMeters(userLat, userLon, branch.lat, branch.lon)
-            if (dist < (nearestDist[branch.brandTag] ?: Double.MAX_VALUE)) {
-                nearest[branch.brandTag]     = branch.lat to branch.lon
-                nearestDist[branch.brandTag] = dist
+            if (dist < (nearestDist[brandTag] ?: Double.MAX_VALUE)) {
+                nearest[brandTag]     = branch.lat to branch.lon
+                nearestDist[brandTag] = dist
             }
         }
 
@@ -603,7 +620,12 @@ class NearbyBranchFinder @Inject constructor(
         for (i in 0 until elements.length()) {
             val el    = elements.getJSONObject(i)
             val tags  = el.optJSONObject("tags") ?: continue
-            val brand = tags.optString("brand").takeIf { it.isNotEmpty() } ?: continue
+            // Normalise curly/smart apostrophe (U+2019) → straight apostrophe (U+0027) so OSM
+            // tags like "Domino\u2019s" match the straight-quote strings in BRAND_TAGS.
+            val brand = tags.optString("brand")
+                .takeIf { it.isNotEmpty() }
+                ?.replace('\u2019', '\'')
+                ?: continue
             val (lat, lon) = when (el.getString("type")) {
                 "node" -> el.getDouble("lat") to el.getDouble("lon")
                 else   -> {
