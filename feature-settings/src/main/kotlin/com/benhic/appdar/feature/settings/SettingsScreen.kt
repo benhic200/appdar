@@ -79,6 +79,14 @@ private fun SettingsCards(
     viewModel: SettingsViewModel
 ) {
     // Detection Radius
+    val useKm = userPreferences.distanceUnit == DistanceUnit.KILOMETERS
+    val metersPerUnit = if (useKm) 1000f else 1609.344f
+    val unitLabel = if (useKm) "km" else "miles"
+    // Slider operates in the current unit (0.5 – 10), stored internally as meters
+    val sliderValue = (userPreferences.searchRadiusMeters / metersPerUnit).coerceIn(0.5f, 10f)
+    val displayValue = userPreferences.searchRadiusMeters / metersPerUnit
+    val displayText = if (displayValue % 1f == 0f) "${displayValue.toInt()} $unitLabel"
+                      else "%.1f $unitLabel".format(displayValue)
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -87,18 +95,19 @@ private fun SettingsCards(
             )
             Spacer(modifier = Modifier.padding(4.dp))
             Text(
-                text = "Show businesses within ${userPreferences.searchRadiusMeters} m of your location",
+                text = "Show businesses within $displayText of your location",
                 style = MaterialTheme.typography.bodyMedium
             )
             Slider(
-                value = userPreferences.searchRadiusMeters.toFloat(),
-                onValueChange = { viewModel.updateSearchRadius(it.toInt()) },
-                valueRange = 500f..10000f,
-                steps = 19, // 500 m increments
+                value = sliderValue,
+                onValueChange = { viewModel.updateSearchRadius((it * metersPerUnit).toInt()) },
+                valueRange = 0.5f..10f,
+                // 0.5 → 10 in 0.5 steps = 20 positions → 18 intermediate steps
+                steps = 18,
                 modifier = Modifier.fillMaxWidth()
             )
             Text(
-                text = "500 m – 10 km  (default 5 km)",
+                text = "0.5 $unitLabel – 10 $unitLabel  (default ${if (useKm) "5 km" else "~3 miles"})",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
