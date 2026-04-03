@@ -232,8 +232,15 @@ class NearbyBranchFinder @Inject constructor(
         /** Business names that are UK-only — hidden when the user is detected in the US. */
         val UK_BRAND_NAMES: Set<String> = UK_BRANDS.keys
 
-        /** Business names that are US-only — hidden when the user is detected in the UK. */
-        val US_BRAND_NAMES: Set<String> = US_BRANDS.keys
+        /**
+         * Business names that are US-only — hidden when the user is detected in the UK.
+         * Includes the "(US)" variant entries seeded for global brands that have separate
+         * UK and US app packages (e.g. "McDonald's (US)" uses com.mcdonalds.app rather
+         * than the UK package com.mcdonalds.app.uk).
+         */
+        val US_BRAND_NAMES: Set<String> = US_BRANDS.keys + setOf(
+            "McDonald's (US)", "Burger King (US)", "KFC (US)", "Domino's (US)"
+        )
     }
 
     /**
