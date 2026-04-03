@@ -670,8 +670,8 @@ private fun DashboardList(
         // Uninstalled-apps hint — only shown when at least one listed app isn't on the device
         val uninstalledCount = items.count { !it.isInstalled }
         if (uninstalledCount > 0) {
-            val installedPackageNames = remember(items) {
-                items.filter { it.isInstalled }.map { it.packageName }.toHashSet()
+            val uninstalledPackageNames = remember(items) {
+                items.filter { !it.isInstalled }.map { it.packageName }.toHashSet()
             }
             Surface(
                 color = MaterialTheme.colorScheme.tertiaryContainer,
@@ -701,7 +701,7 @@ private fun DashboardList(
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
                     }
-                    TextButton(onClick = { onHideUninstalled(installedPackageNames) }) {
+                    TextButton(onClick = { onHideUninstalled(uninstalledPackageNames) }) {
                         Text(
                             text = "Hide",
                             style = MaterialTheme.typography.labelSmall,

@@ -183,10 +183,10 @@ class AddBusinessViewModel @Inject constructor(
         viewModelScope.launch { repository.toggleEnabled(mapping) }
     }
 
-    fun disableUninstalled(installedPackageNames: Set<String>) {
+    fun disableUninstalled(uninstalledPackageNames: Set<String>) {
         viewModelScope.launch {
-            mappings.value
-                .filter { it.isEnabled && it.packageName !in installedPackageNames }
+            repository.getAllMappings().first()
+                .filter { it.isEnabled && it.packageName in uninstalledPackageNames }
                 .forEach { repository.toggleEnabled(it) }
         }
     }
