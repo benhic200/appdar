@@ -18,6 +18,7 @@ import com.benhic.appdar.feature.widget.NearbyAppsWidgetProviderNarrow
 import com.benhic.appdar.feature.widget.NearbyAppsWidgetProviderStrip
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -144,6 +145,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var billingManager: BillingManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         // Restore persisted Pro state, then verify with Play Store
@@ -176,7 +178,7 @@ class MainActivity : ComponentActivity() {
                 colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme()
             ) {
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().safeDrawingPadding(),
                     color = MaterialTheme.colorScheme.background
                 ) {
                     if (!onboardingComplete) {
