@@ -545,6 +545,34 @@ private fun SettingsCards(
             }
         }
     }
+
+    Spacer(modifier = Modifier.padding(8.dp))
+
+    // OpenStreetMap attribution
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Powered by OpenStreetMap", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.padding(4.dp))
+            Text(
+                text = "Branch location data is sourced from OpenStreetMap contributors. " +
+                       "OSM is a free, editable map of the world — if a location is wrong or missing, " +
+                       "anyone can fix it.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.padding(6.dp))
+            OutlinedButton(
+                onClick = {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse("https://www.openstreetmap.org"))
+                            .apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Visit OpenStreetMap.org")
+            }
+        }
+    }
 }
 
 private fun formatRefreshInterval(seconds: Int): String = when {
