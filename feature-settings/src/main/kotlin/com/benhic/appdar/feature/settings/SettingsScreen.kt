@@ -554,9 +554,9 @@ private fun SettingsCards(
             Text("Powered by OpenStreetMap", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.padding(4.dp))
             Text(
-                text = "Branch location data is sourced from OpenStreetMap contributors. " +
-                       "OSM is a free, editable map of the world — if a location is wrong or missing, " +
-                       "anyone can fix it.",
+                text = "A big thank you to OpenStreetMap and its contributors for making " +
+                       "branch location data freely available. OSM is a free, editable map " +
+                       "of the world — if a location is wrong or missing, anyone can fix it.",
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.padding(6.dp))
