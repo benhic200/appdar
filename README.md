@@ -150,6 +150,16 @@ Contributions are welcome, especially:
 
 ---
 
+## 🗺️ Powered by OpenStreetMap
+
+A big thank you to **[OpenStreetMap](https://www.openstreetmap.org)** and its contributors.
+Branch location data used by Appdar is sourced entirely from OSM — a free, collaborative map of the world built by volunteers.
+If a location is wrong or missing, anyone can [edit the map](https://www.openstreetmap.org/edit) and fix it.
+
+© OpenStreetMap contributors — data available under the [Open Database Licence](https://opendatacommons.org/licenses/odbl/).
+
+---
+
 ## 📄 Licence
 
 Distributed under the MIT Licence. See [`LICENSE`](LICENSE) for more information.
