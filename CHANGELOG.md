@@ -72,3 +72,7 @@ The rename card now appears on Home, Work, and Gym exactly the same as Custom Lo
 ## Version 132 (1.132) - 2026-04-05
 
 v132 release
+
+## Version 133 (1.133) - 2026-04-05
+
+AppDar release
