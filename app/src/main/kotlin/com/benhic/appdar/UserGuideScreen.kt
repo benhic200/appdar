@@ -52,6 +52,46 @@ fun UserGuideScreen() {
             )
         }
 
+        // ── Privacy & Safety ──────────────────────────────────────────────
+        GuideSection(title = "Privacy & Safety") {
+            GuideText(
+                "Appdar is designed to work entirely on your device. " +
+                "Your location is never sent to any server, never stored in a database, and never shared with anyone."
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            GuideSubheading("What does Appdar download?")
+            GuideText(
+                "The only thing Appdar ever downloads is a list of branch locations from OpenStreetMap — " +
+                "a free, publicly available map of the world. This is equivalent to downloading a map. " +
+                "It contains no personal information whatsoever. It downloads this once on first launch " +
+                "and refreshes automatically every 30 days."
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            GuideSubheading("How does it use your location?")
+            GuideBullet("Your phone checks your GPS coordinates.")
+            GuideBullet("It compares those coordinates against the branch list saved on your device.")
+            GuideBullet("It finds the nearest branch within your Detection Radius.")
+            GuideBullet("It updates the widget.")
+            Spacer(modifier = Modifier.height(4.dp))
+            GuideText("That's it — all on-device. No network call is made when you move around.")
+            Spacer(modifier = Modifier.height(8.dp))
+            GuideSubheading("What Appdar does and doesn't do")
+            GuidePermission("Uses your location on-device to find nearby shops",
+                "Your GPS position is used only for distance calculations — it never leaves your phone.")
+            GuidePermission("Downloads publicly available shop locations from OpenStreetMap",
+                "The branch list is open data, free for anyone to use and inspect.")
+            GuidePermission("Saves everything locally on your phone",
+                "The branch database, your preferences, and your profile locations are all stored on-device only.")
+            GuidePermission("Works offline after the initial download",
+                "Day-to-day use requires no internet connection.")
+            GuidePermission("Never sends your location to any server",
+                "No location data, movement history, or usage data is transmitted.")
+            GuidePermission("Never tracks your movements or history",
+                "Appdar does not log where you go or when.")
+            GuidePermission("Never shows ads or sells your data",
+                "The app is a one-time purchase with no advertising or data monetisation.")
+        }
+
         // ── Getting Started ────────────────────────────────────────────────
         GuideSection(title = "Getting Started") {
             GuideBullet("Grant location permission — tap Setup in the drawer and follow the steps.")
