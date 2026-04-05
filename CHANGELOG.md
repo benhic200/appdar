@@ -68,3 +68,7 @@ LaunchedEffect(Unit) triggers refresh() on every tab switch. With a cold cache, 
 
 9. Location‑profile rename cards (Home, Work, Gym)
 The rename card now appears on Home, Work, and Gym exactly the same as Custom Location 1 & 2. The nameKey DataStore key was already defined for all ProfileId values, and updateDisplayName() already handles all of them — this was purely a UI gate being removed. The name entered saves on tap of the checkmark, and profileName initialises with the current name (e.g. "Home", "Work", "Gym").
+
+## Version 132 (1.132) - 2026-04-05
+
+v132 release
