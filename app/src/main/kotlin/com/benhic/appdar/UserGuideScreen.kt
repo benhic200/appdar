@@ -55,7 +55,7 @@ fun UserGuideScreen() {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(520.dp)
+                    .height(700.dp)
             )
         }
 
