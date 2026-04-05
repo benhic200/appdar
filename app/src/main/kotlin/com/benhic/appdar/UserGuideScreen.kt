@@ -1,5 +1,7 @@
 package com.benhic.appdar
 
+import android.webkit.WebView
+import android.webkit.WebSettings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 
 @Composable
 fun UserGuideScreen() {
@@ -37,8 +40,27 @@ fun UserGuideScreen() {
         )
         Spacer(modifier = Modifier.height(4.dp))
 
+        // ── Interactive explainer ──────────────────────────────────────────
+        GuideSection(title = "How Appdar Works", defaultExpanded = true) {
+            AndroidView(
+                factory = { ctx ->
+                    WebView(ctx).apply {
+                        settings.javaScriptEnabled = true
+                        settings.loadWithOverviewMode = true
+                        settings.useWideViewPort = true
+                        settings.cacheMode = WebSettings.LOAD_NO_CACHE
+                        isVerticalScrollBarEnabled = false
+                        loadUrl("file:///android_asset/how_appdar_works.html")
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(520.dp)
+            )
+        }
+
         // ── What is Appdar? ────────────────────────────────────────────────
-        GuideSection(title = "What is Appdar?", defaultExpanded = true) {
+        GuideSection(title = "What is Appdar?", defaultExpanded = false) {
             GuideText(
                 "Appdar shows you the right apps for wherever you are. " +
                 "Walk past a Costa Coffee and the Costa app appears in the widget. " +
