@@ -76,3 +76,7 @@ v132 release
 ## Version 133 (1.133) - 2026-04-05
 
 AppDar release
+
+## Version 134 (1.134) - 2026-04-05
+
+AppDar release
