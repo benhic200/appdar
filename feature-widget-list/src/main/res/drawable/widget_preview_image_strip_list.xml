@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fallback previewImage for the Strip List (3×5) widget — shown on Android < 12 or when previewLayout fails.
+     Clearly shows the vertical list layout: icon + name side by side in rows. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="409dp"
+    android:viewportWidth="200"
+    android:viewportHeight="409">
+
+    <!-- Card background -->
+    <path
+        android:fillColor="#FF1C1A2E"
+        android:pathData="M8,0 L192,0 Q200,0 200,8 L200,401 Q200,409 192,409 L8,409 Q0,409 0,401 L0,8 Q0,0 8,0 Z" />
+
+    <!-- Row 1: icon + name + distance chip -->
+    <path android:fillColor="#FFCE93D8"
+        android:pathData="M12,14 m-14,0 a14,14 0,1,1 28,0 a14,14 0,1,1 -28,0" />
+    <path android:fillColor="#FFE8D5F5"
+        android:pathData="M34,8 L140,8 Q142,8 142,10 L142,16 Q142,18 140,18 L34,18 Q32,18 32,16 L32,10 Q32,8 34,8 Z" />
+    <path android:fillColor="#FF4A148C"
+        android:pathData="M148,8 L188,8 Q190,8 190,10 L190,18 Q190,20 188,20 L148,20 Q146,20 146,18 L146,10 Q146,8 148,8 Z" />
+
+    <!-- Row divider -->
+    <path android:fillColor="#33FFFFFF"
+        android:pathData="M8,26 L192,26 L192,27 L8,27 Z" />
+
+    <!-- Row 2 -->
+    <path android:fillColor="#FFBA68C8"
+        android:pathData="M12,41 m-14,0 a14,14 0,1,1 28,0 a14,14 0,1,1 -28,0" />
+    <path android:fillColor="#FFE8D5F5"
+        android:pathData="M34,35 L120,35 Q122,35 122,37 L122,43 Q122,45 120,45 L34,45 Q32,45 32,43 L32,37 Q32,35 34,35 Z" />
+    <path android:fillColor="#FF4A148C"
+        android:pathData="M128,35 L188,35 Q190,35 190,37 L190,45 Q190,47 188,47 L128,47 Q126,47 126,45 L126,37 Q126,35 128,35 Z" />
+
+    <!-- Row divider -->
+    <path android:fillColor="#33FFFFFF"
+        android:pathData="M8,53 L192,53 L192,54 L8,54 Z" />
+
+    <!-- Row 3 -->
+    <path android:fillColor="#FFCE93D8"
+        android:pathData="M12,68 m-14,0 a14,14 0,1,1 28,0 a14,14 0,1,1 -28,0" />
+    <path android:fillColor="#FFE8D5F5"
+        android:pathData="M34,62 L150,62 Q152,62 152,64 L152,70 Q152,72 150,72 L34,72 Q32,72 32,70 L32,64 Q32,62 34,62 Z" />
+    <path android:fillColor="#FF4A148C"
+        android:pathData="M158,62 L188,62 Q190,62 190,64 L190,72 Q190,74 188,74 L158,74 Q156,74 156,72 L156,64 Q156,62 158,62 Z" />
+
+    <!-- Row divider -->
+    <path android:fillColor="#33FFFFFF"
+        android:pathData="M8,80 L192,80 L192,81 L8,81 Z" />
+
+    <!-- Row 4 -->
+    <path android:fillColor="#FFBA68C8"
+        android:pathData="M12,95 m-14,0 a14,14 0,1,1 28,0 a14,14 0,1,1 -28,0" />
+    <path android:fillColor="#FFE8D5F5"
+        android:pathData="M34,89 L130,89 Q132,89 132,91 L132,97 Q132,99 130,99 L34,99 Q32,99 32,97 L32,91 Q32,89 34,89 Z" />
+    <path android:fillColor="#FF4A148C"
+        android:pathData="M138,89 L188,89 Q190,89 190,91 L190,99 Q190,101 188,101 L138,101 Q136,101 136,99 L136,91 Q136,89 138,89 Z" />
+
+    <!-- Row divider -->
+    <path android:fillColor="#33FFFFFF"
+        android:pathData="M8,107 L192,107 L192,108 L8,108 Z" />
+
+    <!-- Row 5 -->
+    <path android:fillColor="#FFE1BEE7"
+        android:pathData="M12,122 m-14,0 a14,14 0,1,1 28,0 a14,14 0,1,1 -28,0" />
+    <path android:fillColor="#FFBDBDBD"
+        android:pathData="M34,116 L110,116 Q112,116 112,118 L112,124 Q112,126 110,126 L34,126 Q32,126 32,124 L32,118 Q32,116 34,116 Z" />
+    <path android:fillColor="#FF4A148C"
+        android:pathData="M118,116 L188,116 Q190,116 190,118 L190,126 Q190,128 188,128 L118,128 Q116,128 116,126 L116,118 Q116,116 118,116 Z" />
+
+    <!-- Refresh icon top-right -->
+    <path android:fillColor="#FFCE93D8"
+        android:pathData="M180,4 L196,4 L196,20 L180,20 Z"
+        android:fillAlpha="0" />
+    <path android:fillColor="#FFCE93D8"
+        android:pathData="M186,6 Q194,6 194,14 Q194,22 186,22 Q181,22 178,18 L180,17 Q183,21 186,21 Q193,21 193,14 Q193,7 186,7 Q182,7 179,10 L181,10 L178,13 L175,10 L177,10 Q180,6 186,6 Z" />
+
+</vector>
