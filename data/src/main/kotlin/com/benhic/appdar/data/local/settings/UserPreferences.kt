@@ -20,7 +20,7 @@ data class UserPreferences(
     val enableGeocoding: Boolean = false,
     val enableLocationHistory: Boolean = true,
     /** Refresh interval in seconds. Dashboard uses exact value; widget clamps to ≥60s. */
-    val refreshIntervalSeconds: Int = 300,
+    val refreshIntervalSeconds: Int = 1,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val lowPowerMode: Boolean = false,
     val widgetTheme: WidgetTheme = WidgetTheme.SYSTEM,
@@ -98,7 +98,7 @@ fun Preferences.toUserPreferences(): UserPreferences = UserPreferences(
     // Migrate: old users have refreshIntervalMinutes (1–60), multiply by 60 to get seconds.
     // New users (or after first write) use REFRESH_INTERVAL_SECONDS directly.
     refreshIntervalSeconds = this[PreferencesKeys.REFRESH_INTERVAL_SECONDS]
-        ?: ((this[PreferencesKeys.REFRESH_INTERVAL_MINUTES] ?: 5) * 60),
+        ?: ((this[PreferencesKeys.REFRESH_INTERVAL_MINUTES] ?: 5) * 60).let { if (it == 300) 1 else it },
     themeMode = this[PreferencesKeys.THEME_MODE]?.let { modeString ->
         ThemeMode.values().find { it.name == modeString } ?: ThemeMode.SYSTEM
     } ?: ThemeMode.SYSTEM,
