@@ -403,8 +403,12 @@ private fun PlaceMappingCard(
                 )
             }
 
+            // All places get a toggle. Custom places also get a delete button.
+            Switch(
+                checked = mapping.isEnabled,
+                onCheckedChange = { onToggleEnabled() }
+            )
             if (mapping.isCustom) {
-                // User-added: show delete button
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Filled.Delete,
@@ -412,12 +416,6 @@ private fun PlaceMappingCard(
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
-            } else {
-                // Seeded place: show enabled/disabled toggle
-                Switch(
-                    checked = mapping.isEnabled,
-                    onCheckedChange = { onToggleEnabled() }
-                )
             }
         }
     }
