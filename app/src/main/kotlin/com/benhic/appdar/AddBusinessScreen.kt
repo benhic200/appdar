@@ -235,6 +235,9 @@ fun AddBusinessScreen(
     val uninstalledDisabledCount = remember(regionVisible, installedPackageNames) {
         regionVisible.count { !it.isEnabled && it.packageName !in installedPackageNames }
     }
+    val uninstalledMappingPackageNames = remember(regionVisible, installedPackageNames) {
+        regionVisible.filter { it.packageName !in installedPackageNames }.map { it.packageName }.toHashSet()
+    }
     val filtered = remember(regionVisible, searchQuery) {
         if (searchQuery.isBlank()) regionVisible
         else regionVisible.filter {
@@ -285,7 +288,7 @@ fun AddBusinessScreen(
                 val hidingMode = uninstalledEnabledCount > 0
                 OutlinedButton(
                     onClick = {
-                        if (hidingMode) viewModel.disableUninstalled(installedPackageNames)
+                        if (hidingMode) viewModel.disableUninstalled(uninstalledMappingPackageNames)
                         else viewModel.enableUninstalled(installedPackageNames)
                     },
                     enabled = hidingMode || uninstalledDisabledCount > 0,

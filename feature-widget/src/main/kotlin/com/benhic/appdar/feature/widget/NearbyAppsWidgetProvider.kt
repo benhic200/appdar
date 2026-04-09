@@ -156,10 +156,11 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         Log.d(TAG, "onUpdate called for widget IDs: ${appWidgetIds.joinToString()}")
-        // goAsync() keeps the BroadcastReceiver alive while we do the heavy work
-        // off the main thread, preventing the ANR that occurs when the Overpass
-        // mutex is held by the app and the widget blocks waiting for it.
+        // Release the goAsync() ANR watchdog immediately so Android doesn't show
+        // "not responding" on boot when location + DB initialisation can take >10 s.
+        // The actual update continues on an IO thread and pushes RemoteViews normally.
         val pending = goAsync()
+        pending.finish()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 for (appWidgetId in appWidgetIds) {
@@ -167,8 +168,6 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "onUpdate widget update failed", e)
-            } finally {
-                pending.finish()
             }
         }
     }
