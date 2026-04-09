@@ -17,7 +17,7 @@ object InitialDataset {
 
         // ── UK Supermarkets ───────────────────────────────────────────────────
         createMapping("Tesco",        "com.tesco.grocery.view",         "Tesco",             "supermarket"),
-        createMapping("Sainsbury's",  "com.sainsburys.gol",             "Sainsbury's",       "supermarket"),
+        createMapping("Sainsbury's",  "com.ga.loyalty.android.nectar.activities", "Sainsbury's Nectar", "supermarket"),
         createMapping("Asda",         "com.asda.android",               "Asda Groceries",    "supermarket"),
         createMapping("Morrisons",    "com.morrisons.atm.mobile.android","Morrisons Grocery", "supermarket"),
         createMapping("Aldi",         "de.apptiv.business.android.aldi_uk","Aldi Offers",    "supermarket"),
