@@ -83,13 +83,25 @@ object DatabaseInitializer {
             if (updatedCount > 0) {
                 Log.d(TAG, "Updated $updatedCount package names")
             }
-            // Insert any new entries added since the user first installed
-            val newEntries = allDataset.filter { dao.getByPackageName(it.packageName) == null }
-            if (newEntries.isNotEmpty()) {
-                Log.d(TAG, "Inserting ${newEntries.size} new dataset entries")
-                dao.insertAll(newEntries)
-            } else {
-                Log.d(TAG, "No new dataset entries to insert")
+            // Insert any new entries added since the user first installed.
+            // Also promote custom entries to seeded entries if the dataset now contains them —
+            // this happens when a user manually added a place that was later added to the dataset.
+            for (datasetMapping in allDataset) {
+                val existing = dao.getByPackageName(datasetMapping.packageName)
+                if (existing == null) {
+                    Log.d(TAG, "Inserting new dataset entry: ${datasetMapping.businessName}")
+                    dao.insert(datasetMapping)
+                } else if (existing.isCustom) {
+                    // Promote: user-added entry that is now in the dataset — clear isCustom
+                    // while preserving the user's isEnabled preference.
+                    dao.update(existing.copy(
+                        isCustom = false,
+                        businessName = datasetMapping.businessName,
+                        appName = datasetMapping.appName,
+                        category = datasetMapping.category
+                    ))
+                    Log.d(TAG, "Promoted custom entry to seeded: ${datasetMapping.businessName}")
+                }
             }
         }
     }

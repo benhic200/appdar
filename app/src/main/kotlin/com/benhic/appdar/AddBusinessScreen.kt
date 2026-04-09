@@ -403,11 +403,7 @@ private fun PlaceMappingCard(
                 )
             }
 
-            // All places get a toggle. Custom places also get a delete button.
-            Switch(
-                checked = mapping.isEnabled,
-                onCheckedChange = { onToggleEnabled() }
-            )
+            // Custom places get a delete button to the left of the toggle.
             if (mapping.isCustom) {
                 IconButton(onClick = onDelete) {
                     Icon(
@@ -417,6 +413,11 @@ private fun PlaceMappingCard(
                     )
                 }
             }
+            // All places get a toggle.
+            Switch(
+                checked = mapping.isEnabled,
+                onCheckedChange = { onToggleEnabled() }
+            )
         }
     }
 }
