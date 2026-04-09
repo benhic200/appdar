@@ -211,7 +211,18 @@ class DashboardViewModel @Inject constructor(
                 // Rebuild from branch cache — findNearestBranches hits the local DB (no network
                 // call unless the 30-day TTL has expired), so this is effectively instant.
                 businessAppRepository.initialize()
-                val mappings = businessAppRepository.getAllMappings().first().filter { it.isEnabled }
+                val region = nearbyBranchFinder.detectRegion(location.latitude, location.longitude)
+                val mappings = businessAppRepository.getAllMappings().first()
+                    .filter { it.isEnabled }
+                    .filter { m ->
+                        when (region) {
+                            NearbyBranchFinder.Region.UK ->
+                                m.isCustom || m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                            NearbyBranchFinder.Region.US ->
+                                m.isCustom || m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                            NearbyBranchFinder.Region.UNKNOWN -> true
+                        }
+                    }
                 val branches = nearbyBranchFinder.findNearestBranches(location.latitude, location.longitude)
                 if (branches.isEmpty()) return@launch  // offline — keep showing current list
 
@@ -299,7 +310,18 @@ class DashboardViewModel @Inject constructor(
                 // If another coroutine is already fetching, this call waits for the mutex
                 // and then cache-hits — no duplicate network call.
                 businessAppRepository.initialize()
-                val mappings = businessAppRepository.getAllMappings().first().filter { it.isEnabled }
+                val region = nearbyBranchFinder.detectRegion(location.latitude, location.longitude)
+                val mappings = businessAppRepository.getAllMappings().first()
+                    .filter { it.isEnabled }
+                    .filter { m ->
+                        when (region) {
+                            NearbyBranchFinder.Region.UK ->
+                                m.isCustom || m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                            NearbyBranchFinder.Region.US ->
+                                m.isCustom || m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                            NearbyBranchFinder.Region.UNKNOWN -> true
+                        }
+                    }
 
                 nearbyBranchFinder.markLoading()
                 val branches = nearbyBranchFinder.findNearestBranches(location.latitude, location.longitude)

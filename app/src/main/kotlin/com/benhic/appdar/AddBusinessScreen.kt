@@ -1,6 +1,7 @@
 package com.benhic.appdar
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -186,7 +187,7 @@ class AddBusinessViewModel @Inject constructor(
     fun disableUninstalled(uninstalledPackageNames: Set<String>) {
         viewModelScope.launch {
             repository.getAllMappings().first()
-                .filter { it.isEnabled && it.packageName in uninstalledPackageNames }
+                .filter { it.isEnabled && it.packageName in uninstalledPackageNames && !isActuallyInstalled(it.packageName) }
                 .forEach { repository.toggleEnabled(it) }
         }
     }
@@ -194,10 +195,15 @@ class AddBusinessViewModel @Inject constructor(
     fun enableUninstalled(installedPackageNames: Set<String>) {
         viewModelScope.launch {
             mappings.value
-                .filter { !it.isEnabled && it.packageName !in installedPackageNames }
+                .filter { !it.isEnabled && it.packageName !in installedPackageNames && !isActuallyInstalled(it.packageName) }
                 .forEach { repository.toggleEnabled(it) }
         }
     }
+
+    private fun isActuallyInstalled(packageName: String): Boolean = try {
+        context.packageManager.getPackageInfo(packageName, PackageManager.MATCH_ALL)
+        true
+    } catch (_: PackageManager.NameNotFoundException) { false }
 }
 
 @Composable
