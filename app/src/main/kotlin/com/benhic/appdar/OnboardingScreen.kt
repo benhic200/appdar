@@ -1,5 +1,6 @@
 package com.benhic.appdar
 
+import android.location.LocationManager
 import android.os.Build
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -23,6 +24,10 @@ import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.benhic.appdar.data.local.settings.RegionPreference
+import com.benhic.appdar.feature.settings.RegionDropdown
+import com.benhic.appdar.feature.settings.SettingsViewModel
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -45,7 +50,8 @@ fun OnboardingScreen(
     onComplete: () -> Unit
 ) {
     var step by remember { mutableStateOf(0) }
-    val totalSteps = 5
+    val totalSteps = 6
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
 
     val steps = listOf(
         OnboardingStep(
@@ -65,6 +71,12 @@ fun OnboardingScreen(
             title = "Keep Appdar Running"
         ) {
             BatteryStepContent(onOpenAppSettings, onOpenBatterySettings)
+        },
+        OnboardingStep(
+            icon = Icons.Filled.LocationOn,
+            title = "Your Region"
+        ) {
+            RegionStepContent(settingsViewModel)
         },
         OnboardingStep(
             icon = Icons.Filled.Widgets,
@@ -421,6 +433,66 @@ private fun DoneStepContent() {
         Text(
             text = "Access this guide any time from the drawer → Guide.",
             style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun RegionStepContent(settingsViewModel: SettingsViewModel) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var selected by remember { mutableStateOf(RegionPreference.AUTO) }
+
+    // Auto-detect from last known location and pre-select the dropdown
+    LaunchedEffect(Unit) {
+        val lm = context.getSystemService(LocationManager::class.java)
+        val loc = lm?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            ?: lm?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+        if (loc != null) {
+            val detected = when {
+                loc.latitude in 49.5..61.0 && loc.longitude in -11.0..2.0   -> RegionPreference.UK
+                loc.latitude in 24.0..49.5 && loc.longitude in -125.0..-66.0 -> RegionPreference.US
+                else -> RegionPreference.AUTO
+            }
+            selected = detected
+            settingsViewModel.updateRegionPreference(detected)
+        }
+    }
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = "Tell Appdar where you are so it can show the right brands and download the correct map data.",
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        RegionDropdown(
+            selected = selected,
+            onSelect = { pref ->
+                selected = pref
+                settingsViewModel.updateRegionPreference(pref)
+            }
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "Currently available in UK+Ireland and US only. More regions coming soon.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "You can change this any time in Settings → Region.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
     }

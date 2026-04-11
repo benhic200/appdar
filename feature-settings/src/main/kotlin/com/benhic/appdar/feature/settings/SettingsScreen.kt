@@ -31,10 +31,16 @@ import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -160,46 +166,28 @@ private fun SettingsCards(
             )
             Spacer(modifier = Modifier.padding(4.dp))
             Text(
-                text = when (userPreferences.regionPreference) {
-                    RegionPreference.AUTO -> "Auto-detect from GPS"
-                    RegionPreference.UK   -> "UK & Ireland"
-                    RegionPreference.US   -> "United States"
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.padding(4.dp))
-            Text(
                 text = "Controls which brands appear in Places and which branch data is downloaded. " +
                     "Auto-detect switches automatically when you travel between UK and US.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.padding(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            RegionDropdown(
+                selected = userPreferences.regionPreference,
+                onSelect = { viewModel.updateRegionPreference(it) }
+            )
+            Spacer(modifier = Modifier.padding(4.dp))
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
             ) {
-                listOf(
-                    RegionPreference.AUTO to "Auto",
-                    RegionPreference.UK   to "UK & IE",
-                    RegionPreference.US   to "US"
-                ).forEach { (pref, label) ->
-                    val selected = userPreferences.regionPreference == pref
-                    if (selected) {
-                        Button(
-                            onClick = { viewModel.updateRegionPreference(pref) },
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
-                        ) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis, softWrap = false) }
-                    } else {
-                        OutlinedButton(
-                            onClick = { viewModel.updateRegionPreference(pref) },
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
-                        ) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis, softWrap = false) }
-                    }
-                }
+                Text(
+                    text = "Currently available in UK+Ireland and US only. More regions coming soon.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                )
             }
         }
     }
@@ -612,6 +600,54 @@ fun SettingsScreen(
                 .padding(16.dp)
         ) {
             SettingsCards(userPreferences = userPreferences, viewModel = viewModel)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RegionDropdown(
+    selected: com.benhic.appdar.data.local.settings.RegionPreference,
+    onSelect: (com.benhic.appdar.data.local.settings.RegionPreference) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val options = listOf(
+        com.benhic.appdar.data.local.settings.RegionPreference.AUTO to "Auto-detect from GPS",
+        com.benhic.appdar.data.local.settings.RegionPreference.UK   to "UK & Ireland",
+        com.benhic.appdar.data.local.settings.RegionPreference.US   to "United States"
+    )
+    var expanded by remember { mutableStateOf(false) }
+    val selectedLabel = options.firstOrNull { it.first == selected }?.second ?: "Auto-detect from GPS"
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = selectedLabel,
+            onValueChange = {},
+            readOnly = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { (pref, label) ->
+                DropdownMenuItem(
+                    text = { Text(label) },
+                    onClick = {
+                        onSelect(pref)
+                        expanded = false
+                    },
+                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                )
+            }
         }
     }
 }
