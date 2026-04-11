@@ -229,7 +229,8 @@ fun AddBusinessScreen(
                     m.isCustom || m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
                 NearbyBranchFinder.Region.US ->
                     m.isCustom || m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                NearbyBranchFinder.Region.UNKNOWN -> true
+                NearbyBranchFinder.Region.UNKNOWN ->
+                    m.isCustom || m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
             }
         }
     }

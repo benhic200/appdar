@@ -328,6 +328,12 @@ fun TabbedAppScreen(
         drawerContent = {
             ModalDrawerSheet {
                 Column(modifier = Modifier.fillMaxHeight()) {
+                    // Scrollable nav items — weight(1f) so Pro button is always visible below
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                    ) {
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // ── FREE section ──────────────────────────────────────────
@@ -457,9 +463,7 @@ fun TabbedAppScreen(
                             coroutineScope.launch { drawerState.close() }
                         }
                     )
-
-                    // Push upgrade bar to bottom
-                    Spacer(modifier = Modifier.weight(1f))
+                    } // end scrollable Column
 
                     // ── Persistent upgrade bar (hidden once user is Pro) ───────
                     if (!isPro) {

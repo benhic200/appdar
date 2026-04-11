@@ -82,25 +82,25 @@ object InitialDataset {
         createMapping("BP",            "com.bp.android.bpme",           "BPme",              "fuel"),
         createMapping("Shell",         "com.shell.android",              "Shell Go+",         "fuel"),
 
-        // ── US Supermarkets & Retail ──────────────────────────────────────────
-        createMapping("Walmart",       "com.walmart.android",            "Walmart",           "supermarket"),
-        createMapping("Target",       "com.target.ui",                  "Target",            "retail"),
-        createMapping("Costco",       "com.costco.mobileapp",           "Costco",            "supermarket"),
-        createMapping("Whole Foods",  "com.amazon.wholefoods",          "Whole Foods",       "supermarket"),
-        createMapping("Walgreens",    "com.walgreens",                  "Walgreens",         "pharmacy"),
-        createMapping("CVS",          "com.cvs.launchers.cvs",          "CVS Pharmacy",      "pharmacy"),
+        // ── US Supermarkets & Retail (disabled by default — UK users won't see these) ──
+        createMapping("Walmart",       "com.walmart.android",            "Walmart",           "supermarket", isEnabled = false),
+        createMapping("Target",       "com.target.ui",                  "Target",            "retail",       isEnabled = false),
+        createMapping("Costco",       "com.costco.mobileapp",           "Costco",            "supermarket",  isEnabled = false),
+        createMapping("Whole Foods",  "com.amazon.wholefoods",          "Whole Foods",       "supermarket",  isEnabled = false),
+        createMapping("Walgreens",    "com.walgreens",                  "Walgreens",         "pharmacy",     isEnabled = false),
+        createMapping("CVS",          "com.cvs.launchers.cvs",          "CVS Pharmacy",      "pharmacy",     isEnabled = false),
 
-        // ── US Fast Food & Coffee ─────────────────────────────────────────────
-        createMapping("McDonald's (US)",  "com.mcdonalds.app",              "McDonald's",    "fast_food"),
-        createMapping("Burger King (US)", "com.emn8.mobilem8.nativeapp.bk", "Burger King",   "fast_food"),
-        createMapping("KFC (US)",         "com.yum.kfc",                    "KFC",           "fast_food"),
-        createMapping("Taco Bell",        "com.tacobell.android.activity",  "Taco Bell",     "fast_food"),
-        createMapping("Chipotle",         "com.chipotle.mobile",            "Chipotle",      "fast_food"),
-        createMapping("Chick-fil-A",      "com.chickfila.cfaone",           "Chick-fil-A",   "fast_food"),
-        createMapping("Dunkin'",          "com.dunkindonuts.mobile",        "Dunkin'",       "coffee"),
-        createMapping("Panera Bread",     "com.panerabread.app",            "Panera Bread",  "fast_food"),
-        createMapping("Shake Shack",      "com.shackshack.app",             "Shake Shack",   "fast_food"),
-        createMapping("Domino's (US)",    "com.dominospizza",               "Domino's",      "fast_food")
+        // ── US Fast Food & Coffee (disabled by default) ───────────────────────
+        createMapping("McDonald's (US)",  "com.mcdonalds.app",              "McDonald's",    "fast_food",  isEnabled = false),
+        createMapping("Burger King (US)", "com.emn8.mobilem8.nativeapp.bk", "Burger King",   "fast_food",  isEnabled = false),
+        createMapping("KFC (US)",         "com.yum.kfc",                    "KFC",           "fast_food",  isEnabled = false),
+        createMapping("Taco Bell",        "com.tacobell.android.activity",  "Taco Bell",     "fast_food",  isEnabled = false),
+        createMapping("Chipotle",         "com.chipotle.mobile",            "Chipotle",      "fast_food",  isEnabled = false),
+        createMapping("Chick-fil-A",      "com.chickfila.cfaone",           "Chick-fil-A",   "fast_food",  isEnabled = false),
+        createMapping("Dunkin'",          "com.dunkindonuts.mobile",        "Dunkin'",       "coffee",     isEnabled = false),
+        createMapping("Panera Bread",     "com.panerabread.app",            "Panera Bread",  "fast_food",  isEnabled = false),
+        createMapping("Shake Shack",      "com.shackshack.app",             "Shake Shack",   "fast_food",  isEnabled = false),
+        createMapping("Domino's (US)",    "com.dominospizza",               "Domino's",      "fast_food",  isEnabled = false)
 
     )
 
@@ -108,12 +108,14 @@ object InitialDataset {
         businessName: String,
         packageName: String,
         appName: String,
-        category: String
+        category: String,
+        isEnabled: Boolean = true
     ): BusinessAppMapping = BusinessAppMapping(
         businessName = businessName,
         packageName = packageName,
         appName = appName,
         category = category,
+        isEnabled = isEnabled,
         latitude = null,
         longitude = null,
         geofenceRadius = 200,

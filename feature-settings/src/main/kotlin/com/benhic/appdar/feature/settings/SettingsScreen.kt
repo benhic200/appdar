@@ -11,6 +11,7 @@ import coil.decode.ImageDecoderDecoder
 import coil.request.ImageRequest
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -50,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import android.content.Intent
@@ -187,13 +189,15 @@ private fun SettingsCards(
                     if (selected) {
                         Button(
                             onClick = { viewModel.updateRegionPreference(pref) },
-                            modifier = Modifier.weight(1f)
-                        ) { Text(label) }
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                        ) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis, softWrap = false) }
                     } else {
                         OutlinedButton(
                             onClick = { viewModel.updateRegionPreference(pref) },
-                            modifier = Modifier.weight(1f)
-                        ) { Text(label) }
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                        ) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis, softWrap = false) }
                     }
                 }
             }
@@ -377,13 +381,15 @@ private fun SettingsCards(
                     if (selected) {
                         Button(
                             onClick = { viewModel.updateThemeMode(mode) },
-                            modifier = Modifier.weight(1f)
-                        ) { Text(label) }
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                        ) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis, softWrap = false) }
                     } else {
                         OutlinedButton(
                             onClick = { viewModel.updateThemeMode(mode) },
-                            modifier = Modifier.weight(1f)
-                        ) { Text(label) }
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                        ) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis, softWrap = false) }
                     }
                 }
             }
@@ -419,13 +425,15 @@ private fun SettingsCards(
                     if (selected) {
                         Button(
                             onClick = { viewModel.updateWidgetTheme(mode) },
-                            modifier = Modifier.weight(1f)
-                        ) { Text(label) }
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                        ) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis, softWrap = false) }
                     } else {
                         OutlinedButton(
                             onClick = { viewModel.updateWidgetTheme(mode) },
-                            modifier = Modifier.weight(1f)
-                        ) { Text(label) }
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                        ) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis, softWrap = false) }
                     }
                 }
             }
