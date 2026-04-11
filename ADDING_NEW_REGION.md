@@ -1,141 +1,224 @@
-# Adding a New Country/Region
+# Adding a New Country / Region
 
-This documents the exact steps required to add support for a new country (e.g. Australia, Canada, Germany).
-The architecture is already designed for this — it is a ~50 line change, mostly data.
+The region architecture supports an arbitrary number of regions. Adding one is a
+~60-line change across 7 files, mostly data. Two validation scripts help you
+verify brand tags and app packages before shipping.
 
 ---
 
-## Files to change
+## How the region model works
 
-### 1. `data/src/main/kotlin/com/benhic/appdar/data/nearby/NearbyBranchFinder.kt`
+Each region has:
+- A **`Region` enum entry** with a GPS bounding box (used by Overpass and `detectRegion`)
+- A **brand map** (e.g. `AU_BRANDS`) mapping business name → OSM `brand=` tag
+- An **exclusive brand name set** automatically computed as:
+  ```
+  AU_BRAND_NAMES = AU_BRANDS.keys − UK_BRANDS.keys − US_BRANDS.keys − NZ_BRANDS.keys
+  ```
+  Brands present in **multiple** regional maps are excluded from all exclusive sets
+  so they show up wherever they have real locations (e.g. Bunnings is in both AU and NZ).
 
-**a) Add a new `Region` enum entry** with an Overpass bounding box (format: `minLat,minLon,maxLat,maxLon`):
+The Places card and Dashboard filter each show a brand if it is:
+- A custom place (always shown), OR
+- **Not** in the exclusive set of any other region
 
+This means truly UK-only brands never appear for AU users, and a brand like
+Costco (UK + US) appears for both.
+
+---
+
+## Currently supported regions
+
+| Enum  | Preference | Display name | Bbox (minLat,minLon,maxLat,maxLon) |
+|-------|-----------|--------------|-------------------------------------|
+| UK    | UK        | UK & Ireland | 49.5,-11.0,61.0,2.0                 |
+| US    | US        | United States | 24.0,-125.0,49.5,-66.0             |
+| AU    | AU        | Australia    | -43.6,113.3,-10.0,153.6             |
+| NZ    | NZ        | New Zealand  | -47.4,166.4,-34.4,178.6             |
+
+---
+
+## Files to change (example: adding Canada — `CA`)
+
+### 1. `data/…/NearbyBranchFinder.kt`
+
+**a) Add enum entry:**
 ```kotlin
-enum class Region(val displayName: String, val bbox: String) {
-    UK("UK",          "49.5,-11.0,61.0,2.0"),
-    US("US",          "24.0,-125.0,49.5,-66.0"),
-    AU("Australia",   "-43.6,113.3,-10.0,153.6"),  // ← new
-    UNKNOWN("Unknown", "49.5,-11.0,61.0,2.0")
-}
+CA("Canada", "41.7,-95.0,83.1,-52.6"),
 ```
 
-**b) Extend `detectRegion()`** with a GPS coordinate check for the new region:
-
+**b) Extend `detectRegion()`:**
 ```kotlin
-fun detectRegion(lat: Double, lon: Double): Region = when {
-    lat in 49.5..61.0  && lon in -11.0..2.0    -> Region.UK
-    lat in 24.0..49.5  && lon in -125.0..-66.0  -> Region.US
-    lat in -43.6..-10.0 && lon in 113.3..153.6  -> Region.AU  // ← new
-    else -> Region.UNKNOWN
-}
+lat in 41.7..83.1 && lon in -95.0..-52.6 -> Region.CA
 ```
 
-**c) Add a brand map** for the new region and merge it into `BRAND_TAGS`:
-
+**c) Add brand map:**
 ```kotlin
-private val AU_BRANDS = mapOf(
-    "Woolworths" to "Woolworths",
-    "Coles"      to "Coles",
-    // ... add more
+private val CA_BRANDS = mapOf(
+    "Tim Hortons"   to "Tim Hortons",
+    "Canadian Tire" to "Canadian Tire",
+    "Loblaws"       to "Loblaws",
+    // ...
 )
-
-val BRAND_TAGS: Map<String, String> = UK_BRANDS + US_BRANDS + AU_BRANDS + GLOBAL_BRANDS
-val AU_BRAND_NAMES: Set<String> = AU_BRANDS.keys
 ```
 
-**d) Bump `BRAND_DB_VERSION`** so existing users automatically re-download on the next app update:
+**d) Update `BRAND_TAGS` and exclusive sets:**
+```kotlin
+val BRAND_TAGS = UK_BRANDS + US_BRANDS + AU_BRANDS + NZ_BRANDS + CA_BRANDS + GLOBAL_BRANDS
+
+val UK_BRAND_NAMES = UK_BRANDS.keys - US_BRANDS.keys - AU_BRANDS.keys - NZ_BRANDS.keys - CA_BRANDS.keys
+val US_BRAND_NAMES = (US_BRANDS.keys - UK_BRANDS.keys - AU_BRANDS.keys - NZ_BRANDS.keys - CA_BRANDS.keys) + setOf(...)
+val AU_BRAND_NAMES = AU_BRANDS.keys - UK_BRANDS.keys - US_BRANDS.keys - NZ_BRANDS.keys - CA_BRANDS.keys
+val NZ_BRAND_NAMES = NZ_BRANDS.keys - UK_BRANDS.keys - US_BRANDS.keys - AU_BRANDS.keys - CA_BRANDS.keys
+val CA_BRAND_NAMES = CA_BRANDS.keys - UK_BRANDS.keys - US_BRANDS.keys - AU_BRANDS.keys - NZ_BRANDS.keys
+```
+
+**e) Extend `resolveRegion()`:**
+```kotlin
+RegionPreference.CA -> Region.CA
+```
+
+**f) Bump `BRAND_DB_VERSION`** so existing users re-download:
+```kotlin
+private const val BRAND_DB_VERSION = 6  // was 5
+```
+
+---
+
+### 2. `data/…/settings/UserPreferences.kt`
 
 ```kotlin
-private const val BRAND_DB_VERSION = 3  // was 2
+enum class RegionPreference { AUTO, UK, US, AU, NZ, CA }
 ```
 
 ---
 
-### 2. `data/src/main/kotlin/com/benhic/appdar/data/local/settings/UserPreferences.kt`
+### 3. `app/…/AddBusinessScreen.kt`
 
-Add the new option to `RegionPreference`:
-
+**a) ViewModel pref→Region mapping (in `init {}`):**
 ```kotlin
-enum class RegionPreference {
-    AUTO,
-    UK,
-    US,
-    AU   // ← new
-}
+RegionPreference.CA -> NearbyBranchFinder.Region.CA
 ```
 
----
-
-### 3. `data/src/main/kotlin/com/benhic/appdar/data/nearby/NearbyBranchFinder.kt` — `resolveRegion()`
-
-Add a `when` branch for the new preference:
-
+**b) `regionVisible` filter — add a `Region.CA` branch and update all others to also
+exclude `NZ_BRAND_NAMES`:**
 ```kotlin
-suspend fun resolveRegion(userLat: Double, userLon: Double): Region {
-    return when (settingsRepository.getCurrentPreferences().regionPreference) {
-        RegionPreference.UK   -> Region.UK
-        RegionPreference.US   -> Region.US
-        RegionPreference.AU   -> Region.AU   // ← new
-        RegionPreference.AUTO -> detectRegion(userLat, userLon)
-    }
-}
+NearbyBranchFinder.Region.CA ->
+    m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+               && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
 ```
+Also add `&& m.businessName !in NearbyBranchFinder.CA_BRAND_NAMES` to every other
+`Region.XX` branch (UK, US, AU, NZ, UNKNOWN).
 
 ---
 
-### 4. `feature-settings/src/main/kotlin/com/benhic/appdar/feature/settings/SettingsScreen.kt`
+### 4. `app/…/DashboardTab.kt`
 
-Add a new button to the Region card (the three-button row becomes four):
+Identical filter pattern as step 3, applied in **both** `refresh()` and
+`silentRefresh()`. Add `Region.CA` case and extend all others.
 
+---
+
+### 5. `feature-settings/…/SettingsScreen.kt`
+
+**a) `RegionDropdown` options list:**
 ```kotlin
-listOf(
-    RegionPreference.AUTO to "Auto",
-    RegionPreference.UK   to "UK & IE",
-    RegionPreference.US   to "US",
-    RegionPreference.AU   to "AU"    // ← new
-).forEach { ... }
+RegionPreference.CA to "Canada",
+```
+
+**b) Update the availability notice** (search for "coming soon"):
+```kotlin
+"Currently available in UK+Ireland, US, Australia, New Zealand, and Canada. ..."
 ```
 
 ---
 
-### 5. `feature-settings/src/main/kotlin/com/benhic/appdar/feature/settings/SettingsViewModel.kt`
+### 6. `app/…/OnboardingScreen.kt`
 
-`updateRegionPreference()` requires no changes — it already handles any `RegionPreference` value generically.
+**a) Auto-detect in `RegionStepContent`:**
+```kotlin
+loc.latitude in 41.7..83.1 && loc.longitude in -95.0..-52.6 -> RegionPreference.CA
+```
+
+**b) Update the availability notice** (same string as step 5b).
 
 ---
 
-### 6. `app/src/main/kotlin/com/benhic/appdar/AddBusinessScreen.kt` (Places list)
+### 7. `data/…/InitialDataset.kt`
 
-Add the new region's brand names to the Places filter so they show up when the user is in that region.
-Follow the same pattern as `UK_BRAND_NAMES` / `US_BRAND_NAMES` filtering that is already in place.
+Add `createMapping(...)` entries for each CA brand with `isEnabled = false`
+(so UK/US users don't see them until they switch region or are auto-detected):
+```kotlin
+// ── Canada ──────────────────────────────────────────────────────────────────
+createMapping("Tim Hortons",   "com.timhortons.timapp",        "Tim Hortons",   "coffee", isEnabled = false),
+createMapping("Canadian Tire", "com.canadiantire.consumer.android","Canadian Tire","retail",isEnabled = false),
+```
 
 ---
 
 ## What works automatically (no changes needed)
 
-- Overpass download, chunked group queries, and retry logic
+- Overpass download with regional bbox — only returns branches in that area
 - Per-region DB TTL and 30-day background refresh
 - Border-crossing detection and background re-download
-- `clearCache()` and force re-download from Settings
-- The `UNKNOWN` region fallback (currently falls back to UK bbox — acceptable)
+- `clearCache()` force re-download from Settings
+- `UNKNOWN` region fallback (defaults to UK behaviour)
 
 ---
 
-## Optional follow-up (non-blocking)
+## Verification scripts
 
-- Update `UserGuideScreen.kt` Settings Reference to mention the new region option
-- If the new region has brands that overlap with GLOBAL_BRANDS, no action needed —
-  global brands already download into every region's bbox automatically
+Two scripts in `scripts/` help validate brand data before shipping.
+Both scripts auto-discover data from the source files — no manual list needed.
+
+### Check app package names against Play Store
+```bash
+cd /path/to/phase1
+./scripts/check_packages.sh
+```
+Reads `InitialDataset.kt`, hits each Play Store URL, and reports which
+packages return 404. Note: region-locked apps (e.g. AU-only) may return
+404 when checked from a non-AU server — this is expected.
+
+### Check OSM brand tags via Overpass
+```bash
+cd /path/to/phase1
+./scripts/check_osm_brands.sh [REGION]   # e.g. AU or NZ; omit for all
+```
+Reads `NearbyBranchFinder.kt`, queries Overpass for each brand tag within
+its region bbox, and reports any that return 0 nodes (likely wrong tag).
 
 ---
 
-## Finding OSM brand tags for a new region
+## Finding correct OSM brand tags
 
-Before adding a brand, verify its exact `brand=` tag on OpenStreetMap:
-1. Search for a known location on openstreetmap.org
-2. Click the node/way → check the `brand` tag value
-3. Use that exact string (case-sensitive) as the map value in the brand map
+1. Open [openstreetmap.org](https://www.openstreetmap.org) and search for a
+   known branch (e.g. "Woolworths Sydney")
+2. Click the node/way → inspect the `brand=` tag value
+3. Use that **exact string** (case-sensitive) in the brand map
 
-The `validateAndResolveBrandName()` function in `NearbyBranchFinder` can also be used
-interactively via the Add Places screen to test whether a tag resolves correctly.
+The `validateAndResolveBrandName()` function in `NearbyBranchFinder` also
+resolves tags interactively via the Add Places screen.
+
+---
+
+## Checklist for a new region
+
+- [ ] `Region` enum entry + bbox
+- [ ] `detectRegion()` GPS check
+- [ ] `resolveRegion()` preference branch
+- [ ] `XX_BRANDS` map (verify OSM tags with `check_osm_brands.sh`)
+- [ ] `BRAND_TAGS` updated
+- [ ] All `XX_BRAND_NAMES` sets updated (subtract new region from each existing one too)
+- [ ] `BRAND_DB_VERSION` bumped
+- [ ] `RegionPreference` enum entry
+- [ ] `AddBusinessScreen` ViewModel mapping + `regionVisible` filter updated
+- [ ] `DashboardTab` both filter blocks updated
+- [ ] `RegionDropdown` options updated
+- [ ] Onboarding auto-detect updated
+- [ ] Availability notice updated (both `SettingsScreen` and `OnboardingScreen`)
+- [ ] `InitialDataset` entries added with `isEnabled = false`
+- [ ] Package names verified with `check_packages.sh`
+- [ ] OSM tags verified with `check_osm_brands.sh`
