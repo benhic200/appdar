@@ -115,7 +115,7 @@ class NearbyBranchFinder @Inject constructor(
          * (e.g. Irish brands added in v1.120, regional UK/US split in v1.115).
          * Old installs store 0 (key absent), so any value > 0 triggers a one-time wipe + re-download.
          */
-        private const val BRAND_DB_VERSION = 3
+        private const val BRAND_DB_VERSION = 4
 
         private const val PREFS = "NearbyBranchCache"
         private const val PREF_BRAND_DB_VERSION = "brand_db_version"
@@ -133,7 +133,12 @@ class NearbyBranchFinder @Inject constructor(
         //   • US bbox  → only returns US/GLOBAL branches → UK-only brands show nothing
         // No manual hiding logic needed in the UI.
 
-        /** UK + Ireland brands — not present in US bbox results. */
+        /**
+         * UK + Ireland brands. Some of these also appear in US_BRANDS — those are
+         * UK+US brands (e.g. Costco, Shake Shack). The filter uses UK_BRAND_NAMES
+         * which is UK_BRANDS minus US_BRANDS, so only truly UK-only brands are
+         * hidden from US users.
+         */
         private val UK_BRANDS = mapOf(
             // ── UK supermarkets ──────────────────────────────────────────────
             "Tesco"          to "Tesco",
@@ -184,17 +189,35 @@ class NearbyBranchFinder @Inject constructor(
             "Vue"            to "Vue",
             "Cineworld"      to "Cineworld",
             "Premier Inn"    to "Premier Inn",
-            "Travelodge"     to "Travelodge"
+            "Travelodge"     to "Travelodge",
+            // ── US-origin brands with UK presence ────────────────────────────
+            "Costco"         to "Costco",
+            "Taco Bell"      to "Taco Bell",
+            "Chipotle"       to "Chipotle",
+            "Chick-fil-A"    to "Chick-fil-A",
+            "Dunkin'"        to "Dunkin'",
+            "Shake Shack"    to "Shake Shack"
         )
 
-        /** US-only brands — not present in UK bbox results. */
+        /**
+         * US brands. Some of these also appear in UK_BRANDS — those are UK+US brands.
+         * The filter uses US_BRAND_NAMES which is US_BRANDS minus UK_BRANDS, so only
+         * truly US-only brands are hidden from UK users.
+         */
         private val US_BRANDS = mapOf(
             "Walmart"        to "Walmart",
             "Target"         to "Target",
             "Whole Foods"    to "Whole Foods Market",
             "Walgreens"      to "Walgreens",
             "CVS"            to "CVS",
-            "Panera Bread"   to "Panera Bread"
+            "Panera Bread"   to "Panera Bread",
+            // ── US-origin brands with UK presence ────────────────────────────
+            "Costco"         to "Costco",
+            "Taco Bell"      to "Taco Bell",
+            "Chipotle"       to "Chipotle",
+            "Chick-fil-A"    to "Chick-fil-A",
+            "Dunkin'"        to "Dunkin'",
+            "Shake Shack"    to "Shake Shack"
         )
 
         /**
@@ -214,14 +237,7 @@ class NearbyBranchFinder @Inject constructor(
             "Marriott"       to "Marriott",
             "Holiday Inn"    to "Holiday Inn",
             "BP"             to "BP",
-            "Shell"          to "Shell",
-            // US-origin brands now with UK presence
-            "Costco"         to "Costco",
-            "Taco Bell"      to "Taco Bell",
-            "Chipotle"       to "Chipotle Mexican Grill",
-            "Chick-fil-A"    to "Chick-fil-A",
-            "Dunkin'"        to "Dunkin'",
-            "Shake Shack"    to "Shake Shack"
+            "Shell"          to "Shell"
         )
 
         /**
@@ -230,16 +246,19 @@ class NearbyBranchFinder @Inject constructor(
          */
         val BRAND_TAGS: Map<String, String> = UK_BRANDS + US_BRANDS + GLOBAL_BRANDS
 
-        /** Business names that are UK-only — hidden when the user is detected in the US. */
-        val UK_BRAND_NAMES: Set<String> = UK_BRANDS.keys
+        /**
+         * Business names that are UK-only (not in US_BRANDS) — hidden when the user is in the US.
+         * Brands present in both UK_BRANDS and US_BRANDS (e.g. Costco, Shake Shack) are excluded
+         * from this set so they remain visible in both regions.
+         */
+        val UK_BRAND_NAMES: Set<String> = UK_BRANDS.keys - US_BRANDS.keys
 
         /**
-         * Business names that are US-only — hidden when the user is detected in the UK.
-         * Includes the "(US)" variant entries seeded for global brands that have separate
-         * UK and US app packages (e.g. "McDonald's (US)" uses com.mcdonalds.app rather
-         * than the UK package com.mcdonalds.app.uk).
+         * Business names that are US-only (not in UK_BRANDS) — hidden when the user is in the UK.
+         * Brands present in both maps are excluded so they remain visible in both regions.
+         * Also includes the "(US)" variant entries for global brands with separate UK/US app packages.
          */
-        val US_BRAND_NAMES: Set<String> = US_BRANDS.keys + setOf(
+        val US_BRAND_NAMES: Set<String> = (US_BRANDS.keys - UK_BRANDS.keys) + setOf(
             "McDonald's (US)", "Burger King (US)", "KFC (US)", "Domino's (US)"
         )
     }
