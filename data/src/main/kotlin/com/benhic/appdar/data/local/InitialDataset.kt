@@ -102,7 +102,27 @@ object InitialDataset {
         createMapping("Chipotle",     "com.chipotle.mobile",            "Chipotle",          "fast_food"),
         createMapping("Chick-fil-A",  "com.chickfila.cfaone",           "Chick-fil-A",       "fast_food"),
         createMapping("Dunkin'",      "com.dunkindonuts.mobile",        "Dunkin'",           "coffee"),
-        createMapping("Shake Shack",  "com.shackshack.app",             "Shake Shack",       "fast_food")
+        createMapping("Shake Shack",  "com.shackshack.app",             "Shake Shack",       "fast_food"),
+
+        // ── Australia (package names should be verified against AU Play Store) ─
+        createMapping("Woolworths",        "com.woolworths",                          "Woolworths",        "supermarket", isEnabled = false),
+        createMapping("Coles",             "au.com.coles",                            "Coles",             "supermarket", isEnabled = false),
+        createMapping("Hungry Jack's",     "com.hungryjacks.ordering",               "Hungry Jack's",     "fast_food",   isEnabled = false),
+        createMapping("Chemist Warehouse", "com.chemistwarehouse.chemistwarehouseandroid", "Chemist Warehouse", "pharmacy", isEnabled = false),
+        createMapping("Dan Murphy's",      "au.com.danmurphys",                      "Dan Murphy's",      "retail",      isEnabled = false),
+        createMapping("JB Hi-Fi",          "com.jbhifi.app",                         "JB Hi-Fi",          "retail",      isEnabled = false),
+        createMapping("Bunnings",          "com.bunnings.au",                        "Bunnings",          "retail",      isEnabled = false),
+        createMapping("Officeworks",       "com.officeworks.android",                "Officeworks",       "retail",      isEnabled = false),
+        createMapping("Myer",              "com.myeronline.myer",                    "Myer",              "retail",      isEnabled = false),
+        createMapping("Event Cinemas",     "au.com.eventcinemas",                    "Event Cinemas",     "entertainment", isEnabled = false),
+        createMapping("Hoyts",             "au.com.hoyts",                           "Hoyts",             "entertainment", isEnabled = false),
+
+        // ── New Zealand (package names should be verified against NZ Play Store) ─
+        createMapping("Countdown",     "nz.co.countdown.android",          "Countdown",     "supermarket", isEnabled = false),
+        createMapping("New World",     "co.nz.foodstuffs.newworld",        "New World",     "supermarket", isEnabled = false),
+        createMapping("The Warehouse", "nz.co.thewarehouse",               "The Warehouse", "retail",      isEnabled = false),
+        createMapping("Z",             "nz.co.zpetrol",                    "Z Energy",      "fuel",        isEnabled = false),
+        createMapping("Mitre 10",      "nz.co.mitre10",                    "Mitre 10",      "retail",      isEnabled = false)
 
     )
 

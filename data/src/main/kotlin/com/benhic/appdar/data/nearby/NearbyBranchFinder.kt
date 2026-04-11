@@ -58,14 +58,18 @@ class NearbyBranchFinder @Inject constructor(
     // ── Region ───────────────────────────────────────────────────────────────
 
     enum class Region(val displayName: String, val bbox: String) {
-        UK("UK", "49.5,-11.0,61.0,2.0"),          // Great Britain + Ireland
-        US("US", "24.0,-125.0,49.5,-66.0"),
-        UNKNOWN("Unknown", "49.5,-11.0,61.0,2.0")  // fallback to UK/IE bbox
+        UK("UK",          "49.5,-11.0,61.0,2.0"),
+        US("US",          "24.0,-125.0,49.5,-66.0"),
+        AU("Australia",   "-43.6,113.3,-10.0,153.6"),
+        NZ("New Zealand", "-47.4,166.4,-34.4,178.6"),
+        UNKNOWN("Unknown", "49.5,-11.0,61.0,2.0")   // fallback to UK/IE bbox
     }
 
     fun detectRegion(lat: Double, lon: Double): Region = when {
-        lat in 49.5..61.0 && lon in -11.0..2.0  -> Region.UK
-        lat in 24.0..49.5 && lon in -125.0..-66.0 -> Region.US
+        lat in 49.5..61.0  && lon in -11.0..2.0     -> Region.UK
+        lat in 24.0..49.5  && lon in -125.0..-66.0  -> Region.US
+        lat in -43.6..-10.0 && lon in 113.3..153.6  -> Region.AU
+        lat in -47.4..-34.4 && lon in 166.4..178.6  -> Region.NZ
         else -> Region.UNKNOWN
     }
 
@@ -87,6 +91,8 @@ class NearbyBranchFinder @Inject constructor(
         return when (settingsRepository.getCurrentPreferences().regionPreference) {
             RegionPreference.UK   -> Region.UK
             RegionPreference.US   -> Region.US
+            RegionPreference.AU   -> Region.AU
+            RegionPreference.NZ   -> Region.NZ
             RegionPreference.AUTO -> detectRegion(userLat, userLon)
         }
     }
@@ -115,7 +121,7 @@ class NearbyBranchFinder @Inject constructor(
          * (e.g. Irish brands added in v1.120, regional UK/US split in v1.115).
          * Old installs store 0 (key absent), so any value > 0 triggers a one-time wipe + re-download.
          */
-        private const val BRAND_DB_VERSION = 4
+        private const val BRAND_DB_VERSION = 5
 
         private const val PREFS = "NearbyBranchCache"
         private const val PREF_BRAND_DB_VERSION = "brand_db_version"
@@ -241,26 +247,55 @@ class NearbyBranchFinder @Inject constructor(
         )
 
         /**
+         * Australia brands. Some may also appear in NZ_BRANDS (e.g. Bunnings).
+         * Note: package names should be verified against the AU Play Store.
+         */
+        private val AU_BRANDS = mapOf(
+            "Woolworths"         to "Woolworths",
+            "Coles"              to "Coles",
+            "Hungry Jack's"      to "Hungry Jack's",
+            "Chemist Warehouse"  to "Chemist Warehouse",
+            "Dan Murphy's"       to "Dan Murphy's",
+            "JB Hi-Fi"           to "JB Hi-Fi",
+            "Bunnings"           to "Bunnings",
+            "Officeworks"        to "Officeworks",
+            "Myer"               to "Myer",
+            "Event Cinemas"      to "Event Cinemas",
+            "Hoyts"              to "Hoyts"
+        )
+
+        /**
+         * New Zealand brands. Some may also appear in AU_BRANDS (e.g. Bunnings).
+         * Note: package names should be verified against the NZ Play Store.
+         */
+        private val NZ_BRANDS = mapOf(
+            "Countdown"          to "Countdown",
+            "New World"          to "New World",
+            "Pak'nSave"          to "Pak'nSave",
+            "The Warehouse"      to "The Warehouse",
+            "Bunnings"           to "Bunnings",
+            "Z"                  to "Z",
+            "Mitre 10"           to "Mitre 10"
+        )
+
+        /**
          * All brand tags combined — used for DB seeding and validation lookups.
-         * UK brands, US brands, and global brands merged into one map.
          */
-        val BRAND_TAGS: Map<String, String> = UK_BRANDS + US_BRANDS + GLOBAL_BRANDS
+        val BRAND_TAGS: Map<String, String> = UK_BRANDS + US_BRANDS + AU_BRANDS + NZ_BRANDS + GLOBAL_BRANDS
+
+        private val allRegionalKeys get() = UK_BRANDS.keys + US_BRANDS.keys + AU_BRANDS.keys + NZ_BRANDS.keys
 
         /**
-         * Business names that are UK-only (not in US_BRANDS) — hidden when the user is in the US.
-         * Brands present in both UK_BRANDS and US_BRANDS (e.g. Costco, Shake Shack) are excluded
-         * from this set so they remain visible in both regions.
+         * Brands exclusively in one region — hidden from users in all other regions.
+         * A brand present in multiple regional maps is excluded from all exclusive sets
+         * so it remains visible wherever it has a presence.
          */
-        val UK_BRAND_NAMES: Set<String> = UK_BRANDS.keys - US_BRANDS.keys
-
-        /**
-         * Business names that are US-only (not in UK_BRANDS) — hidden when the user is in the UK.
-         * Brands present in both maps are excluded so they remain visible in both regions.
-         * Also includes the "(US)" variant entries for global brands with separate UK/US app packages.
-         */
-        val US_BRAND_NAMES: Set<String> = (US_BRANDS.keys - UK_BRANDS.keys) + setOf(
+        val UK_BRAND_NAMES: Set<String> = UK_BRANDS.keys - US_BRANDS.keys - AU_BRANDS.keys - NZ_BRANDS.keys
+        val US_BRAND_NAMES: Set<String> = (US_BRANDS.keys - UK_BRANDS.keys - AU_BRANDS.keys - NZ_BRANDS.keys) + setOf(
             "McDonald's (US)", "Burger King (US)", "KFC (US)", "Domino's (US)"
         )
+        val AU_BRAND_NAMES: Set<String> = AU_BRANDS.keys - UK_BRANDS.keys - US_BRANDS.keys - NZ_BRANDS.keys
+        val NZ_BRAND_NAMES: Set<String> = NZ_BRANDS.keys - UK_BRANDS.keys - US_BRANDS.keys - AU_BRANDS.keys
     }
 
     /**

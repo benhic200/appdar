@@ -65,7 +65,9 @@ enum class WidgetTheme {
 enum class RegionPreference {
     AUTO,
     UK,
-    US
+    US,
+    AU,
+    NZ
 }
 
 /**

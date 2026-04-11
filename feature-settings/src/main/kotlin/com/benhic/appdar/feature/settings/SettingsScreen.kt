@@ -183,7 +183,7 @@ private fun SettingsCards(
                 )
             ) {
                 Text(
-                    text = "Currently available in UK+Ireland and US only. More regions coming soon.",
+                    text = "Currently available in UK+Ireland, US, Australia, and New Zealand. More regions coming soon.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -614,7 +614,9 @@ fun RegionDropdown(
     val options = listOf(
         com.benhic.appdar.data.local.settings.RegionPreference.AUTO to "Auto-detect from GPS",
         com.benhic.appdar.data.local.settings.RegionPreference.UK   to "UK & Ireland",
-        com.benhic.appdar.data.local.settings.RegionPreference.US   to "United States"
+        com.benhic.appdar.data.local.settings.RegionPreference.US   to "United States",
+        com.benhic.appdar.data.local.settings.RegionPreference.AU   to "Australia",
+        com.benhic.appdar.data.local.settings.RegionPreference.NZ   to "New Zealand"
     )
     var expanded by remember { mutableStateOf(false) }
     val selectedLabel = options.firstOrNull { it.first == selected }?.second ?: "Auto-detect from GPS"

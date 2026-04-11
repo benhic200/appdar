@@ -87,8 +87,10 @@ class AddBusinessViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             val pref = settingsRepository.getCurrentPreferences().regionPreference
             _currentRegion.value = when (pref) {
-                RegionPreference.UK -> NearbyBranchFinder.Region.UK
-                RegionPreference.US -> NearbyBranchFinder.Region.US
+                RegionPreference.UK   -> NearbyBranchFinder.Region.UK
+                RegionPreference.US   -> NearbyBranchFinder.Region.US
+                RegionPreference.AU   -> NearbyBranchFinder.Region.AU
+                RegionPreference.NZ   -> NearbyBranchFinder.Region.NZ
                 RegionPreference.AUTO -> {
                     val location = runCatching { locationProvider.getCurrentLocation() }.getOrNull()
                     if (location != null) nearbyBranchFinder.detectRegion(location.latitude, location.longitude)
@@ -226,11 +228,25 @@ fun AddBusinessScreen(
         mappings.filter { m ->
             when (currentRegion) {
                 NearbyBranchFinder.Region.UK ->
-                    m.isCustom || m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                    m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
                 NearbyBranchFinder.Region.US ->
-                    m.isCustom || m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                    m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                NearbyBranchFinder.Region.AU ->
+                    m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                               && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                NearbyBranchFinder.Region.NZ ->
+                    m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                               && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES)
                 NearbyBranchFinder.Region.UNKNOWN ->
-                    m.isCustom || m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                    m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
             }
         }
     }

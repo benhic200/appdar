@@ -451,8 +451,10 @@ private fun RegionStepContent(settingsViewModel: SettingsViewModel) {
             ?: lm?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
         if (loc != null) {
             val detected = when {
-                loc.latitude in 49.5..61.0 && loc.longitude in -11.0..2.0   -> RegionPreference.UK
-                loc.latitude in 24.0..49.5 && loc.longitude in -125.0..-66.0 -> RegionPreference.US
+                loc.latitude in 49.5..61.0   && loc.longitude in -11.0..2.0     -> RegionPreference.UK
+                loc.latitude in 24.0..49.5   && loc.longitude in -125.0..-66.0  -> RegionPreference.US
+                loc.latitude in -43.6..-10.0 && loc.longitude in 113.3..153.6   -> RegionPreference.AU
+                loc.latitude in -47.4..-34.4 && loc.longitude in 166.4..178.6   -> RegionPreference.NZ
                 else -> RegionPreference.AUTO
             }
             selected = detected
@@ -482,7 +484,7 @@ private fun RegionStepContent(settingsViewModel: SettingsViewModel) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = "Currently available in UK+Ireland and US only. More regions coming soon.",
+                text = "Currently available in UK+Ireland, US, Australia, and New Zealand. More regions coming soon.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)

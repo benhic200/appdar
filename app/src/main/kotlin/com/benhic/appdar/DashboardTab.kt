@@ -217,10 +217,25 @@ class DashboardViewModel @Inject constructor(
                     .filter { m ->
                         when (region) {
                             NearbyBranchFinder.Region.UK ->
-                                m.isCustom || m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
                             NearbyBranchFinder.Region.US ->
-                                m.isCustom || m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                            NearbyBranchFinder.Region.UNKNOWN -> true
+                                m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                            NearbyBranchFinder.Region.AU ->
+                                m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                            NearbyBranchFinder.Region.NZ ->
+                                m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES)
+                            NearbyBranchFinder.Region.UNKNOWN ->
+                                m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
                         }
                     }
                 val branches = nearbyBranchFinder.findNearestBranches(location.latitude, location.longitude)
@@ -316,10 +331,25 @@ class DashboardViewModel @Inject constructor(
                     .filter { m ->
                         when (region) {
                             NearbyBranchFinder.Region.UK ->
-                                m.isCustom || m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
                             NearbyBranchFinder.Region.US ->
-                                m.isCustom || m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                            NearbyBranchFinder.Region.UNKNOWN -> true
+                                m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                            NearbyBranchFinder.Region.AU ->
+                                m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                            NearbyBranchFinder.Region.NZ ->
+                                m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES)
+                            NearbyBranchFinder.Region.UNKNOWN ->
+                                m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
                         }
                     }
 
