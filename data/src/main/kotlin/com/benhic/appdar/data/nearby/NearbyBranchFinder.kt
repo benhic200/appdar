@@ -191,16 +191,10 @@ class NearbyBranchFinder @Inject constructor(
         private val US_BRANDS = mapOf(
             "Walmart"        to "Walmart",
             "Target"         to "Target",
-            "Costco"         to "Costco",
             "Whole Foods"    to "Whole Foods Market",
             "Walgreens"      to "Walgreens",
             "CVS"            to "CVS",
-            "Taco Bell"      to "Taco Bell",
-            "Chipotle"       to "Chipotle",
-            "Chick-fil-A"    to "Chick-fil-A",
-            "Dunkin'"        to "Dunkin'",
-            "Panera Bread"   to "Panera Bread",
-            "Shake Shack"    to "Shake Shack"
+            "Panera Bread"   to "Panera Bread"
         )
 
         /**
@@ -220,7 +214,14 @@ class NearbyBranchFinder @Inject constructor(
             "Marriott"       to "Marriott",
             "Holiday Inn"    to "Holiday Inn",
             "BP"             to "BP",
-            "Shell"          to "Shell"
+            "Shell"          to "Shell",
+            // US-origin brands now with UK presence
+            "Costco"         to "Costco",
+            "Taco Bell"      to "Taco Bell",
+            "Chipotle"       to "Chipotle Mexican Grill",
+            "Chick-fil-A"    to "Chick-fil-A",
+            "Dunkin'"        to "Dunkin'",
+            "Shake Shack"    to "Shake Shack"
         )
 
         /**

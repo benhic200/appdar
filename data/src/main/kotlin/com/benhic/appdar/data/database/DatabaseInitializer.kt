@@ -101,7 +101,7 @@ object DatabaseInitializer {
                         category = datasetMapping.category
                     ))
                     Log.d(TAG, "Promoted custom entry to seeded: ${datasetMapping.businessName}")
-                } else if (!datasetMapping.isEnabled && existing.isEnabled) {
+                } else if (!datasetMapping.isEnabled && existing.isEnabled && !existing.isCustom) {
                     // Dataset now marks this entry as disabled by default (e.g. US-only brands).
                     // Disable it for existing users so it no longer shows uninvited.
                     dao.update(existing.copy(isEnabled = false))
