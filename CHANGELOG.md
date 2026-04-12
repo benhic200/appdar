@@ -100,3 +100,7 @@ AppDar release
 ## Version 143 (1.143) - 2026-04-12
 
 AppDar release
+
+## Version 143 (1.143) - 2026-04-12
+
+AppDar release (direct build after sub-agent failure)
