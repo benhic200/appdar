@@ -22,7 +22,7 @@ import android.database.sqlite.SQLiteException
         LocationHistory::class,
         BranchLocation::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -290,6 +290,25 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_10_11 = object : Migration(10, 11) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE `business_app_mappings` ADD COLUMN `region_hint` TEXT")
+            }
+        }
+
+        /**
+         * Migration from version 11 to 12.
+         * Purges all seeded (non-custom) entries so the seeder re-inserts them fresh.
+         *
+         * Why: Migration 6→7 set is_enabled=1 for every entry that existed at that time.
+         * Entries predating the regionHint system survived with regionHint=NULL (global) and
+         * isEnabled=true, so they appeared in the widget for every region. The seeder could not
+         * reach entries whose package names changed or were removed between builds.
+         *
+         * Deleting seeded rows here is safe — user-added custom entries are preserved, and the
+         * seeder re-inserts all built-in brands from InitialDataset with correct isEnabled values
+         * (false for US/AU/NZ brands that are not yet verified).
+         */
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("DELETE FROM `business_app_mappings` WHERE `is_custom` = 0")
             }
         }
     }

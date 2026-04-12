@@ -14,14 +14,14 @@ package com.benhic.appdar.data.local
  * each region uses a different app package. Global brands with a single worldwide
  * app (Starbucks, Subway, IKEA …) use regionHint = null.
  *
- * Package names marked "(verify)" should be checked with scripts/check_packages.sh
- * before shipping, as they are best-guesses for regions not yet tested.
+ * Package names marked "// verify package" should be checked before shipping —
+ * they are best-guesses for regions not yet live-tested.
  */
 object InitialDataset {
     fun getMappings(): List<BusinessAppMapping> = listOf(
 
         // ── UK Supermarkets ───────────────────────────────────────────────────
-        createMapping("Tesco",        "com.tesco.grocery.view",                    "Tesco",             "supermarket", regionHint = "UK"),
+        createMapping("Tesco", "com.tesco.grocery.view", "Tesco", "supermarket", regionHint = "UK"),
         createMapping("Sainsbury's",  "com.ga.loyalty.android.nectar.activities",  "Sainsbury's Nectar","supermarket", regionHint = "UK"),
         createMapping("Asda",         "com.asda.android",                          "Asda Groceries",    "supermarket", regionHint = "UK"),
         createMapping("Morrisons",    "com.morrisons.atm.mobile.android",          "Morrisons Grocery", "supermarket", regionHint = "UK"),
@@ -75,63 +75,94 @@ object InitialDataset {
         createMapping("Travelodge",  "co.uk.travelodge.app",     "Travelodge",  "hotel", regionHint = "UK"),
 
         // ── Global (single app works in all regions) ──────────────────────────
-        createMapping("Starbucks",   "com.starbucks.mobilecard", "Starbucks",       "coffee"),
-        createMapping("Subway",      "com.subway.mobile.subwayapp03", "Subway",     "fast_food"),
-        createMapping("IKEA",        "com.ingka.ikea.app",        "IKEA",           "retail"),
-        createMapping("Hilton",      "com.hilton.android.hhonors","Hilton Honors",  "hotel"),
-        createMapping("Marriott",    "com.marriott.mrt",          "Marriott Bonvoy","hotel"),
-        createMapping("Holiday Inn", "com.ihg.apps.android",      "IHG Hotels",     "hotel"),
-        createMapping("BP",          "com.bp.mobile.bpme.uk",     "BPme",           "fuel"),
-        createMapping("Shell",       "com.shell.sitibv.retail",   "Shell Go+",      "fuel"),
-        createMapping("Costco",      "intl.costco.com.mobile.uk", "Costco",         "supermarket"),
-        createMapping("Taco Bell",   "com.tacobelluk.app",        "Taco Bell",      "fast_food"),
-        createMapping("Chipotle",    "com.chipotle.ordering.eu",  "Chipotle",       "fast_food"),
-        createMapping("Dunkin'",     "com.dunkind.app",           "Dunkin'",        "coffee"),
-        createMapping("Shake Shack", "com.thesweetshakeshack",    "Shake Shack",    "fast_food"),
+        createMapping("Starbucks",   "com.starbucks.mobilecard",      "Starbucks",       "coffee"),
+        createMapping("Subway",      "com.subway.mobile.subwayapp03", "Subway",          "fast_food"),
+        createMapping("IKEA",        "com.ingka.ikea.app",            "IKEA",            "retail"),
+        createMapping("Hilton",      "com.hilton.android.hhonors",    "Hilton Honors",   "hotel"),
+        createMapping("Marriott",    "com.marriott.mrt",              "Marriott Bonvoy", "hotel"),
+        createMapping("Holiday Inn", "com.ihg.apps.android",          "IHG Hotels",      "hotel"),
+        createMapping("BP",          "com.bp.mobile.bpme.uk",         "BPme",            "fuel"),
+        createMapping("Shell",       "com.shell.sitibv.retail",       "Shell Go+",       "fuel"),
+        createMapping("Costco",      "intl.costco.com.mobile.uk",     "Costco",          "supermarket"),
+        createMapping("Taco Bell",   "com.tacobelluk.app",            "Taco Bell",       "fast_food"),
+        createMapping("Chipotle",    "com.chipotle.ordering.eu",      "Chipotle",        "fast_food"),
+        createMapping("Shake Shack", "com.thesweetshakeshack",        "Shake Shack",     "fast_food"),
 
         // ── United States ─────────────────────────────────────────────────────
-        createMapping("Walmart",      "com.walmart.android",       "Walmart",       "supermarket", isEnabled = false, regionHint = "US"),
-        createMapping("Target",       "com.target.ui",             "Target",        "retail",      isEnabled = false, regionHint = "US"),
-        createMapping("Whole Foods",  "com.amazon.wholefoods",     "Whole Foods",   "supermarket", isEnabled = false, regionHint = "US"),
-        createMapping("Walgreens",    "com.walgreens",             "Walgreens",     "pharmacy",    isEnabled = false, regionHint = "US"),
-        createMapping("CVS",          "com.cvs.launchers.cvs",     "CVS Pharmacy",  "pharmacy",    isEnabled = false, regionHint = "US"),
-        createMapping("Panera Bread", "com.panerabread.app",       "Panera Bread",  "fast_food",   isEnabled = false, regionHint = "US"),
-        createMapping("McDonald's",   "com.mcdonalds.app",         "McDonald's",    "fast_food",   isEnabled = false, regionHint = "US"),
-        createMapping("Burger King",  "com.emn8.mobilem8.nativeapp.bk", "Burger King", "fast_food", isEnabled = false, regionHint = "US"),
-        createMapping("KFC",          "com.kfc.us.mobile",         "KFC",           "fast_food",   isEnabled = false, regionHint = "US"),
-        createMapping("Domino's",     "com.dominospizza",          "Domino's",      "fast_food",   isEnabled = false, regionHint = "US"),
-        createMapping("Pizza Hut",    "com.yum.pizzahut",          "Pizza Hut",     "fast_food",   isEnabled = false, regionHint = "US"),
+
+        // ── US Supermarkets ───────────────────────────────────────────────────
+        createMapping("Walmart",      "com.walmart.android",                    "Walmart",         "supermarket", isEnabled = false, regionHint = "US"),
+        createMapping("Target",       "com.target.ui",                          "Target",          "retail",      isEnabled = false, regionHint = "US"),
+        createMapping("Kroger",       "com.kroger.mobile",                      "Kroger",          "supermarket", isEnabled = false, regionHint = "US"),
+        createMapping("Safeway",      "com.safeway.client.android.safeway",     "Safeway",         "supermarket", isEnabled = false, regionHint = "US"),
+        createMapping("Albertsons",   "com.safeway.client.android.albertsons",  "Albertsons",      "supermarket", isEnabled = false, regionHint = "US"),
+        createMapping("Publix",       "com.publix.main",                        "Publix",          "supermarket", isEnabled = false, regionHint = "US"),
+
+        // ── US Coffee & Bakery ────────────────────────────────────────────────
+        createMapping("Dunkin'",      "com.dunkind.app",                        "Dunkin'",         "coffee",      isEnabled = false, regionHint = "US"),
+
+        // ── US Pharmacy ───────────────────────────────────────────────────────
+        createMapping("CVS",          "com.cvs.launchers.cvs",                  "CVS Pharmacy",    "pharmacy",    isEnabled = false, regionHint = "US"),
+        createMapping("Walgreens",    "com.usablenet.mobile.walgreen",          "Walgreens",       "pharmacy",    isEnabled = false, regionHint = "US"),
+
+        // ── US Fast Food ──────────────────────────────────────────────────────
+        createMapping("McDonald's",   "com.mcdonalds.app",                      "McDonald's",      "fast_food",   isEnabled = false, regionHint = "US"),
+        createMapping("Burger King",  "com.emn8.mobilem8.nativeapp.bk",         "Burger King",     "fast_food",   isEnabled = false, regionHint = "US,NZ"), // same app used in NZ
+        createMapping("KFC",          "com.kfc.us.mobile",                      "KFC",             "fast_food",   isEnabled = false, regionHint = "US"),
+        createMapping("Chick-fil-A",  "com.chickfila.cfaflagship",              "Chick-fil-A",     "fast_food",   isEnabled = false, regionHint = "US"),
+        createMapping("Wendy's",      "com.wendys.nutritiontool",               "Wendy's",         "fast_food",   isEnabled = false, regionHint = "US"),
+        createMapping("Panera Bread", "com.panera.bread",                       "Panera Bread",    "fast_food",   isEnabled = false, regionHint = "US"),
+        createMapping("Domino's",     "com.dominospizza",                       "Domino's",        "fast_food",   isEnabled = false, regionHint = "US"),
+        createMapping("Pizza Hut",    "com.yum.pizzahut",                       "Pizza Hut",       "fast_food",   isEnabled = false, regionHint = "US"),
+
+        // ── US Cinema ─────────────────────────────────────────────────────────
+        createMapping("AMC Theatres", "com.amc",                                "AMC Theatres",    "entertainment", isEnabled = false, regionHint = "US"),
+        createMapping("Regal",        "com.fandango.regal",                     "Regal",           "entertainment", isEnabled = false, regionHint = "US"),
 
         // ── Australia ─────────────────────────────────────────────────────────
-        createMapping("Woolworths",        "com.woolworths",          "Woolworths",        "supermarket",   isEnabled = false, regionHint = "AU"),
-        createMapping("Coles",             "au.com.coles",            "Coles",             "supermarket",   isEnabled = false, regionHint = "AU"),
-        createMapping("Aldi",              "de.apptiv.business.android.aldi_au", "Aldi",  "supermarket",   isEnabled = false, regionHint = "AU"), // verify package
-        createMapping("Chemist Warehouse", "com.chemistwarehouse.chemistwarehouseandroid", "Chemist Warehouse", "pharmacy", isEnabled = false, regionHint = "AU"),
-        createMapping("Dan Murphy's",      "au.com.danmurphys",       "Dan Murphy's",      "retail",        isEnabled = false, regionHint = "AU"),
-        createMapping("JB Hi-Fi",          "com.jbhifi.app",          "JB Hi-Fi",          "retail",        isEnabled = false, regionHint = "AU"),
-        createMapping("Bunnings",          "com.bunnings.au",         "Bunnings",          "retail",        isEnabled = false, regionHint = "AU"),
-        createMapping("Officeworks",       "com.officeworks.android", "Officeworks",       "retail",        isEnabled = false, regionHint = "AU"),
-        createMapping("Myer",              "com.myeronline.myer",     "Myer",              "retail",        isEnabled = false, regionHint = "AU"),
-        createMapping("Event Cinemas",     "au.com.eventcinemas",     "Event Cinemas",     "entertainment", isEnabled = false, regionHint = "AU"),
-        createMapping("Hoyts",             "au.com.hoyts",            "Hoyts",             "entertainment", isEnabled = false, regionHint = "AU"),
-        createMapping("McDonald's",        "com.mcdonalds.au.gma",    "McDonald's",        "fast_food",     isEnabled = false, regionHint = "AU"),
-        createMapping("Hungry Jack's",     "com.hungryjacks.ordering","Hungry Jack's",     "fast_food",     isEnabled = false, regionHint = "AU"),
-        createMapping("KFC",               "com.yum.kfcau",           "KFC",               "fast_food",     isEnabled = false, regionHint = "AU"), // verify package
-        createMapping("Domino's",          "com.dominos.au",          "Domino's",          "fast_food",     isEnabled = false, regionHint = "AU"), // verify package
-        createMapping("Pizza Hut",         "au.com.pizzahut",         "Pizza Hut",         "fast_food",     isEnabled = false, regionHint = "AU"), // verify package
+
+        // ── AU Supermarkets ───────────────────────────────────────────────────
+        createMapping("Woolworths",        "com.woolworths",                         "Woolworths",         "supermarket", isEnabled = false, regionHint = "AU"),
+        createMapping("Coles",             "com.coles.android.shopmate",             "Coles",              "supermarket", isEnabled = false, regionHint = "AU"),
+        createMapping("Aldi", "de.apptiv.business.android.aldi_au", "Aldi", "supermarket", isEnabled = false, regionHint = "AU"),
+
+        // ── AU Pharmacy & Retail ──────────────────────────────────────────────
+        createMapping("Chemist Warehouse", "au.com.cwretailservices.cwapp",          "Chemist Warehouse",  "pharmacy",    isEnabled = false, regionHint = "AU"),
+        createMapping("Dan Murphy's",      "au.com.danmurphys",                      "Dan Murphy's",       "retail",      isEnabled = false, regionHint = "AU"),
+        createMapping("Bunnings",          "com.bunnings.retail",                    "Bunnings",           "retail",      isEnabled = false, regionHint = "AU"),
+        createMapping("Myer", "myer.com.android", "Myer", "retail", isEnabled = false, regionHint = "AU"),
+
+        // ── AU Fast Food ──────────────────────────────────────────────────────
+        createMapping("McDonald's",        "com.mcdonalds.au.gma",                   "MyMacca's",          "fast_food",   isEnabled = false, regionHint = "AU"),
+        createMapping("Hungry Jack's",     "com.webling.hungryjacks",                "Hungry Jack's",      "fast_food",   isEnabled = false, regionHint = "AU"),
+        createMapping("KFC", "com.kfcaus.ordering", "KFC", "fast_food", isEnabled = false, regionHint = "AU")
+        createMapping("Domino's",          "au.com.dominos.olo.android.app",         "Domino's",           "fast_food",   isEnabled = false, regionHint = "AU"),
+        createMapping("Pizza Hut", "com.pizzahutau", "Pizza Hut", "fast_food", isEnabled = false, regionHint = "AU")
+
+        // ── AU Cinema ─────────────────────────────────────────────────────────
+        createMapping("Event Cinemas",     "com.ahl.eventcinemas",                   "Event Cinemas",      "entertainment", isEnabled = false, regionHint = "AU"),
+        createMapping("Hoyts",             "nz.co.vista.android.movie",              "HOYTS",              "entertainment", isEnabled = false, regionHint = "AU"),
 
         // ── New Zealand ───────────────────────────────────────────────────────
-        createMapping("Countdown",     "nz.co.countdown.android",   "Countdown",     "supermarket", isEnabled = false, regionHint = "NZ"),
-        createMapping("New World",     "co.nz.foodstuffs.newworld", "New World",     "supermarket", isEnabled = false, regionHint = "NZ"),
-        createMapping("The Warehouse", "nz.co.thewarehouse",        "The Warehouse", "retail",      isEnabled = false, regionHint = "NZ"),
-        createMapping("Bunnings",      "com.bunnings.nz",           "Bunnings",      "retail",      isEnabled = false, regionHint = "NZ"), // verify package
-        createMapping("Z",             "nz.co.zpetrol",             "Z Energy",      "fuel",        isEnabled = false, regionHint = "NZ"),
-        createMapping("Mitre 10",      "nz.co.mitre10",             "Mitre 10",      "retail",      isEnabled = false, regionHint = "NZ"),
-        createMapping("McDonald's",    "nz.co.mcdonalds.app",       "McDonald's",    "fast_food",   isEnabled = false, regionHint = "NZ"), // verify package
-        createMapping("Burger King",   "com.emn8.mobilem8.nativeapp.bk", "Burger King", "fast_food", isEnabled = false, regionHint = "NZ"), // verify — may share US app
-        createMapping("KFC",           "com.yum.kfcnz",             "KFC",           "fast_food",   isEnabled = false, regionHint = "NZ"), // verify package
-        createMapping("Domino's",      "nz.co.dominos",             "Domino's",      "fast_food",   isEnabled = false, regionHint = "NZ"), // verify package
-        createMapping("Pizza Hut",     "nz.co.pizzahut",            "Pizza Hut",     "fast_food",   isEnabled = false, regionHint = "NZ")  // verify package
+
+        // ── NZ Supermarkets ───────────────────────────────────────────────────
+        createMapping("Woolworths NZ", "nz.co.countdown.android.pickup",        "Woolworths NZ",      "supermarket", isEnabled = false, regionHint = "NZ"),
+        createMapping("New World",     "nz.co.newworld.clubcard",               "New World",          "supermarket", isEnabled = false, regionHint = "NZ"),
+
+        // ── NZ Pharmacy & Retail ──────────────────────────────────────────────
+        createMapping("The Warehouse", "nz.co.thewarehouse.wow",                "The Warehouse",      "retail",      isEnabled = false, regionHint = "NZ"),
+        createMapping("Bunnings", "com.bunnings.retail", "Bunnings", "retail", isEnabled = false, regionHint = "NZ"),
+
+        // ── NZ Fuel ───────────────────────────────────────────────────────────
+        createMapping("Z",             "com.zenergy.zenergyapp.android.prod",   "Z App",              "fuel",        isEnabled = false, regionHint = "NZ"),
+
+        // ── NZ Fast Food ──────────────────────────────────────────────────────
+        createMapping("McDonald's", "com.mcdonalds.mobileapp", "McDonald's", "fast_food", isEnabled = false, regionHint = "NZ"),
+        // Burger King NZ shares com.emn8.mobilem8.nativeapp.bk with US — see US section (regionHint = "US,NZ")
+        createMapping("KFC",           "com.kfcnz.orderserv",                   "KFC New Zealand",    "fast_food",   isEnabled = false, regionHint = "NZ"),
+        createMapping("Domino's",      "au.com.dominos.olo.android.app.nz",     "Domino's",           "fast_food",   isEnabled = false, regionHint = "NZ"),
+        createMapping("Pizza Hut",     "nz.co.pizzahut",                        "Pizza Hut",          "fast_food",   isEnabled = false, regionHint = "NZ"), // verify package
+        createMapping("BurgerFuel",    "com.como.prod909420230817",             "BurgerFuel VIB Club","fast_food",   isEnabled = false, regionHint = "NZ")
 
     )
 

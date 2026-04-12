@@ -84,28 +84,28 @@ object DatabaseInitializer {
             }
 
             // Sync metadata that may have changed in the dataset (e.g. rename, new regionHint)
-            // while preserving the user's isEnabled toggle.
+            // while preserving the user's isEnabled toggle — unless the dataset now marks this
+            // entry as disabled (e.g. a brand reclassified as region-specific).
+            //
+            // Important: both checks are combined into a single dao.update() call to avoid the
+            // double-update bug where a second existing.copy() would revert metadata changes made
+            // by the first update.
             val metaChanged = existing.businessName != datasetMapping.businessName ||
                 existing.appName != datasetMapping.appName ||
                 existing.category != datasetMapping.category ||
                 existing.regionHint != datasetMapping.regionHint
-            if (metaChanged) {
+            val needsDisable = !datasetMapping.isEnabled && existing.isEnabled && !existing.isCustom
+            if (metaChanged || needsDisable) {
                 dao.update(existing.copy(
                     businessName = datasetMapping.businessName,
                     appName = datasetMapping.appName,
                     category = datasetMapping.category,
-                    regionHint = datasetMapping.regionHint
+                    regionHint = datasetMapping.regionHint,
+                    isEnabled = if (needsDisable) false else existing.isEnabled
                 ))
                 updatedCount++
-                Log.d(TAG, "Updated metadata for ${datasetMapping.businessName}")
-            }
-
-            // Dataset now marks this entry as disabled — disable for existing users
-            // (e.g. a brand reclassified as region-specific that users already had enabled).
-            if (!datasetMapping.isEnabled && existing.isEnabled && !existing.isCustom) {
-                dao.update(existing.copy(isEnabled = false))
-                updatedCount++
-                Log.d(TAG, "Disabled region-specific entry for existing user: ${datasetMapping.businessName}")
+                if (metaChanged) Log.d(TAG, "Updated metadata for ${datasetMapping.businessName}")
+                if (needsDisable) Log.d(TAG, "Disabled region-specific entry: ${datasetMapping.businessName}")
             }
         }
         if (insertedCount > 0 || updatedCount > 0) {

@@ -98,8 +98,8 @@ for _entry in "${ALL_ENTRIES[@]}"; do
         case "$REGION" in
             UK)              [[ "$_sec_up" == *UK* || "$_sec_up" == *GLOBAL* ]] && _include=true ;;
             US)              [[ "$_sec_up" == *US* || "$_sec_up" == *GLOBAL* ]] && _include=true ;;
-            AU|AUSTRALIA)    [[ "$_sec_up" == *AUSTRALIA* ]]                   && _include=true ;;
-            NZ)              [[ "$_sec_up" == *"NEW ZEALAND"* ]]               && _include=true ;;
+            AU|AUSTRALIA)    [[ "$_sec_up" == *AU* ]]                   && _include=true ;;
+            NZ)              [[ "$_sec_up" == *"NZ"* ]]               && _include=true ;;
             GLOBAL)          [[ "$_sec_up" == *GLOBAL* ]]                      && _include=true ;;
         esac
     fi
