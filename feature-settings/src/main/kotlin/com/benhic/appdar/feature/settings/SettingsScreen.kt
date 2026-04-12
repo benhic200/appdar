@@ -5,6 +5,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.animation.core.tween
 import coil.compose.AsyncImage
 import coil.decode.ImageDecoderDecoder
@@ -33,9 +34,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.ExposedDropdownMenuBoxScope
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -72,19 +72,24 @@ import com.benhic.appdar.data.local.settings.WidgetTheme
 
 /**
  * Embeddable settings cards — no Scaffold, no scroll. The caller is responsible for scroll and padding.
+ *
+ * @param onNavigateToDashboard Called after Force Re-download is tapped so the caller can
+ *   switch to the Dashboard and kick off the download immediately.
  */
 @Composable
 fun SettingsContent(
-    viewModel: SettingsViewModel = hiltViewModel()
+    viewModel: SettingsViewModel = hiltViewModel(),
+    onNavigateToDashboard: () -> Unit = {}
 ) {
     val userPreferences by viewModel.userPreferences.collectAsStateWithLifecycle()
-    SettingsCards(userPreferences = userPreferences, viewModel = viewModel)
+    SettingsCards(userPreferences = userPreferences, viewModel = viewModel, onNavigateToDashboard = onNavigateToDashboard)
 }
 
 @Composable
 private fun SettingsCards(
     userPreferences: com.benhic.appdar.data.local.settings.UserPreferences,
-    viewModel: SettingsViewModel
+    viewModel: SettingsViewModel,
+    onNavigateToDashboard: () -> Unit = {}
 ) {
     // Detection Radius
     val useKm = userPreferences.distanceUnit == DistanceUnit.KILOMETERS
@@ -311,7 +316,6 @@ private fun SettingsCards(
     Spacer(modifier = Modifier.padding(8.dp))
 
     // Branch Data
-    var branchDataCleared by remember { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -321,27 +325,19 @@ private fun SettingsCards(
             Spacer(modifier = Modifier.padding(4.dp))
             Text(
                 text = "Branch locations are downloaded once and automatically refreshed every 30 days. " +
-                    "Tap below to force a fresh download next time you open the app.",
+                    "Tap below to force a fresh download — you'll be taken straight to the Dashboard.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.padding(8.dp))
-            if (branchDataCleared) {
-                Text(
-                    text = "Done — branch data will re-download when you next open the Dashboard or Nearby Apps.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            } else {
-                OutlinedButton(
-                    onClick = {
-                        viewModel.forceRedownloadBranchData()
-                        branchDataCleared = true
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Force Re-download Branch Data")
-                }
+            OutlinedButton(
+                onClick = {
+                    viewModel.forceRedownloadBranchData()
+                    onNavigateToDashboard()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Force Re-download Branch Data")
             }
         }
     }

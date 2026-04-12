@@ -85,7 +85,18 @@ data class BusinessAppMapping(
      * just like built-in businesses. Null means the stored lat/lon is used as-is.
      */
     @ColumnInfo(name = "osm_brand_tag")
-    val osmBrandTag: String? = null
+    val osmBrandTag: String? = null,
+
+    /**
+     * Which region(s) this app variant is for, as a comma-separated list of region names
+     * (e.g. "UK", "US,AU,NZ"). Null means visible in all regions.
+     *
+     * Used when the same business has different apps per region — e.g. McDonald's has
+     * `com.mcdonalds.app.uk` for UK and `com.mcdonalds.app` for everywhere else.
+     * The [NearbyBranchFinder.Region.name] is matched against each comma-separated value.
+     */
+    @ColumnInfo(name = "region_hint")
+    val regionHint: String? = null
 )
 
 /**

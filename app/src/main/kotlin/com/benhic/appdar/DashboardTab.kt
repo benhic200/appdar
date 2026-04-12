@@ -212,6 +212,7 @@ class DashboardViewModel @Inject constructor(
                 // call unless the 30-day TTL has expired), so this is effectively instant.
                 businessAppRepository.initialize()
                 val region = nearbyBranchFinder.detectRegion(location.latitude, location.longitude)
+                val effectiveRegionName = if (region == NearbyBranchFinder.Region.UNKNOWN) "UK" else region.name
                 val mappings = businessAppRepository.getAllMappings().first()
                     .filter { it.isEnabled }
                     .filter { m ->
@@ -238,6 +239,7 @@ class DashboardViewModel @Inject constructor(
                                            && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
                         }
                     }
+                    .filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
                 val branches = nearbyBranchFinder.findNearestBranches(location.latitude, location.longitude)
                 if (branches.isEmpty()) return@launch  // offline — keep showing current list
 
@@ -326,6 +328,7 @@ class DashboardViewModel @Inject constructor(
                 // and then cache-hits — no duplicate network call.
                 businessAppRepository.initialize()
                 val region = nearbyBranchFinder.detectRegion(location.latitude, location.longitude)
+                val effectiveRegionName = if (region == NearbyBranchFinder.Region.UNKNOWN) "UK" else region.name
                 val mappings = businessAppRepository.getAllMappings().first()
                     .filter { it.isEnabled }
                     .filter { m ->
@@ -352,6 +355,7 @@ class DashboardViewModel @Inject constructor(
                                            && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
                         }
                     }
+                    .filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
 
                 nearbyBranchFinder.markLoading()
                 val branches = nearbyBranchFinder.findNearestBranches(location.latitude, location.longitude)
@@ -558,18 +562,30 @@ fun LoadingContent(statusMessage: String? = null, downloadProgress: Pair<Int, In
                 if (dpTotal > 0) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        // Step dots — same style as onboarding page indicator
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            repeat(dpTotal) { i ->
+                                Box(
+                                    modifier = Modifier
+                                        .padding(horizontal = 4.dp)
+                                        .size(if (i == dpCurrent - 1) 12.dp else 8.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (i < dpCurrent) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.outlineVariant
+                                        )
+                                )
+                            }
+                        }
                         Text(
-                            text = "$dpCurrent / $dpTotal",
+                            text = "$dpCurrent of $dpTotal",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        LinearProgressIndicator(
-                            progress = { dpCurrent.toFloat() / dpTotal.toFloat() },
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     }
                 } else {

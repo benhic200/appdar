@@ -353,3 +353,6 @@ Happy to answer any questions about how it works under the hood too — built wi
 
 
 That last line will resonate hard on r/androidwidgets and r/Android — anyone who's worked with RemoteViews will immediately respect the effort, and it invites technical discussion which boosts engagement.
+
+database can be found at
+nearby-apps-widget/phase1/data/src/main/kotlin/com/benhic/appdar/data/local/InitialDataset.kt

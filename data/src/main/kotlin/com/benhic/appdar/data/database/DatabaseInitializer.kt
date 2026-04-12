@@ -33,9 +33,19 @@ object DatabaseInitializer {
     }
 
     /**
-     * Seeds the database on first install, and inserts any new entries from InitialDataset
-     * that are not yet present (identified by package name). Existing entries are untouched
-     * so user toggles are preserved.
+     * Seeds the database on first install, and keeps existing entries in sync with
+     * [InitialDataset] on subsequent launches.
+     *
+     * Matching is done by **package name** (the unique key) rather than business name.
+     * This correctly handles renames (e.g. "McDonald's (US)" → "McDonald's" with a
+     * regionHint) where multiple entries now share the same business name.
+     *
+     * Rules (per dataset entry):
+     * - Not in DB → insert
+     * - In DB, isCustom → promote to seeded (preserve isEnabled)
+     * - In DB, seeded → update businessName / appName / category / regionHint if changed
+     *   while preserving the user's isEnabled toggle
+     * - Dataset marks isEnabled=false and DB has isEnabled=true → disable for existing users
      */
     suspend fun seedIfNeeded(dao: BusinessAppMappingDao) {
         val count = dao.count()
@@ -45,69 +55,61 @@ object DatabaseInitializer {
             Log.d(TAG, "Seeding database with initial dataset (${allDataset.size} entries)")
             dao.insertAll(allDataset)
             Log.d(TAG, "Seeding complete")
-        } else {
-            // Update existing entries where business name matches but package name differs
-            var updatedCount = 0
-            for (datasetMapping in allDataset) {
-                Log.d(TAG, "Checking ${datasetMapping.businessName} (dataset package: ${datasetMapping.packageName})")
-                val existing = dao.getByBusinessName(datasetMapping.businessName)
-                if (existing != null) {
-                    Log.d(TAG, "  Existing package: ${existing.packageName}")
-                    if (existing.packageName != datasetMapping.packageName) {
-                        // Update package name (and other fields from dataset) while preserving user toggles
-                        val updated = existing.copy(
-                            packageName = datasetMapping.packageName,
-                            appName = datasetMapping.appName,
-                            category = datasetMapping.category,
-                            latitude = datasetMapping.latitude,
-                            longitude = datasetMapping.longitude,
-                            geofenceRadius = datasetMapping.geofenceRadius,
-                            minLat = datasetMapping.minLat,
-                            maxLat = datasetMapping.maxLat,
-                            minLon = datasetMapping.minLon,
-                            maxLon = datasetMapping.maxLon,
-                            version = datasetMapping.version,
-                            lastUpdated = System.currentTimeMillis()
-                            // Keep existing isEnabled, isCustom, osmBrandTag
-                        )
-                        dao.update(updated)
-                        updatedCount++
-                        Log.d(TAG, "Updated package name for ${datasetMapping.businessName}: ${existing.packageName} -> ${datasetMapping.packageName}")
-                    } else {
-                        Log.d(TAG, "  Package already correct")
-                    }
-                } else {
-                    Log.d(TAG, "  No existing entry with this business name")
-                }
+            return
+        }
+
+        var insertedCount = 0; var updatedCount = 0
+        for (datasetMapping in allDataset) {
+            val existing = dao.getByPackageName(datasetMapping.packageName)
+
+            if (existing == null) {
+                dao.insert(datasetMapping)
+                insertedCount++
+                Log.d(TAG, "Inserted new entry: ${datasetMapping.businessName}")
+                continue
             }
-            if (updatedCount > 0) {
-                Log.d(TAG, "Updated $updatedCount package names")
+
+            if (existing.isCustom) {
+                // Promote: user-added entry now in the official dataset
+                dao.update(existing.copy(
+                    isCustom = false,
+                    businessName = datasetMapping.businessName,
+                    appName = datasetMapping.appName,
+                    category = datasetMapping.category,
+                    regionHint = datasetMapping.regionHint
+                ))
+                updatedCount++
+                Log.d(TAG, "Promoted custom entry to seeded: ${datasetMapping.businessName}")
+                continue
             }
-            // Insert any new entries added since the user first installed.
-            // Also promote custom entries to seeded entries if the dataset now contains them —
-            // this happens when a user manually added a place that was later added to the dataset.
-            for (datasetMapping in allDataset) {
-                val existing = dao.getByPackageName(datasetMapping.packageName)
-                if (existing == null) {
-                    Log.d(TAG, "Inserting new dataset entry: ${datasetMapping.businessName}")
-                    dao.insert(datasetMapping)
-                } else if (existing.isCustom) {
-                    // Promote: user-added entry that is now in the dataset — clear isCustom
-                    // while preserving the user's isEnabled preference.
-                    dao.update(existing.copy(
-                        isCustom = false,
-                        businessName = datasetMapping.businessName,
-                        appName = datasetMapping.appName,
-                        category = datasetMapping.category
-                    ))
-                    Log.d(TAG, "Promoted custom entry to seeded: ${datasetMapping.businessName}")
-                } else if (!datasetMapping.isEnabled && existing.isEnabled && !existing.isCustom) {
-                    // Dataset now marks this entry as disabled by default (e.g. US-only brands).
-                    // Disable it for existing users so it no longer shows uninvited.
-                    dao.update(existing.copy(isEnabled = false))
-                    Log.d(TAG, "Disabled US-only entry for existing user: ${datasetMapping.businessName}")
-                }
+
+            // Sync metadata that may have changed in the dataset (e.g. rename, new regionHint)
+            // while preserving the user's isEnabled toggle.
+            val metaChanged = existing.businessName != datasetMapping.businessName ||
+                existing.appName != datasetMapping.appName ||
+                existing.category != datasetMapping.category ||
+                existing.regionHint != datasetMapping.regionHint
+            if (metaChanged) {
+                dao.update(existing.copy(
+                    businessName = datasetMapping.businessName,
+                    appName = datasetMapping.appName,
+                    category = datasetMapping.category,
+                    regionHint = datasetMapping.regionHint
+                ))
+                updatedCount++
+                Log.d(TAG, "Updated metadata for ${datasetMapping.businessName}")
             }
+
+            // Dataset now marks this entry as disabled — disable for existing users
+            // (e.g. a brand reclassified as region-specific that users already had enabled).
+            if (!datasetMapping.isEnabled && existing.isEnabled && !existing.isCustom) {
+                dao.update(existing.copy(isEnabled = false))
+                updatedCount++
+                Log.d(TAG, "Disabled region-specific entry for existing user: ${datasetMapping.businessName}")
+            }
+        }
+        if (insertedCount > 0 || updatedCount > 0) {
+            Log.d(TAG, "Seed sync: inserted=$insertedCount updated=$updatedCount")
         }
     }
 

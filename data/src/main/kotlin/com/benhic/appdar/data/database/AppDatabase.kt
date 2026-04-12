@@ -22,7 +22,7 @@ import android.database.sqlite.SQLiteException
         LocationHistory::class,
         BranchLocation::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -277,6 +277,19 @@ abstract class AppDatabase : RoomDatabase() {
                 """.trimIndent())
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_branch_locations_brand_tag` ON `branch_locations` (`brand_tag`)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_branch_locations_lat_lon` ON `branch_locations` (`lat`, `lon`)")
+            }
+        }
+
+        /**
+         * Migration from version 10 to 11.
+         * Adds region_hint column (nullable TEXT) to business_app_mappings.
+         * NULL = visible in all regions (existing rows get NULL — backward compatible).
+         * Non-null values are comma-separated region names, e.g. "UK" or "US,AU,NZ".
+         * Used when the same brand has different apps per region.
+         */
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE `business_app_mappings` ADD COLUMN `region_hint` TEXT")
             }
         }
     }

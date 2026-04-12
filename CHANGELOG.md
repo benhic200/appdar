@@ -84,3 +84,7 @@ AppDar release
 ## Version 135 (1.135) - 2026-04-05
 
 AppDar release
+
+## Version 140 (1.140) - 2026-04-12
+
+AppDar release

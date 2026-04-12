@@ -20,6 +20,7 @@ import com.benhic.appdar.data.local.profiles.ProfileId
 import com.benhic.appdar.feature.widgetlist.R
 import com.benhic.appdar.feature.widgetlist.di.WidgetListEntryPoint
 import com.benhic.appdar.feature.widgetlist.util.AppIconLoader
+import com.benhic.appdar.data.nearby.NearbyBranchFinder
 import com.benhic.appdar.feature.location.DistanceCalculator
 import com.benhic.appdar.feature.location.LocationProvider
 import dagger.hilt.android.EntryPointAccessors
@@ -54,6 +55,7 @@ internal class NearbyAppsWidgetListFactory(
     private lateinit var iconLoader: AppIconLoader
     private lateinit var locationProvider: LocationProvider
     private lateinit var locationProfileRepository: LocationProfileRepository
+    private lateinit var nearbyBranchFinder: NearbyBranchFinder
     private var userPreferences: UserPreferences? = null
     private var businessItems: List<BusinessItem> = emptyList()
 
@@ -76,6 +78,7 @@ internal class NearbyAppsWidgetListFactory(
             locationProvider = entryPoint.locationProvider().also { Log.d(TAG, "Location provider acquired: ${it != null}") }
             iconLoader = entryPoint.appIconLoader().also { Log.d(TAG, "Icon loader acquired: ${it != null}") }
             locationProfileRepository = entryPoint.locationProfileRepository().also { Log.d(TAG, "Location profile repository acquired: ${it != null}") }
+            nearbyBranchFinder = entryPoint.nearbyBranchFinder().also { Log.d(TAG, "NearbyBranchFinder acquired: ${it != null}") }
             Log.d(TAG, "Dependencies loaded: repository=${businessAppRepository != null}, " +
                 "settings=${settingsRepository != null}, " +
                 "location=${locationProvider != null}, " +
@@ -181,9 +184,9 @@ internal class NearbyAppsWidgetListFactory(
 
                 // Ensure database is seeded
                 businessAppRepository.initialize()
-                // Load all enabled business mappings
-                val mappings = businessAppRepository.getAllMappings().first().filter { it.isEnabled }
-                Log.d(TAG, "Loaded ${mappings.size} business mappings")
+                // Load all enabled business mappings — region filter applied below after location is known
+                val allEnabledMappings = businessAppRepository.getAllMappings().first().filter { it.isEnabled }
+                Log.d(TAG, "Loaded ${allEnabledMappings.size} business mappings")
 
                 // Get current location (fallback to stub London)
                 Log.d(TAG, "Attempting to get current location from provider: $locationProvider")
@@ -251,6 +254,38 @@ internal class NearbyAppsWidgetListFactory(
                     }
                     return@runBlocking
                 }
+
+                // Apply region filter now that we have a location
+                val mappings = if (currentLocation != null) {
+                    val region = nearbyBranchFinder.detectRegion(currentLocation.latitude, currentLocation.longitude)
+                    val effectiveRegionName = if (region == NearbyBranchFinder.Region.UNKNOWN) "UK" else region.name
+                    allEnabledMappings
+                        .filter { m ->
+                            when (region) {
+                                NearbyBranchFinder.Region.UK ->
+                                    m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                                               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                                NearbyBranchFinder.Region.US ->
+                                    m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                                               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                                               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                                NearbyBranchFinder.Region.AU ->
+                                    m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                                               && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                                NearbyBranchFinder.Region.NZ ->
+                                    m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                                               && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES)
+                                NearbyBranchFinder.Region.UNKNOWN ->
+                                    m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                                               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                            }
+                        }
+                        .filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
+                } else allEnabledMappings
 
                 // Create business items with real distances where possible
                 Log.d(TAG, "Starting mapNotNull over ${mappings.size} mappings")

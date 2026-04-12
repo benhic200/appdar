@@ -142,7 +142,6 @@ class NearbyAppsViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null, locationAvailable = true) }
             try {
                 businessAppRepository.initialize()
-                val mappings = businessAppRepository.getAllMappings().first()
                 val preferences = settingsRepository.getCurrentPreferences()
                 val currentLocation = locationProvider.getCurrentLocation()
 
@@ -150,6 +149,36 @@ class NearbyAppsViewModel @Inject constructor(
                     _uiState.update { it.copy(isLoading = false, locationAvailable = false) }
                     return@launch
                 }
+
+                val region = nearbyBranchFinder.detectRegion(currentLocation.latitude, currentLocation.longitude)
+                val effectiveRegionName = if (region == NearbyBranchFinder.Region.UNKNOWN) "UK" else region.name
+                val mappings = businessAppRepository.getAllMappings().first()
+                    .filter { it.isEnabled }
+                    .filter { m ->
+                        when (region) {
+                            NearbyBranchFinder.Region.UK ->
+                                m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                            NearbyBranchFinder.Region.US ->
+                                m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                            NearbyBranchFinder.Region.AU ->
+                                m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                            NearbyBranchFinder.Region.NZ ->
+                                m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES)
+                            NearbyBranchFinder.Region.UNKNOWN ->
+                                m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                        }
+                    }
+                    .filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
 
                 // The mutex inside findNearestBranches ensures only one Overpass call fires
                 // even when Dashboard and Nearby start simultaneously. If Dashboard already

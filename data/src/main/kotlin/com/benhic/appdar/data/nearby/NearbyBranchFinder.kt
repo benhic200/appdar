@@ -291,9 +291,7 @@ class NearbyBranchFinder @Inject constructor(
          * so it remains visible wherever it has a presence.
          */
         val UK_BRAND_NAMES: Set<String> = UK_BRANDS.keys - US_BRANDS.keys - AU_BRANDS.keys - NZ_BRANDS.keys
-        val US_BRAND_NAMES: Set<String> = (US_BRANDS.keys - UK_BRANDS.keys - AU_BRANDS.keys - NZ_BRANDS.keys) + setOf(
-            "McDonald's (US)", "Burger King (US)", "KFC (US)", "Domino's (US)"
-        )
+        val US_BRAND_NAMES: Set<String> = US_BRANDS.keys - UK_BRANDS.keys - AU_BRANDS.keys - NZ_BRANDS.keys
         val AU_BRAND_NAMES: Set<String> = AU_BRANDS.keys - UK_BRANDS.keys - US_BRANDS.keys - NZ_BRANDS.keys
         val NZ_BRAND_NAMES: Set<String> = NZ_BRANDS.keys - UK_BRANDS.keys - US_BRANDS.keys - AU_BRANDS.keys
     }

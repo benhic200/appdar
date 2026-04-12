@@ -225,30 +225,33 @@ fun AddBusinessScreen(
     // Brands hidden due to region mismatch (e.g. US-only brands hidden when in UK).
     // Custom brands (isCustom = true) are always shown regardless of region.
     val regionVisible = remember(mappings, currentRegion) {
-        mappings.filter { m ->
-            when (currentRegion) {
-                NearbyBranchFinder.Region.UK ->
-                    m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
-                               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                NearbyBranchFinder.Region.US ->
-                    m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
-                               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                NearbyBranchFinder.Region.AU ->
-                    m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                               && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                NearbyBranchFinder.Region.NZ ->
-                    m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                               && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES)
-                NearbyBranchFinder.Region.UNKNOWN ->
-                    m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
-                               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+        val effectiveRegionName = if (currentRegion == NearbyBranchFinder.Region.UNKNOWN) "UK" else currentRegion.name
+        mappings
+            .filter { m ->
+                when (currentRegion) {
+                    NearbyBranchFinder.Region.UK ->
+                        m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                   && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                                   && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                    NearbyBranchFinder.Region.US ->
+                        m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                                   && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                                   && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                    NearbyBranchFinder.Region.AU ->
+                        m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                                   && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                   && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                    NearbyBranchFinder.Region.NZ ->
+                        m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
+                                   && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                   && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES)
+                    NearbyBranchFinder.Region.UNKNOWN ->
+                        m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
+                                   && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
+                                   && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+                }
             }
-        }
+            .filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
     }
 
     // Counts drive the toggle label/action — base on region-visible list

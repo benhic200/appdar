@@ -646,7 +646,12 @@ fun TabbedAppScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        SettingsContent()
+                        SettingsContent(
+                            onNavigateToDashboard = {
+                                currentScreen = "dashboard"
+                                dashboardViewModel.refresh(force = true)
+                            }
+                        )
                         HorizontalDivider()
                         SetupContent(
                             permissionState = permissionState,
