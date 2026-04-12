@@ -135,9 +135,9 @@ object InitialDataset {
         // ── AU Fast Food ──────────────────────────────────────────────────────
         createMapping("McDonald's",        "com.mcdonalds.au.gma",                   "MyMacca's",          "fast_food",   isEnabled = false, regionHint = "AU"),
         createMapping("Hungry Jack's",     "com.webling.hungryjacks",                "Hungry Jack's",      "fast_food",   isEnabled = false, regionHint = "AU"),
-        createMapping("KFC", "com.kfcaus.ordering", "KFC", "fast_food", isEnabled = false, regionHint = "AU")
+        createMapping("KFC", "com.kfcaus.ordering", "KFC", "fast_food", isEnabled = false, regionHint = "AU"),
         createMapping("Domino's",          "au.com.dominos.olo.android.app",         "Domino's",           "fast_food",   isEnabled = false, regionHint = "AU"),
-        createMapping("Pizza Hut", "com.pizzahutau", "Pizza Hut", "fast_food", isEnabled = false, regionHint = "AU")
+        createMapping("Pizza Hut", "com.pizzahutau", "Pizza Hut", "fast_food", isEnabled = false, regionHint = "AU"),
 
         // ── AU Cinema ─────────────────────────────────────────────────────────
         createMapping("Event Cinemas",     "com.ahl.eventcinemas",                   "Event Cinemas",      "entertainment", isEnabled = false, regionHint = "AU"),
@@ -161,7 +161,7 @@ object InitialDataset {
         // Burger King NZ shares com.emn8.mobilem8.nativeapp.bk with US — see US section (regionHint = "US,NZ")
         createMapping("KFC",           "com.kfcnz.orderserv",                   "KFC New Zealand",    "fast_food",   isEnabled = false, regionHint = "NZ"),
         createMapping("Domino's",      "au.com.dominos.olo.android.app.nz",     "Domino's",           "fast_food",   isEnabled = false, regionHint = "NZ"),
-        createMapping("Pizza Hut",     "nz.co.pizzahut",                        "Pizza Hut",          "fast_food",   isEnabled = false, regionHint = "NZ"), // verify package
+        createMapping("Pizza Hut",     "nz.co.pizzahut",                        "Pizza Hut",          "fast_food",   isEnabled = false, regionHint = "NZ"),
         createMapping("BurgerFuel",    "com.como.prod909420230817",             "BurgerFuel VIB Club","fast_food",   isEnabled = false, regionHint = "NZ")
 
     )

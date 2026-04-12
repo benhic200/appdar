@@ -1903,3 +1903,45 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
 **New Issue: Overpass API rate limiting (HTTP 429)** – Logs after v115 show Overpass API returning HTTP 429 (Too Many Requests) and HTTP 504 (Gateway Timeout) errors. The server appears to be rate‑limiting the app due to frequent queries. This may cause empty results and timeouts even with the reliability improvements.
 
 **Next:** Await user acceptance of installation prompt on device for v117; then test Overpass rate‑limiting behavior.
+
+--------------------------------------------------------------------
+Big gap in updating this file ---------lots fixed and implemented---
+--------------------------------------------------------------------
+
+---
+
+## Session Log: 2026-04-12
+
+### Issues Fixed
+
+#### 1. Widget showing duplicate brands from all regions (e.g. 5× KFC, Domino's, Aldi)
+- **Root cause:** Room migration 6→7 stamped `is_enabled = 1` on every existing row. Old entries predating the `regionHint` system had `regionHint = NULL` (meaning global) and `isEnabled = true`, so they appeared in the widget for every region. Entries whose package names changed between builds were never reached by the seeder and couldn't be corrected.
+- **Fix:** Added `MIGRATION_11_12` to `AppDatabase.kt` — deletes all seeded (non-custom) rows on upgrade so the seeder re-inserts them fresh from `InitialDataset` with correct `isEnabled`/`regionHint` values. `DataModule.kt` updated with the new migration in the chain. DB bumped to version 12.
+
+#### 2. Seeder double-update bug in `DatabaseInitializer.kt`
+- **Root cause:** When both `metaChanged` and `needsDisable` were true, two separate `dao.update(existing.copy(...))` calls were made. The second call used the original `existing` object, reverting the metadata changes from the first.
+- **Fix:** Combined into a single `dao.update()` call evaluating both conditions together.
+
+#### 3. `dataset_editor.py` — Save button returning HTTP 405
+- **Root cause:** Browsers send a CORS preflight `OPTIONS` request before a `POST` with `Content-Type: application/json`. `BaseHTTPRequestHandler` has no `do_OPTIONS` handler by default, so it returned 405.
+- **Fix:** Added `do_OPTIONS` method to the `Handler` class returning 200 with `Access-Control-Allow-*` headers.
+
+#### 4. `dataset_editor.py` — Play Store availability dots all orange
+- **Root cause (round 1):** Server was running inside Docker with no outbound internet; `urllib` calls to `play.google.com` all failed.
+- **Attempted fix:** Moved checks to browser-side using `allorigins.win` CORS proxy. Failed because `allorigins.win` rate-limited at 429 and stopped sending CORS headers when rate-limited.
+- **Attempted fix 2:** Switched primary proxy to `corsproxy.io`. Failed because corsproxy.io returns `413 Content Too Large` for Play Store pages, and the fallback to `allorigins.win` was not triggered (non-2xx/non-4xx response was treated as "not found" rather than "proxy error").
+- **Fix (final):** User moved server to localhost (with real internet). Checks moved back to Python server-side via `/api/check_package?id=PKG` endpoint. Python fetches `play.google.com` directly (200 = found, 404 = not found, other = null/orange). Results cached in memory. Browser calls local endpoint — no proxies, no CORS, no rate limiting. Server upgraded from `HTTPServer` to `ThreadingHTTPServer` to handle concurrent check requests alongside page serves.
+
+### Files Changed
+| File | Change |
+|------|--------|
+| `data/.../database/AppDatabase.kt` | Added `MIGRATION_11_12`, bumped DB version to 12 |
+| `data/.../di/DataModule.kt` | Added `MIGRATION_11_12` to `addMigrations()` chain |
+| `data/.../database/DatabaseInitializer.kt` | Fixed double-update bug — combined `metaChanged` + `needsDisable` into single `dao.update()` call |
+| `scripts/dataset_editor.py` | Added `do_OPTIONS` CORS preflight handler; added server-side `check_play_store()` function with in-memory cache; `/api/check_package` endpoint now live; switched from `HTTPServer` to `ThreadingHTTPServer`; removed browser-side proxy JS |
+
+### Current Status
+- Widget region filtering: **fixed** (migration 11→12 + seeder)
+- Dataset editor save: **working**
+- Dataset editor Play Store dots: **working** (server-side checks, green/red/orange)
+

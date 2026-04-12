@@ -96,3 +96,7 @@ AppDar release
 ## Version 141 (1.141) - 2026-04-12
 
 AppDar release
+
+## Version 143 (1.143) - 2026-04-12
+
+AppDar release
