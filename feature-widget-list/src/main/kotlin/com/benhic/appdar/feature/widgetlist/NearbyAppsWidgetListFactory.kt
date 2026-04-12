@@ -255,37 +255,14 @@ internal class NearbyAppsWidgetListFactory(
                     return@runBlocking
                 }
 
-                // Apply region filter now that we have a location
-                val mappings = if (currentLocation != null) {
-                    val region = nearbyBranchFinder.detectRegion(currentLocation.latitude, currentLocation.longitude)
-                    val effectiveRegionName = if (region == NearbyBranchFinder.Region.UNKNOWN) "UK" else region.name
-                    allEnabledMappings
-                        .filter { m ->
-                            when (region) {
-                                NearbyBranchFinder.Region.UK ->
-                                    m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                                               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
-                                               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                                NearbyBranchFinder.Region.US ->
-                                    m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                                               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
-                                               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                                NearbyBranchFinder.Region.AU ->
-                                    m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                                               && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                                               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                                NearbyBranchFinder.Region.NZ ->
-                                    m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                                               && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                                               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES)
-                                NearbyBranchFinder.Region.UNKNOWN ->
-                                    m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                                               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
-                                               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                            }
-                        }
-                        .filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
-                } else allEnabledMappings
+                // Apply region filter — use live GPS region if available, otherwise fall back
+                // to the last known region (stored in SharedPrefs). UNKNOWN defaults to "UK".
+                val region = if (currentLocation != null)
+                    nearbyBranchFinder.resolveRegion(currentLocation.latitude, currentLocation.longitude)
+                else
+                    nearbyBranchFinder.lastKnownRegion()
+                val effectiveRegionName = if (region == NearbyBranchFinder.Region.UNKNOWN) "UK" else region.name
+                val mappings = allEnabledMappings.filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
 
                 // Create business items with real distances where possible
                 Log.d(TAG, "Starting mapNotNull over ${mappings.size} mappings")

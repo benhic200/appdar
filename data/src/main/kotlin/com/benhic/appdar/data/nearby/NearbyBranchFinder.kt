@@ -283,17 +283,6 @@ class NearbyBranchFinder @Inject constructor(
          */
         val BRAND_TAGS: Map<String, String> = UK_BRANDS + US_BRANDS + AU_BRANDS + NZ_BRANDS + GLOBAL_BRANDS
 
-        private val allRegionalKeys get() = UK_BRANDS.keys + US_BRANDS.keys + AU_BRANDS.keys + NZ_BRANDS.keys
-
-        /**
-         * Brands exclusively in one region — hidden from users in all other regions.
-         * A brand present in multiple regional maps is excluded from all exclusive sets
-         * so it remains visible wherever it has a presence.
-         */
-        val UK_BRAND_NAMES: Set<String> = UK_BRANDS.keys - US_BRANDS.keys - AU_BRANDS.keys - NZ_BRANDS.keys
-        val US_BRAND_NAMES: Set<String> = US_BRANDS.keys - UK_BRANDS.keys - AU_BRANDS.keys - NZ_BRANDS.keys
-        val AU_BRAND_NAMES: Set<String> = AU_BRANDS.keys - UK_BRANDS.keys - US_BRANDS.keys - NZ_BRANDS.keys
-        val NZ_BRAND_NAMES: Set<String> = NZ_BRANDS.keys - UK_BRANDS.keys - US_BRANDS.keys - AU_BRANDS.keys
     }
 
     /**

@@ -84,18 +84,29 @@ class AddBusinessViewModel @Inject constructor(
     private var osmValidationJob: Job? = null
 
     init {
+        // Observe region preference and update the filter whenever it changes.
+        // AUTO resolves immediately from last-known GPS — a live location lookup
+        // only happens on first open (below), not on every preference change.
         viewModelScope.launch(Dispatchers.IO) {
-            val pref = settingsRepository.getCurrentPreferences().regionPreference
-            _currentRegion.value = when (pref) {
-                RegionPreference.UK   -> NearbyBranchFinder.Region.UK
-                RegionPreference.US   -> NearbyBranchFinder.Region.US
-                RegionPreference.AU   -> NearbyBranchFinder.Region.AU
-                RegionPreference.NZ   -> NearbyBranchFinder.Region.NZ
-                RegionPreference.AUTO -> {
-                    val location = runCatching { locationProvider.getCurrentLocation() }.getOrNull()
-                    if (location != null) nearbyBranchFinder.detectRegion(location.latitude, location.longitude)
-                    else nearbyBranchFinder.lastKnownRegion()
+            settingsRepository.userPreferences
+                .map { it.regionPreference }
+                .distinctUntilChanged()
+                .collect { pref ->
+                    _currentRegion.value = when (pref) {
+                        RegionPreference.UK   -> NearbyBranchFinder.Region.UK
+                        RegionPreference.US   -> NearbyBranchFinder.Region.US
+                        RegionPreference.AU   -> NearbyBranchFinder.Region.AU
+                        RegionPreference.NZ   -> NearbyBranchFinder.Region.NZ
+                        RegionPreference.AUTO -> nearbyBranchFinder.lastKnownRegion()
+                    }
                 }
+        }
+        // On first open with AUTO, do a full GPS lookup to get an accurate region.
+        viewModelScope.launch(Dispatchers.IO) {
+            if (settingsRepository.getCurrentPreferences().regionPreference == RegionPreference.AUTO) {
+                val location = runCatching { locationProvider.getCurrentLocation() }.getOrNull()
+                if (location != null)
+                    _currentRegion.value = nearbyBranchFinder.detectRegion(location.latitude, location.longitude)
             }
         }
         viewModelScope.launch {
@@ -222,36 +233,11 @@ fun AddBusinessScreen(
         installedApps.map { it.packageName }.toHashSet()
     }
 
-    // Brands hidden due to region mismatch (e.g. US-only brands hidden when in UK).
+    // Filter to brands visible in the user's current region.
     // Custom brands (isCustom = true) are always shown regardless of region.
     val regionVisible = remember(mappings, currentRegion) {
         val effectiveRegionName = if (currentRegion == NearbyBranchFinder.Region.UNKNOWN) "UK" else currentRegion.name
-        mappings
-            .filter { m ->
-                when (currentRegion) {
-                    NearbyBranchFinder.Region.UK ->
-                        m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                                   && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
-                                   && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                    NearbyBranchFinder.Region.US ->
-                        m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                                   && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
-                                   && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                    NearbyBranchFinder.Region.AU ->
-                        m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                                   && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                                   && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                    NearbyBranchFinder.Region.NZ ->
-                        m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                                   && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                                   && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES)
-                    NearbyBranchFinder.Region.UNKNOWN ->
-                        m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                                   && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
-                                   && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                }
-            }
-            .filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
+        mappings.filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
     }
 
     // Counts drive the toggle label/action — base on region-visible list

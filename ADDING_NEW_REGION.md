@@ -1,52 +1,27 @@
 # Adding a New Country / Region
 
-The region architecture supports an arbitrary number of regions. This document
-covers both how to add a region **today** and the one-time migration that will
-make adding future regions a much smaller change.
+Adding a new region is a **~40-line change across 5 files** — all data, no filter
+logic. The filter sites never need touching again.
 
 ---
 
-## How the filtering model works
+## How the filter works
 
-There are currently **two parallel filter mechanisms**. Understanding both is
-important before making changes.
-
-### 1. `regionHint` (the scalable path)
-
-Every `BusinessAppMapping` row has a nullable `regionHint` column:
-
-| Value | Meaning |
-|-------|---------|
-| `null` | Visible in all regions |
-| `"UK"` | UK only |
-| `"US,AU,NZ"` | Visible in US, AU and NZ |
-
-The filter is a single line that works for **any number of regions, forever**:
+All four filter sites (Dashboard, Nearby Apps, widget, Places) use a single line:
 
 ```kotlin
-val effectiveRegionName = if (region == UNKNOWN) "UK" else region.name
-.filter { m -> m.isCustom || m.regionHint == null || effectiveRegionName in m.regionHint.split(",") }
+val effectiveRegionName = if (region == NearbyBranchFinder.Region.UNKNOWN) "UK" else region.name
+.filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
 ```
 
-This is currently used to select the correct app variant for global brands that
-have different packages per region (e.g. McDonald's has `com.mcdonalds.app.uk`
-for UK and `com.mcdonalds.app` for US/AU/NZ).
+`regionHint = null` → visible everywhere (truly global brands like Starbucks, Subway, IKEA).  
+`regionHint = "UK"` → UK only.  
+`regionHint = "AU,NZ"` → Australia and New Zealand.  
+`regionHint = "US,AU,NZ"` → all non-UK regions (used for global-brand non-UK app variants).
 
-### 2. Exclusive brand-name sets (the legacy path)
-
-`NearbyBranchFinder` also computes sets like:
-
-```kotlin
-val UK_BRAND_NAMES = UK_BRANDS.keys - US_BRANDS.keys - AU_BRANDS.keys - NZ_BRANDS.keys
-```
-
-These are used in `when(region)` blocks in four places to hide, for example,
-Tesco from US users. This mechanism **does not scale**: adding a new region
-requires editing every existing `when` branch in four files (DashboardTab ×2,
-NearbyAppsTab, NearbyAppsWidgetListFactory, AddBusinessScreen).
-
-The long-term plan is to eliminate these blocks by migrating all region-specific
-brands to use `regionHint` instead (see [Migration path](#migration-path-to-regionhint-only-filtering) below).
+When a new `Region.XX` enum entry is added, the filter picks it up automatically
+because `region.name` matches the string in `regionHint`. **No changes to the
+filter files are needed.**
 
 ---
 
@@ -75,7 +50,7 @@ CA("Canada", "41.7,-95.0,83.1,-52.6"),
 lat in 41.7..83.1 && lon in -95.0..-52.6 -> Region.CA
 ```
 
-**c) Add brand map** (used for Overpass queries — keep separate from the UI filter):
+**c) Add brand map** (used for Overpass queries — separate from the UI filter):
 ```kotlin
 private val CA_BRANDS = mapOf(
     "Tim Hortons"   to "Tim Hortons",
@@ -85,16 +60,9 @@ private val CA_BRANDS = mapOf(
 )
 ```
 
-**d) Update `BRAND_TAGS` and exclusive name sets:**
+**d) Update `BRAND_TAGS`:**
 ```kotlin
 val BRAND_TAGS = UK_BRANDS + US_BRANDS + AU_BRANDS + NZ_BRANDS + CA_BRANDS + GLOBAL_BRANDS
-
-// Subtract CA from every existing set, and add the new CA set:
-val UK_BRAND_NAMES = UK_BRANDS.keys - US_BRANDS.keys - AU_BRANDS.keys - NZ_BRANDS.keys - CA_BRANDS.keys
-val US_BRAND_NAMES = US_BRANDS.keys - UK_BRANDS.keys - AU_BRANDS.keys - NZ_BRANDS.keys - CA_BRANDS.keys
-val AU_BRAND_NAMES = AU_BRANDS.keys - UK_BRANDS.keys - US_BRANDS.keys - NZ_BRANDS.keys - CA_BRANDS.keys
-val NZ_BRAND_NAMES = NZ_BRANDS.keys - UK_BRANDS.keys - US_BRANDS.keys - AU_BRANDS.keys - CA_BRANDS.keys
-val CA_BRAND_NAMES = CA_BRANDS.keys - UK_BRANDS.keys - US_BRANDS.keys - AU_BRANDS.keys - NZ_BRANDS.keys
 ```
 
 **e) Extend `resolveRegion()`:**
@@ -117,49 +85,25 @@ enum class RegionPreference { AUTO, UK, US, AU, NZ, CA }
 
 ---
 
-### 3. `app/…/DashboardTab.kt` (two filter blocks — `refresh()` and `silentRefresh()`)
+### 3. `data/…/InitialDataset.kt`
 
-Add a `Region.CA` branch **and** append `&& m.businessName !in NearbyBranchFinder.CA_BRAND_NAMES`
-to every other existing branch (UK, US, AU, NZ, UNKNOWN):
+Add `createMapping(...)` entries for each CA-specific brand. Use `isEnabled = false`
+for brands that are exclusive to CA (users outside CA won't see them due to
+`regionHint`, and CA users can enable what they want).
+
+For global brands that have a CA-specific app variant, add a CA entry with
+`regionHint = "CA"` and update the existing non-UK variant's `regionHint` to
+include CA (e.g. `"US,AU,NZ"` → `"US,AU,NZ,CA"`).
 
 ```kotlin
-NearbyBranchFinder.Region.CA ->
-    m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-               && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-               && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
-               && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
+// ── Canada ─────────────────────────────────────────────────────────────────
+createMapping("Tim Hortons",   "com.timhortons.timapp",             "Tim Hortons",   "coffee", isEnabled = false, regionHint = "CA"),
+createMapping("Canadian Tire", "com.canadiantire.consumer.android", "Canadian Tire", "retail", isEnabled = false, regionHint = "CA"),
 ```
 
-Do this in both the `refresh()` block (around line 215) and the `silentRefresh()`
-block (around line 330).
-
 ---
 
-### 4. `app/…/NearbyAppsTab.kt`
-
-Identical filter pattern as step 3 — add `Region.CA` case and extend all others.
-
----
-
-### 5. `feature-widget-list/…/NearbyAppsWidgetListFactory.kt`
-
-Identical filter pattern as step 3 — add `Region.CA` case and extend all others.
-
----
-
-### 6. `app/…/AddBusinessScreen.kt`
-
-**a) ViewModel pref→Region mapping (in `init {}`):**
-```kotlin
-RegionPreference.CA -> NearbyBranchFinder.Region.CA
-```
-
-**b) `regionVisible` filter** — add `Region.CA` case and extend all others with
-`&& m.businessName !in NearbyBranchFinder.CA_BRAND_NAMES`.
-
----
-
-### 7. `feature-settings/…/SettingsScreen.kt`
+### 4. `feature-settings/…/SettingsScreen.kt`
 
 **a) `RegionDropdown` options list:**
 ```kotlin
@@ -173,77 +117,20 @@ RegionPreference.CA to "Canada",
 
 ---
 
-### 8. `app/…/OnboardingScreen.kt`
+### 5. `app/…/OnboardingScreen.kt`
 
 **a) Auto-detect in `RegionStepContent`:**
 ```kotlin
 loc.latitude in 41.7..83.1 && loc.longitude in -95.0..-52.6 -> RegionPreference.CA
 ```
 
-**b) Update the availability notice** (same string as step 7b).
-
----
-
-### 9. `data/…/InitialDataset.kt`
-
-Add `createMapping(...)` entries for each CA-specific brand. Use `isEnabled = false`
-for brands that are exclusive to CA (users outside CA won't see them, and CA users
-can enable what they want). For global brands that have a CA-specific app variant,
-use `regionHint = "CA"` on the CA entry and add `"CA"` to the `regionHint` of
-any existing non-UK variant that also covers CA (e.g. `"US,AU,NZ"` → `"US,AU,NZ,CA"`).
-
-```kotlin
-// ── Canada ─────────────────────────────────────────────────────────────────
-createMapping("Tim Hortons",   "com.timhortons.timapp",             "Tim Hortons",   "coffee", isEnabled = false, regionHint = "CA"),
-createMapping("Canadian Tire", "com.canadiantire.consumer.android", "Canadian Tire", "retail", isEnabled = false, regionHint = "CA"),
-```
-
-> **Note:** Set `regionHint` on CA-specific brands so that when the `when(region)` blocks
-> are eventually removed, these entries are already correctly tagged.
-
----
-
-## Migration path to `regionHint`-only filtering
-
-Once all region-specific brands have a `regionHint` set, the entire `when(region)`
-block in steps 3–6 above can be deleted and replaced with the single line already
-present in each file:
-
-```kotlin
-.filter { m -> m.isCustom || m.regionHint == null || effectiveRegionName in m.regionHint.split(",") }
-```
-
-This eliminates the O(N²) maintenance cost. After this migration, **adding a new
-region requires zero changes to the four filter files** — only the data layer
-(NearbyBranchFinder brand maps, InitialDataset entries) and the UI layer
-(settings dropdown, onboarding) need updating.
-
-### What needs to happen for the migration
-
-Set `regionHint` on every brand that is currently hidden by the exclusive-name-set
-filter, then remove the `when(region)` blocks:
-
-| Brands | `regionHint` to set |
-|--------|---------------------|
-| Tesco, Greggs, Boots, Argos, Next, Odeon, Vue, Cineworld, Premier Inn, Travelodge, Wetherspoons, Pizza Express, Zizzi, Yo! Sushi, TGI Fridays, Nando's, Wagamama, Papa John's, Co-op, Iceland, WHSmith, Superdrug, M&S, Waitrose, Morrisons, Asda, Sainsbury's, Aldi, Lidl, Costa Coffee, Caffè Nero, Pret A Manger, Five Guys | `"UK"` |
-| Walmart, Target, Whole Foods, Walgreens, CVS, Panera Bread | `"US"` |
-| Woolworths, Coles, Hungry Jack's, Chemist Warehouse, Dan Murphy's, JB Hi-Fi, Bunnings, Officeworks, Myer, Event Cinemas, Hoyts | `"AU"` |
-| Countdown, New World, The Warehouse, Z, Mitre 10 | `"NZ"` |
-| Global brands with no region-specific app (Subway, Starbucks, IKEA, Hilton, Marriott, Holiday Inn, BP, Shell, Costco, Taco Bell, Chipotle, Chick-fil-A, Dunkin', Shake Shack) | leave as `null` |
-
-After setting those `regionHint` values, the `XX_BRAND_NAMES` sets in
-`NearbyBranchFinder` can be removed from the filter code (the regional brand maps
-`UK_BRANDS`, `US_BRANDS` etc. must be kept — they drive the Overpass download
-queries, not the UI filter).
-
-This migration also requires a `Room` database migration bump to add the new
-`regionHint` values to existing rows — use the seeder's metadata-sync path
-(`metaChanged` check in `DatabaseInitializer`) to propagate them automatically.
+**b) Update the availability notice** (same string as step 4b).
 
 ---
 
 ## What works automatically (no changes needed)
 
+- All four filter sites (Dashboard, Nearby Apps, widget, Places) — handled by `regionHint`
 - Overpass download with regional bbox — only returns branches in that area
 - Per-region DB TTL and 30-day background refresh
 - Border-crossing detection and background re-download
@@ -279,7 +166,7 @@ its region bbox, and reports any that return 0 nodes (likely wrong tag).
 ## Finding correct OSM brand tags
 
 1. Open [openstreetmap.org](https://www.openstreetmap.org) and search for a
-   known branch (e.g. "Woolworths Sydney")
+   known branch (e.g. "Tim Hortons Ottawa")
 2. Click the node/way → inspect the `brand=` tag value
 3. Use that **exact string** (case-sensitive) in the brand map
 
@@ -294,22 +181,15 @@ resolves tags interactively via the Add Places screen.
 - [ ] `Region` enum entry + bbox in `NearbyBranchFinder`
 - [ ] `detectRegion()` GPS check
 - [ ] `resolveRegion()` preference branch
-- [ ] `XX_BRANDS` map (verify OSM tags with `check_osm_brands.sh`)
+- [ ] `XX_BRANDS` map added (verify OSM tags with `check_osm_brands.sh`)
 - [ ] `BRAND_TAGS` updated
-- [ ] All `XX_BRAND_NAMES` sets updated (subtract new region from every existing set)
 - [ ] `BRAND_DB_VERSION` bumped
 - [ ] `RegionPreference` enum entry
 
-### Filter sites *(skip these once the `regionHint` migration is complete)*
-- [ ] `DashboardTab` — `refresh()` filter block updated
-- [ ] `DashboardTab` — `silentRefresh()` filter block updated
-- [ ] `NearbyAppsTab` — filter block updated
-- [ ] `NearbyAppsWidgetListFactory` — filter block updated
-- [ ] `AddBusinessScreen` ViewModel mapping + `regionVisible` filter updated
-
 ### Dataset
-- [ ] `InitialDataset` entries added with `regionHint` set (and `isEnabled = false` for region-exclusive brands)
+- [ ] `InitialDataset` entries added with `regionHint = "XX"` (and `isEnabled = false`)
 - [ ] Global brand variants with a region-specific app added with correct `regionHint`
+- [ ] Existing non-UK global variants updated if CA needs adding to their `regionHint`
 - [ ] Package names verified with `check_packages.sh`
 - [ ] OSM tags verified with `check_osm_brands.sh`
 

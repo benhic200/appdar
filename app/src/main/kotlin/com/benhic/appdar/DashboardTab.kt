@@ -211,34 +211,10 @@ class DashboardViewModel @Inject constructor(
                 // Rebuild from branch cache — findNearestBranches hits the local DB (no network
                 // call unless the 30-day TTL has expired), so this is effectively instant.
                 businessAppRepository.initialize()
-                val region = nearbyBranchFinder.detectRegion(location.latitude, location.longitude)
+                val region = nearbyBranchFinder.resolveRegion(location.latitude, location.longitude)
                 val effectiveRegionName = if (region == NearbyBranchFinder.Region.UNKNOWN) "UK" else region.name
                 val mappings = businessAppRepository.getAllMappings().first()
                     .filter { it.isEnabled }
-                    .filter { m ->
-                        when (region) {
-                            NearbyBranchFinder.Region.UK ->
-                                m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                            NearbyBranchFinder.Region.US ->
-                                m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                            NearbyBranchFinder.Region.AU ->
-                                m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                            NearbyBranchFinder.Region.NZ ->
-                                m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES)
-                            NearbyBranchFinder.Region.UNKNOWN ->
-                                m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                        }
-                    }
                     .filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
                 val branches = nearbyBranchFinder.findNearestBranches(location.latitude, location.longitude)
                 if (branches.isEmpty()) return@launch  // offline — keep showing current list
@@ -327,34 +303,10 @@ class DashboardViewModel @Inject constructor(
                 // If another coroutine is already fetching, this call waits for the mutex
                 // and then cache-hits — no duplicate network call.
                 businessAppRepository.initialize()
-                val region = nearbyBranchFinder.detectRegion(location.latitude, location.longitude)
+                val region = nearbyBranchFinder.resolveRegion(location.latitude, location.longitude)
                 val effectiveRegionName = if (region == NearbyBranchFinder.Region.UNKNOWN) "UK" else region.name
                 val mappings = businessAppRepository.getAllMappings().first()
                     .filter { it.isEnabled }
-                    .filter { m ->
-                        when (region) {
-                            NearbyBranchFinder.Region.UK ->
-                                m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                            NearbyBranchFinder.Region.US ->
-                                m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                            NearbyBranchFinder.Region.AU ->
-                                m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                            NearbyBranchFinder.Region.NZ ->
-                                m.isCustom || (m.businessName !in NearbyBranchFinder.UK_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES)
-                            NearbyBranchFinder.Region.UNKNOWN ->
-                                m.isCustom || (m.businessName !in NearbyBranchFinder.US_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.AU_BRAND_NAMES
-                                           && m.businessName !in NearbyBranchFinder.NZ_BRAND_NAMES)
-                        }
-                    }
                     .filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
 
                 nearbyBranchFinder.markLoading()

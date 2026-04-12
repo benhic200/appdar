@@ -179,7 +179,10 @@ private fun SettingsCards(
             Spacer(modifier = Modifier.padding(6.dp))
             RegionDropdown(
                 selected = userPreferences.regionPreference,
-                onSelect = { viewModel.updateRegionPreference(it) }
+                onSelect = { pref ->
+                    viewModel.updateRegionPreference(pref)
+                    onNavigateToDashboard()
+                }
             )
             Spacer(modifier = Modifier.padding(4.dp))
             Card(
