@@ -167,6 +167,11 @@ class NearbyAppsViewModel @Inject constructor(
                 )
                 val isOffline = nearbyBranchFinder.fetchState.value.isOffline
 
+                if (nearestBranches.isEmpty() && isOffline) {
+                    _uiState.update { it.copy(isLoading = false, error = "Could not download location data.\nCheck your connection and tap Retry.") }
+                    return@launch
+                }
+
                 val businessItems = mappings.mapNotNull { mapping ->
                     val (branchLat, branchLon) = nearestBranches[mapping.businessName]
                         ?: ((mapping.latitude ?: return@mapNotNull null) to

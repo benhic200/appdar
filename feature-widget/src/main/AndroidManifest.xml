@@ -12,6 +12,8 @@
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.benhic.appdar.ACTION_PAGE_CHANGE" />
                 <action android:name="com.benhic.appdar.ACTION_SCHEDULED_UPDATE" />
+                <!-- Fired when the user unlocks the screen — restarts the fast screen-on loop. -->
+                <action android:name="android.intent.action.USER_PRESENT" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -93,6 +95,7 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 

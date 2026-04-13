@@ -7,7 +7,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -50,8 +52,11 @@ fun OnboardingScreen(
     onComplete: () -> Unit
 ) {
     var step by remember { mutableStateOf(0) }
-    val totalSteps = 6
+    val totalSteps = 7
     val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val dashboardViewModel: DashboardViewModel = hiltViewModel()
+    val branchStatusMessage by dashboardViewModel.branchStatusMessage.collectAsState()
+    val branchDownloadProgress by dashboardViewModel.branchDownloadProgress.collectAsState()
 
     val steps = listOf(
         OnboardingStep(
@@ -77,6 +82,16 @@ fun OnboardingScreen(
             title = "Your Region"
         ) {
             RegionStepContent(settingsViewModel)
+        },
+        OnboardingStep(
+            icon = Icons.Filled.LocationOn,
+            title = "Setting Up"
+        ) {
+            DownloadStepContent(
+                statusMessage = branchStatusMessage,
+                downloadProgress = branchDownloadProgress,
+                onTriggerDownload = { dashboardViewModel.refresh(force = true) }
+            )
         },
         OnboardingStep(
             icon = Icons.Filled.Widgets,
@@ -497,6 +512,127 @@ private fun RegionStepContent(settingsViewModel: SettingsViewModel) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
+    }
+}
+
+@Composable
+private fun DownloadStepContent(
+    statusMessage: String?,
+    downloadProgress: Pair<Int, Int>?,
+    onTriggerDownload: () -> Unit
+) {
+    var downloadStarted by remember { mutableStateOf(false) }
+    var downloadCompleted by remember { mutableStateOf(false) }
+
+    val cyclingMessages = remember {
+        listOf(
+            "This only happens once — updates silently every 30 days after that",
+            "Storing branch locations locally for offline use too",
+            "Once saved, your nearest branch loads instantly — no waiting",
+            "No need to stay on this screen — it'll open automatically",
+            "Asking Overpass API very nicely for all of this...",
+            "After this, results update in under a second as you move"
+        )
+    }
+    var msgIndex by remember { mutableStateOf(0) }
+
+    LaunchedEffect(Unit) { onTriggerDownload() }
+    LaunchedEffect(statusMessage) {
+        if (statusMessage != null) downloadStarted = true
+        if (statusMessage == null && downloadStarted) downloadCompleted = true
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(4_000L)
+            msgIndex = (msgIndex + 1) % cyclingMessages.size
+        }
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = if (downloadCompleted) "All done! Location data is ready."
+                   else "Setting up for the first time.\nThis may take between 5 to 10 minutes.",
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = "Our servers are doing the heavy lifting — only a small amount of location data is saved to your device.",
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        AppdarRadarAnimation(Modifier.size(96.dp))
+
+        Spacer(Modifier.height(4.dp))
+
+        val dpCurrent = downloadProgress?.first ?: 0
+        val dpTotal   = downloadProgress?.second ?: 0
+        if (dpTotal > 0) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(dpTotal) { i ->
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 4.dp)
+                                .size(if (i == dpCurrent - 1) 12.dp else 8.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (i < dpCurrent) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.outlineVariant
+                                )
+                        )
+                    }
+                }
+                Text(
+                    text = if (downloadCompleted) "Complete" else "$dpCurrent of $dpTotal",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LinearProgressIndicator(
+                    progress = { dpCurrent.toFloat() / dpTotal },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            }
+        } else {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        }
+        Text(
+            text = statusMessage ?: if (downloadCompleted) "Location data saved — ready to go!"
+                                    else "Starting up…",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+        AnimatedContent(
+            targetState = msgIndex,
+            transitionSpec = { fadeIn(tween(600)) togetherWith fadeOut(tween(600)) },
+            label = "download_msg"
+        ) { idx ->
+            Text(
+                text = cyclingMessages[idx],
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 

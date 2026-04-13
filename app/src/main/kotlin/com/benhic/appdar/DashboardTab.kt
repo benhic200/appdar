@@ -492,8 +492,15 @@ fun LoadingContent(statusMessage: String? = null, downloadProgress: Pair<Int, In
                 modifier = Modifier.padding(horizontal = 40.dp)
             ) {
                 Text(
-                    text = "Setting up for the first time.\nThis may take up to 5 minutes.",
+                    text = "Setting up for the first time.\nThis may take between 5 to 10 minutes.",
                     style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
+                Text(
+                    text = "Our servers are doing the heavy lifting — only a small amount of location data is saved to your device.",
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
@@ -538,6 +545,12 @@ fun LoadingContent(statusMessage: String? = null, downloadProgress: Pair<Int, In
                             text = "$dpCurrent of $dpTotal",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        LinearProgressIndicator(
+                            progress = { dpCurrent.toFloat() / dpTotal },
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     }
                 } else {

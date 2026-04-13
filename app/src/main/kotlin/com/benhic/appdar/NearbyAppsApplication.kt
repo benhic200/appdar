@@ -1,6 +1,8 @@
 package com.benhic.appdar
 
 import android.app.Application
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
@@ -8,6 +10,8 @@ import androidx.core.content.ContextCompat
 import com.benhic.appdar.feature.geofencing.GeofenceCreator
 import com.benhic.appdar.feature.geofencing.GeofenceManager
 import com.benhic.appdar.core.foreground.GeofencingForegroundService
+import com.benhic.appdar.feature.widget.NearbyAppsWidgetProvider
+import com.benhic.appdar.feature.widget.WidgetUpdateScheduler
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -24,6 +28,7 @@ class NearbyAppsApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         startGeofencingIfPermitted()
+        ensureWidgetSchedulerRunning()
     }
 
     private fun startGeofencingIfPermitted() {
@@ -70,6 +75,26 @@ class NearbyAppsApplication : Application() {
             // is started from the background (e.g. by a widget PendingIntent). Safe to ignore —
             // geofencing will start next time the app comes to the foreground.
             Log.w(TAG, "Could not start foreground service (background start restriction): ${e.message}")
+        }
+    }
+
+    /**
+     * If any Appdar widget is on the home screen, ensure the refresh loop is running.
+     * Called every time the app process starts — covers app launches, reinstalls (via
+     * ACTION_MY_PACKAGE_REPLACED in BootReceiver), and broadcast-receiver process restarts.
+     */
+    private fun ensureWidgetSchedulerRunning() {
+        try {
+            val mgr = AppWidgetManager.getInstance(this)
+            val hasActiveWidgets = NearbyAppsWidgetProvider.ALL_WIDGET_CLASSES.any { cls ->
+                mgr.getAppWidgetIds(ComponentName(this, cls)).isNotEmpty()
+            }
+            if (!hasActiveWidgets) return
+            WidgetUpdateScheduler.triggerNow(this)
+            WidgetUpdateScheduler.scheduleWatchdog(this)
+            Log.d(TAG, "Widget scheduler started from Application.onCreate()")
+        } catch (e: Exception) {
+            Log.w(TAG, "Widget scheduler startup skipped: ${e.message}")
         }
     }
 

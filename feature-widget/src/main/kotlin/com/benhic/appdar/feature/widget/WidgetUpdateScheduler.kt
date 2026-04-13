@@ -10,6 +10,7 @@ const val ACTION_SCHEDULED_UPDATE = "com.benhic.appdar.ACTION_SCHEDULED_UPDATE"
 
 private const val REQUEST_CODE = 9901
 private const val REQUEST_CODE_SCREEN_ON = 9902
+private const val REQUEST_CODE_WATCHDOG = 9903
 
 /**
  * Schedules or cancels widget refresh alarms.
@@ -67,6 +68,39 @@ object WidgetUpdateScheduler {
         alarmManager.cancel(buildScreenOnPendingIntent(context))
     }
 
+    /**
+     * Sends an immediate [ACTION_SCHEDULED_UPDATE] broadcast, bypassing AlarmManager entirely.
+     * The handler will update all widgets and start the appropriate scheduling loop.
+     * Safe to call at any time — the debounce inside [NearbyAppsWidgetProvider] prevents
+     * redundant renders.
+     */
+    fun triggerNow(context: Context) {
+        val intent = Intent(ACTION_SCHEDULED_UPDATE).apply { setPackage(context.packageName) }
+        context.sendBroadcast(intent)
+    }
+
+    /**
+     * Schedules a watchdog alarm that fires [ACTION_SCHEDULED_UPDATE] every 3 minutes.
+     * This is a safety net: if the fast screen-on loop dies (e.g. MIUI kills it), the
+     * watchdog restarts it within 3 minutes. Never cancelled by the screen-on or background
+     * loops — only by [cancelWatchdog] / [onDisabled].
+     */
+    fun scheduleWatchdog(context: Context) {
+        val intervalMs = 3 * 60 * 1000L
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmManager.setInexactRepeating(
+            AlarmManager.ELAPSED_REALTIME_WAKEUP,
+            SystemClock.elapsedRealtime() + intervalMs,
+            intervalMs,
+            buildWatchdogPendingIntent(context)
+        )
+    }
+
+    fun cancelWatchdog(context: Context) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmManager.cancel(buildWatchdogPendingIntent(context))
+    }
+
     private fun buildPendingIntent(context: Context): PendingIntent {
         val intent = Intent(ACTION_SCHEDULED_UPDATE).apply { setPackage(context.packageName) }
         return PendingIntent.getBroadcast(
@@ -79,6 +113,14 @@ object WidgetUpdateScheduler {
         val intent = Intent(ACTION_SCHEDULED_UPDATE).apply { setPackage(context.packageName) }
         return PendingIntent.getBroadcast(
             context, REQUEST_CODE_SCREEN_ON, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    private fun buildWatchdogPendingIntent(context: Context): PendingIntent {
+        val intent = Intent(ACTION_SCHEDULED_UPDATE).apply { setPackage(context.packageName) }
+        return PendingIntent.getBroadcast(
+            context, REQUEST_CODE_WATCHDOG, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }

@@ -121,7 +121,7 @@ class NearbyBranchFinder @Inject constructor(
          * (e.g. Irish brands added in v1.120, regional UK/US split in v1.115).
          * Old installs store 0 (key absent), so any value > 0 triggers a one-time wipe + re-download.
          */
-        private const val BRAND_DB_VERSION = 5
+        private const val BRAND_DB_VERSION = 6  // v6: US/AU/NZ brand expansion + NZ Countdown→Woolworths NZ fix
 
         private const val PREFS = "NearbyBranchCache"
         private const val PREF_BRAND_DB_VERSION = "brand_db_version"
@@ -211,13 +211,45 @@ class NearbyBranchFinder @Inject constructor(
          * truly US-only brands are hidden from UK users.
          */
         private val US_BRANDS = mapOf(
+            // ── US supermarkets & grocery ─────────────────────────────────────
             "Walmart"        to "Walmart",
             "Target"         to "Target",
+            "Kroger"         to "Kroger",
+            "Safeway"        to "Safeway",
+            "Albertsons"     to "Albertsons",
+            "Publix"         to "Publix",
             "Whole Foods"    to "Whole Foods Market",
+            "Trader Joe's"   to "Trader Joe's",
+            // ── US pharmacy ──────────────────────────────────────────────────
             "Walgreens"      to "Walgreens",
             "CVS"            to "CVS",
+            "Rite Aid"       to "Rite Aid",
+            // ── US fast food & casual dining ──────────────────────────────────
+            "Wendy's"        to "Wendy's",
             "Panera Bread"   to "Panera Bread",
-            // ── US-origin brands with UK presence ────────────────────────────
+            "Popeyes"        to "Popeyes",
+            "Sonic"          to "SONIC Drive-In",
+            "Dairy Queen"    to "Dairy Queen",
+            "Jack in the Box" to "Jack in the Box",
+            "Panda Express"  to "Panda Express",
+            "Arby's"         to "Arby's",
+            "Wingstop"       to "Wingstop",
+            // ── US coffee ────────────────────────────────────────────────────
+            "Dutch Bros"     to "Dutch Bros",
+            // ── US retail & home improvement ──────────────────────────────────
+            "Best Buy"       to "Best Buy",
+            "Home Depot"     to "The Home Depot",
+            "Lowe's"         to "Lowe's",
+            "Dollar General" to "Dollar General",
+            "Dollar Tree"    to "Dollar Tree",
+            "GameStop"       to "GameStop",
+            "Ulta Beauty"    to "Ulta Beauty",
+            // ── US entertainment ──────────────────────────────────────────────
+            "AMC Theatres"   to "AMC Theatres",
+            "Regal"          to "Regal",
+            // ── US fitness ───────────────────────────────────────────────────
+            "Planet Fitness" to "Planet Fitness",
+            // ── US-origin brands also present in UK ───────────────────────────
             "Costco"         to "Costco",
             "Taco Bell"      to "Taco Bell",
             "Chipotle"       to "Chipotle",
@@ -251,15 +283,31 @@ class NearbyBranchFinder @Inject constructor(
          * Note: package names should be verified against the AU Play Store.
          */
         private val AU_BRANDS = mapOf(
+            // ── AU supermarkets & grocery ─────────────────────────────────────
             "Woolworths"         to "Woolworths",
             "Coles"              to "Coles",
-            "Hungry Jack's"      to "Hungry Jack's",
+            "Aldi"               to "Aldi",
+            "Costco"             to "Costco",
+            // ── AU pharmacy ──────────────────────────────────────────────────
             "Chemist Warehouse"  to "Chemist Warehouse",
+            "Priceline"          to "Priceline",
+            // ── AU fast food ─────────────────────────────────────────────────
+            "Hungry Jack's"      to "Hungry Jack's",
+            "Red Rooster"        to "Red Rooster",
+            // ── AU coffee ────────────────────────────────────────────────────
+            "The Coffee Club"    to "The Coffee Club",
+            // ── AU retail & home ─────────────────────────────────────────────
             "Dan Murphy's"       to "Dan Murphy's",
             "JB Hi-Fi"           to "JB Hi-Fi",
+            "Harvey Norman"      to "Harvey Norman",
+            "Kmart"              to "Kmart",
+            "Big W"              to "Big W",
             "Bunnings"           to "Bunnings",
             "Officeworks"        to "Officeworks",
             "Myer"               to "Myer",
+            // ── AU fuel & convenience ─────────────────────────────────────────
+            "7-Eleven"           to "7-Eleven",
+            // ── AU entertainment ─────────────────────────────────────────────
             "Event Cinemas"      to "Event Cinemas",
             "Hoyts"              to "Hoyts"
         )
@@ -269,19 +317,40 @@ class NearbyBranchFinder @Inject constructor(
          * Note: package names should be verified against the NZ Play Store.
          */
         private val NZ_BRANDS = mapOf(
-            "Countdown"          to "Countdown",
+            // ── NZ supermarkets ──────────────────────────────────────────────
+            "Woolworths NZ"      to "Countdown",     // Countdown rebranded to Woolworths NZ; OSM tag still "Countdown"
             "New World"          to "New World",
             "Pak'nSave"          to "Pak'nSave",
+            // ── NZ retail & home ─────────────────────────────────────────────
             "The Warehouse"      to "The Warehouse",
+            "Farmers"            to "Farmers",
+            "Noel Leeming"       to "Noel Leeming",
+            "Briscoes"           to "Briscoes",
+            "Harvey Norman"      to "Harvey Norman",
+            "Kmart"              to "Kmart",
             "Bunnings"           to "Bunnings",
+            "Mitre 10"           to "Mitre 10",
+            // ── NZ fuel ──────────────────────────────────────────────────────
             "Z"                  to "Z",
-            "Mitre 10"           to "Mitre 10"
+            // ── NZ fast food ─────────────────────────────────────────────────
+            "BurgerFuel"         to "Burger Fuel",   // OSM tag uses space
+            "Hell Pizza"         to "Hell Pizza"
         )
 
         /**
          * All brand tags combined — used for DB seeding and validation lookups.
          */
         val BRAND_TAGS: Map<String, String> = UK_BRANDS + US_BRANDS + AU_BRANDS + NZ_BRANDS + GLOBAL_BRANDS
+
+        /** Brand tags relevant to a specific region, combined with global brands.
+         *  Limits Overpass queries to only the brands that make sense for the current
+         *  region — avoids querying AU/NZ brands for UK users and vice versa. */
+        fun brandsForRegion(region: Region): Map<String, String> = when (region) {
+            Region.UK, Region.UNKNOWN -> UK_BRANDS + GLOBAL_BRANDS
+            Region.US                  -> US_BRANDS + GLOBAL_BRANDS
+            Region.AU                  -> AU_BRANDS + GLOBAL_BRANDS
+            Region.NZ                  -> NZ_BRANDS + GLOBAL_BRANDS
+        }
 
     }
 
@@ -514,8 +583,11 @@ class NearbyBranchFinder @Inject constructor(
         }
 
         val nowMs = System.currentTimeMillis()
-        if (nowMs < overpassBackoffUntilMs) {
-            Log.w(TAG, "Overpass backoff active — skipping download")
+        // Only apply the backoff to automatic background refreshes (30-day TTL, region change).
+        // Foreground downloads (DB empty, user is watching a loading screen or tapped Retry)
+        // must always attempt a fresh download regardless of any prior backoff.
+        if (background && nowMs < overpassBackoffUntilMs) {
+            Log.w(TAG, "Overpass backoff active — skipping background download")
             return
         }
 
@@ -525,8 +597,8 @@ class NearbyBranchFinder @Inject constructor(
             if (!isRegionStale(region) && withContext(Dispatchers.IO) { branchLocationDao.count() } > 0) {
                 return@withLock
             }
-            if (System.currentTimeMillis() < overpassBackoffUntilMs) {
-                Log.w(TAG, "Overpass backoff active (set while waiting for mutex) — skipping")
+            if (background && System.currentTimeMillis() < overpassBackoffUntilMs) {
+                Log.w(TAG, "Overpass backoff active (set while waiting for mutex) — skipping background download")
                 return@withLock
             }
 
@@ -597,7 +669,7 @@ class NearbyBranchFinder @Inject constructor(
         val customBrands = withContext(Dispatchers.IO) {
             dao.getCustomOsmBrandMappings().map { it.osmBrandTag!! }
         }
-        val allBrandTags = (BRAND_TAGS.values + customBrands).distinct()
+        val allBrandTags = (brandsForRegion(region).values + customBrands).distinct()
         val groups = allBrandTags.chunked(DOWNLOAD_GROUP_SIZE)
         val total = groups.size
         val allLocations = mutableListOf<BranchLocation>()

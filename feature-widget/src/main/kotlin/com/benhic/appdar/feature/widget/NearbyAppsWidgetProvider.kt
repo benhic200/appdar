@@ -13,6 +13,7 @@ import android.widget.RemoteViews
 import androidx.annotation.RequiresApi
 import com.benhic.appdar.data.local.profiles.PROFILE_GEOFENCE_METERS
 import com.benhic.appdar.data.local.profiles.ProfileId
+import com.benhic.appdar.data.nearby.NearbyBranchFinder
 import com.benhic.appdar.data.local.settings.WidgetTheme
 import com.benhic.appdar.data.repository.BusinessAppRepository
 import com.benhic.appdar.feature.widget.di.WidgetEntryPoint
@@ -47,11 +48,15 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
         WidgetUpdateScheduler.schedule(context)
+        WidgetUpdateScheduler.scheduleWatchdog(context)
+        WidgetUpdateScheduler.triggerNow(context) // start immediately, don't wait for first alarm
     }
 
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
         WidgetUpdateScheduler.cancel(context)
+        WidgetUpdateScheduler.cancelScreenOnUpdate(context)
+        WidgetUpdateScheduler.cancelWatchdog(context)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -68,24 +73,46 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
         if (intent.action == Intent.ACTION_USER_PRESENT) {
             val pending = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    val ep = EntryPointAccessors.fromApplication(
+                val ep = try {
+                    EntryPointAccessors.fromApplication(
                         context.applicationContext, WidgetListEntryPoint::class.java
                     )
-                    val prefs = ep.settingsRepository().getCurrentPreferences()
-                    if (prefs.lowPowerMode) return@launch
-                    val mgr = AppWidgetManager.getInstance(context)
-                    for (cls in ALL_WIDGET_CLASSES) {
-                        val ids = mgr.getAppWidgetIds(android.content.ComponentName(context, cls))
-                        for (id in ids) updateAppWidget(context, mgr, id)
+                } catch (e: Exception) {
+                    Log.e(TAG, "ACTION_USER_PRESENT: entry point failed", e)
+                    pending.finish()
+                    return@launch
+                }
+                val prefs = try {
+                    ep.settingsRepository().getCurrentPreferences()
+                } catch (e: Exception) {
+                    Log.e(TAG, "ACTION_USER_PRESENT: prefs load failed", e)
+                    pending.finish()
+                    return@launch
+                }
+                if (prefs.lowPowerMode) {
+                    pending.finish()
+                    return@launch
+                }
+                val mgr = AppWidgetManager.getInstance(context)
+                for (cls in ALL_WIDGET_CLASSES) {
+                    val ids = mgr.getAppWidgetIds(android.content.ComponentName(context, cls))
+                    for (id in ids) {
+                        try {
+                            updateAppWidget(context, mgr, id)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "updateAppWidget id=$id failed (USER_PRESENT)", e)
+                        }
                     }
+                }
+                try {
                     if (prefs.screenOnRefreshEnabled) {
                         // Switch from slow repeating alarm to fast self-scheduling loop.
                         WidgetUpdateScheduler.cancel(context)
                         val intervalMs = prefs.refreshIntervalSeconds.coerceAtLeast(1) * 1000L
                         WidgetUpdateScheduler.scheduleScreenOnUpdate(context, intervalMs)
                     }
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    Log.e(TAG, "ACTION_USER_PRESENT: rescheduling failed", e)
                 } finally {
                     pending.finish()
                 }
@@ -96,18 +123,45 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
         if (intent.action == ACTION_SCHEDULED_UPDATE) {
             val pending = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    val ep = EntryPointAccessors.fromApplication(
+                // Load prefs first — if this fails we cannot reschedule safely, bail out.
+                val ep = try {
+                    EntryPointAccessors.fromApplication(
                         context.applicationContext, WidgetListEntryPoint::class.java
                     )
-                    val prefs = ep.settingsRepository().getCurrentPreferences()
-                    if (prefs.lowPowerMode) return@launch
-                    val mgr = AppWidgetManager.getInstance(context)
-                    for (cls in ALL_WIDGET_CLASSES) {
-                        val ids = mgr.getAppWidgetIds(android.content.ComponentName(context, cls))
-                        for (id in ids) updateAppWidget(context, mgr, id)
+                } catch (e: Exception) {
+                    Log.e(TAG, "ACTION_SCHEDULED_UPDATE: entry point failed", e)
+                    pending.finish()
+                    return@launch
+                }
+                val prefs = try {
+                    ep.settingsRepository().getCurrentPreferences()
+                } catch (e: Exception) {
+                    Log.e(TAG, "ACTION_SCHEDULED_UPDATE: prefs load failed", e)
+                    pending.finish()
+                    return@launch
+                }
+                if (prefs.lowPowerMode) {
+                    pending.finish()
+                    return@launch
+                }
+
+                // Update widgets — each one is isolated so a single failure doesn't
+                // abort the others or, critically, prevent rescheduling below.
+                val mgr = AppWidgetManager.getInstance(context)
+                for (cls in ALL_WIDGET_CLASSES) {
+                    val ids = mgr.getAppWidgetIds(android.content.ComponentName(context, cls))
+                    for (id in ids) {
+                        try {
+                            updateAppWidget(context, mgr, id)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "updateAppWidget id=$id failed", e)
+                        }
                     }
-                    // Re-schedule based on current screen state.
+                }
+
+                // Re-schedule based on current screen state.
+                // This MUST run even if widget updates above failed — it keeps the loop alive.
+                try {
                     val pm = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
                     val intervalMs = prefs.refreshIntervalSeconds.coerceAtLeast(1) * 1000L
                     if (pm.isInteractive && prefs.screenOnRefreshEnabled) {
@@ -119,7 +173,8 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                         WidgetUpdateScheduler.cancelScreenOnUpdate(context)
                         WidgetUpdateScheduler.schedule(context, prefs.refreshIntervalSeconds)
                     }
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    Log.e(TAG, "ACTION_SCHEDULED_UPDATE: rescheduling failed", e)
                 } finally {
                     pending.finish()
                 }
@@ -169,6 +224,32 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
             } catch (e: Exception) {
                 Log.e(TAG, "onUpdate widget update failed", e)
             }
+            // (Re)start the scheduling loop every time onUpdate fires — this covers:
+            //  - first widget placement (onEnabled sets a slow alarm; this upgrades it)
+            //  - manual refresh button taps
+            //  - system-initiated updates after reinstall or reboot
+            // Without this, the loop can only start from ACTION_USER_PRESENT or a
+            // pre-existing background alarm, both of which can be absent after a reinstall.
+            try {
+                val ep = EntryPointAccessors.fromApplication(
+                    context.applicationContext, WidgetListEntryPoint::class.java)
+                val prefs = ep.settingsRepository().getCurrentPreferences()
+                if (!prefs.lowPowerMode) {
+                    val pm = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+                    val intervalMs = prefs.refreshIntervalSeconds.coerceAtLeast(1) * 1000L
+                    if (pm.isInteractive && prefs.screenOnRefreshEnabled) {
+                        WidgetUpdateScheduler.cancel(context)
+                        WidgetUpdateScheduler.scheduleScreenOnUpdate(context, intervalMs)
+                        Log.d(TAG, "onUpdate: started screen-on loop at ${intervalMs}ms")
+                    } else {
+                        WidgetUpdateScheduler.cancelScreenOnUpdate(context)
+                        WidgetUpdateScheduler.schedule(context, prefs.refreshIntervalSeconds)
+                        Log.d(TAG, "onUpdate: started background alarm at ${prefs.refreshIntervalSeconds}s")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "onUpdate: scheduler restart failed", e)
+            }
         }
     }
 
@@ -196,12 +277,13 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
         private val lastUpdateMs = java.util.concurrent.ConcurrentHashMap<Int, Long>()
         private const val MIN_UPDATE_INTERVAL_MS = 5_000L
 
-        internal val ALL_WIDGET_CLASSES = listOf(
+        val ALL_WIDGET_CLASSES = listOf(
             NearbyAppsWidgetProvider::class.java,
             NearbyAppsWidgetProviderNano::class.java,
             NearbyAppsWidgetProviderStrip::class.java,
             NearbyAppsWidgetProviderGrid::class.java,
-            NearbyAppsWidgetProviderNarrow::class.java
+            NearbyAppsWidgetProviderNarrow::class.java,
+            NearbyAppsWidgetProviderStripList::class.java
         )
 
         // Width thresholds in dp
@@ -308,7 +390,12 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                         val nearestBranches = if (location != null) {
                             branchFinder.getLocalNearestBranches(location.latitude, location.longitude)
                         } else emptyMap()
-                        repo.getAllMappings().first().filter { it.isEnabled }.mapNotNull { m ->
+                        val region = if (location != null) branchFinder.resolveRegion(location.latitude, location.longitude)
+                                     else NearbyBranchFinder.Region.UNKNOWN
+                        val effectiveRegionName = if (region == NearbyBranchFinder.Region.UNKNOWN) "UK" else region.name
+                        repo.getAllMappings().first().filter { it.isEnabled }
+                            .filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
+                            .mapNotNull { m ->
                             val (lat, lon) = nearestBranches[m.businessName]
                                 ?: ((m.latitude ?: return@mapNotNull null) to (m.longitude ?: return@mapNotNull null))
                             val dist = if (location != null)
@@ -395,7 +482,12 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                         val nearestBranches = if (location != null) {
                             branchFinder.getLocalNearestBranches(location.latitude, location.longitude)
                         } else emptyMap()
-                        repo.getAllMappings().first().filter { it.isEnabled }.mapNotNull { m ->
+                        val region = if (location != null) branchFinder.resolveRegion(location.latitude, location.longitude)
+                                     else NearbyBranchFinder.Region.UNKNOWN
+                        val effectiveRegionName = if (region == NearbyBranchFinder.Region.UNKNOWN) "UK" else region.name
+                        repo.getAllMappings().first().filter { it.isEnabled }
+                            .filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
+                            .mapNotNull { m ->
                             val (lat, lon) = nearestBranches[m.businessName]
                                 ?: ((m.latitude ?: return@mapNotNull null) to (m.longitude ?: return@mapNotNull null))
                             val dist = if (location != null)
@@ -530,10 +622,15 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
 
                     val prefs = settings.getCurrentPreferences()
                     repo.initialize()
-                    val mappings = repo.getAllMappings().first().filter { it.isEnabled }
-
                     val location = withTimeoutOrNull(10000L) { locProvider.getCurrentLocation() }
                     Log.d(TAG, "Location result: $location")
+                    val branchFinder = ep.nearbyBranchFinder()
+                    val region = if (location != null) branchFinder.resolveRegion(location.latitude, location.longitude)
+                                 else NearbyBranchFinder.Region.UNKNOWN
+                    val effectiveRegionName = if (region == NearbyBranchFinder.Region.UNKNOWN) "UK" else region.name
+                    val mappings = repo.getAllMappings().first()
+                        .filter { it.isEnabled }
+                        .filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
 
                     // Check if user is at a saved profile location — if so show that profile's apps.
                     val profileRepo = ep.locationProfileRepository()
@@ -585,7 +682,6 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
 
                     // Resolve nearest real branch coordinates from Overpass (OSM).
                     // Falls back to database coordinates if offline or no result within 15 km.
-                    val branchFinder = ep.nearbyBranchFinder()
                     val nearestBranches = if (location != null) {
                         branchFinder.getLocalNearestBranches(location.latitude, location.longitude)
                     } else emptyMap()
@@ -723,8 +819,13 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     val nearestBranches = if (location != null) {
                         branchFinder.getLocalNearestBranches(location.latitude, location.longitude)
                     } else emptyMap()
+                    val region = if (location != null) branchFinder.resolveRegion(location.latitude, location.longitude)
+                                 else NearbyBranchFinder.Region.UNKNOWN
+                    val effectiveRegionName = if (region == NearbyBranchFinder.Region.UNKNOWN) "UK" else region.name
 
-                    val closest = repo.getAllMappings().first().filter { it.isEnabled }.mapNotNull { m ->
+                    val closest = repo.getAllMappings().first().filter { it.isEnabled }
+                        .filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
+                        .mapNotNull { m ->
                         val (branchLat, branchLon) = nearestBranches[m.businessName]
                             ?: ((m.latitude ?: return@mapNotNull null) to (m.longitude ?: return@mapNotNull null))
                         val dist = if (location != null)
@@ -867,8 +968,13 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     val nearestBranches = if (location != null) {
                         branchFinder.getLocalNearestBranches(location.latitude, location.longitude)
                     } else emptyMap()
+                    val region = if (location != null) branchFinder.resolveRegion(location.latitude, location.longitude)
+                                 else NearbyBranchFinder.Region.UNKNOWN
+                    val effectiveRegionName = if (region == NearbyBranchFinder.Region.UNKNOWN) "UK" else region.name
 
-                    val sorted = repo.getAllMappings().first().filter { it.isEnabled }.mapNotNull { m ->
+                    val sorted = repo.getAllMappings().first().filter { it.isEnabled }
+                        .filter { m -> m.isCustom || m.regionHint?.split(",")?.contains(effectiveRegionName) ?: true }
+                        .mapNotNull { m ->
                         val (branchLat, branchLon) = nearestBranches[m.businessName]
                             ?: ((m.latitude ?: return@mapNotNull null) to (m.longitude ?: return@mapNotNull null))
                         val dist = if (location != null)
