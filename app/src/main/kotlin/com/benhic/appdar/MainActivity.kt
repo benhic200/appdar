@@ -154,29 +154,26 @@ class MainActivity : ComponentActivity() {
     /** Advances the walkthrough to the next step, or marks as complete if on the last step. */
     private fun advanceWalkthroughStep() {
         val current = _walkthroughState.value.currentStep
-        Log.d(TAG, "advanceWalkthroughStep: current=$current")
         val nextStep = when (current) {
-            WalkthroughStep.WELCOME -> WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED
-            WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED -> WalkthroughStep.PLACES_HIDE_UNINSTALLED
-            WalkthroughStep.PLACES_HIDE_UNINSTALLED -> WalkthroughStep.WIDGET_EXPLANATION
-            WalkthroughStep.WIDGET_EXPLANATION -> WalkthroughStep.COMPLETE
-            WalkthroughStep.COMPLETE -> WalkthroughStep.COMPLETE
+            WalkthroughStep.WELCOME                    -> WalkthroughStep.DASHBOARD_APPS_CARD
+            WalkthroughStep.DASHBOARD_APPS_CARD        -> WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED
+            WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED -> WalkthroughStep.WIDGET_EXPLANATION
+            WalkthroughStep.WIDGET_EXPLANATION         -> WalkthroughStep.PLACES_HIDE_UNINSTALLED
+            WalkthroughStep.PLACES_HIDE_UNINSTALLED    -> WalkthroughStep.COMPLETE
+            WalkthroughStep.COMPLETE                   -> WalkthroughStep.COMPLETE
         }
-        // Automatically navigate to appropriate screen for the next step
         when (nextStep) {
             WalkthroughStep.PLACES_HIDE_UNINSTALLED -> _currentScreen.value = "businesses"
-            WalkthroughStep.WIDGET_EXPLANATION -> _currentScreen.value = "dashboard"
+            WalkthroughStep.WIDGET_EXPLANATION      -> _currentScreen.value = "dashboard"
             else -> {}
         }
         if (nextStep == WalkthroughStep.COMPLETE) {
-            // Walkthrough finished, persist completion
             val prefs = getSharedPreferences("appdar_prefs", MODE_PRIVATE)
             prefs.edit().putBoolean("walkthrough_completed", true).apply()
             _walkthroughCompleted.value = true
-            Log.d(TAG, "walkthrough completed, pref set to true")
+            Toast.makeText(this, "Tour done! Restart anytime in Settings.", Toast.LENGTH_LONG).show()
         }
         _walkthroughState.value = _walkthroughState.value.copy(currentStep = nextStep)
-        Log.d(TAG, "walkthrough state updated: currentStep=$nextStep")
     }
 
     /** Skips the entire walkthrough, marking it as completed. */
@@ -246,18 +243,9 @@ class MainActivity : ComponentActivity() {
                 ) {
                     // Observe OpenStreetMap download completion to trigger walkthrough
                     LaunchedEffect(onboardingComplete, walkthroughCompleted) {
-                        Log.d(TAG, "LaunchedEffect: onboardingComplete=$onboardingComplete, walkthroughCompleted=$walkthroughCompleted")
                         if (onboardingComplete && !walkthroughCompleted) {
-                            Log.d(TAG, "Waiting for OSM download completion...")
-                            nearbyBranchFinder.fetchState.collect { fetchState ->
-                                Log.d(TAG, "fetchState: isLoading=${fetchState.isLoading}, branches.size=${fetchState.branches.size}, isOffline=${fetchState.isOffline}, status=${fetchState.statusMessage}")
-                                if (!fetchState.isLoading) {
-                                    Log.d(TAG, "OSM download finished (isLoading=false), resetting walkthrough state. branches.size=${fetchState.branches.size}, isOffline=${fetchState.isOffline}")
-                                    // Download complete (or failed), start walkthrough
-                                    // Reset walkthrough state to first step
-                                    _walkthroughState.value = WalkthroughState()
-                                }
-                            }
+                            nearbyBranchFinder.fetchState.first { !it.isLoading }
+                            _walkthroughState.value = WalkthroughState()
                         }
                     }
 
