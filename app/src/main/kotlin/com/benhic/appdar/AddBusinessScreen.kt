@@ -3,6 +3,7 @@ package com.benhic.appdar
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -57,6 +58,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import kotlin.math.roundToInt
+
+private const val TAG = "AddBusinessScreen"
 
 sealed interface OsmValidationState {
     object Idle : OsmValidationState
@@ -281,6 +284,7 @@ fun AddBusinessScreen(
 
     // Tap target integration for walkthrough
     val showTapTargets = !walkthroughCompleted && walkthroughState.currentStep == WalkthroughStep.PLACES_HIDE_UNINSTALLED
+    Log.d(TAG, "showTapTargets=$showTapTargets, walkthroughCompleted=$walkthroughCompleted, currentStep=${walkthroughState.currentStep}")
     val currentStep = walkthroughState.currentStep
 
         TapTargetCoordinator(

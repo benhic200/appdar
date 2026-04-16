@@ -154,6 +154,7 @@ class MainActivity : ComponentActivity() {
     /** Advances the walkthrough to the next step, or marks as complete if on the last step. */
     private fun advanceWalkthroughStep() {
         val current = _walkthroughState.value.currentStep
+        Log.d(TAG, "advanceWalkthroughStep: current=$current")
         val nextStep = when (current) {
             WalkthroughStep.WELCOME -> WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED
             WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED -> WalkthroughStep.PLACES_HIDE_UNINSTALLED
@@ -172,24 +173,30 @@ class MainActivity : ComponentActivity() {
             val prefs = getSharedPreferences("appdar_prefs", MODE_PRIVATE)
             prefs.edit().putBoolean("walkthrough_completed", true).apply()
             _walkthroughCompleted.value = true
+            Log.d(TAG, "walkthrough completed, pref set to true")
         }
         _walkthroughState.value = _walkthroughState.value.copy(currentStep = nextStep)
+        Log.d(TAG, "walkthrough state updated: currentStep=$nextStep")
     }
 
     /** Skips the entire walkthrough, marking it as completed. */
     private fun skipWalkthrough() {
+        Log.d(TAG, "skipWalkthrough called")
         val prefs = getSharedPreferences("appdar_prefs", MODE_PRIVATE)
         prefs.edit().putBoolean("walkthrough_completed", true).apply()
         _walkthroughCompleted.value = true
         _walkthroughState.value = WalkthroughState(currentStep = WalkthroughStep.COMPLETE)
+        Log.d(TAG, "walkthrough skipped, pref set to true, state set to COMPLETE")
     }
 
     /** Restarts the walkthrough from the beginning (used from settings). */
     private fun restartWalkthrough() {
+        Log.d(TAG, "restartWalkthrough called, setting pref to false and resetting state")
         val prefs = getSharedPreferences("appdar_prefs", MODE_PRIVATE)
         prefs.edit().putBoolean("walkthrough_completed", false).apply()
         _walkthroughCompleted.value = false
         _walkthroughState.value = WalkthroughState()
+        Log.d(TAG, "walkthrough restarted, pref=false, state=WELCOME")
     }
 
     private lateinit var billingManager: BillingManager
@@ -216,6 +223,7 @@ class MainActivity : ComponentActivity() {
         val _onboardingComplete = mutableStateOf(appPrefs.getBoolean("onboarding_complete", false))
         // Initialize walkthrough state from preferences
         _walkthroughCompleted.value = appPrefs.getBoolean("walkthrough_completed", false)
+        Log.d(TAG, "onCreate: walkthrough_completed pref=${appPrefs.getBoolean("walkthrough_completed", false)}")
 
         setContent {
             val prefs by settingsRepository.userPreferences
@@ -238,9 +246,13 @@ class MainActivity : ComponentActivity() {
                 ) {
                     // Observe OpenStreetMap download completion to trigger walkthrough
                     LaunchedEffect(onboardingComplete, walkthroughCompleted) {
+                        Log.d(TAG, "LaunchedEffect: onboardingComplete=$onboardingComplete, walkthroughCompleted=$walkthroughCompleted")
                         if (onboardingComplete && !walkthroughCompleted) {
+                            Log.d(TAG, "Waiting for OSM download completion...")
                             nearbyBranchFinder.fetchState.collect { fetchState ->
+                                Log.d(TAG, "fetchState: isLoading=${fetchState.isLoading}, branches.size=${fetchState.branches.size}, isOffline=${fetchState.isOffline}, status=${fetchState.statusMessage}")
                                 if (!fetchState.isLoading && fetchState.branches.isNotEmpty()) {
+                                    Log.d(TAG, "OSM download complete, branches non‑empty, resetting walkthrough state")
                                     // Download complete, start walkthrough
                                     // Reset walkthrough state to first step
                                     _walkthroughState.value = WalkthroughState()

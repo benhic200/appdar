@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
 import android.location.Location
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -74,6 +75,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import kotlin.math.roundToInt
+
+private const val TAG = "DashboardTab"
 
 // ── UI state ────────────────────────────────────────────────────────────────
 
@@ -412,6 +415,7 @@ fun DashboardContent(
         WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED,
         WalkthroughStep.WIDGET_EXPLANATION
     )
+    Log.d(TAG, "showTapTargets=$showTapTargets, walkthroughCompleted=$walkthroughCompleted, currentStep=${walkthroughState.currentStep}")
     val currentStep = walkthroughState.currentStep
 
     TapTargetCoordinator(

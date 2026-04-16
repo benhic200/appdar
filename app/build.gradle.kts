@@ -15,8 +15,8 @@ android {
         applicationId = "com.benhic.appdar"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 154
-        versionName = "1.154"
+        versionCode = 155
+        versionName = "1.155"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
