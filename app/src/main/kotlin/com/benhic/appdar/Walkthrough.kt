@@ -3,7 +3,6 @@ package com.benhic.appdar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.psoffritti.taptargetcompose.TapTargetStyle
-import androidx.compose.material3.MaterialTheme
 
 enum class WalkthroughStep {
     WELCOME,
