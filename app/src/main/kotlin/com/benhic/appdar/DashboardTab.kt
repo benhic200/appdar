@@ -469,6 +469,8 @@ fun DashboardContent(
             )
         } else Modifier
 
+        Log.d(TAG, "centeredTapTargetModifier computed: ${centeredTapTargetModifier != Modifier}, currentStep=$currentStep")
+
         Box(modifier = Modifier.fillMaxSize()) {
             when (val s = state) {
                 is DashboardState.Loading    -> LoadingContent(branchStatusMessage, branchDownloadProgress)
@@ -517,6 +519,7 @@ fun DashboardContent(
 
             // Centered tap target overlay (invisible box that receives tap target)
             if (centeredTapTargetModifier != Modifier) {
+                Log.d(TAG, "Adding centered tap target overlay")
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
