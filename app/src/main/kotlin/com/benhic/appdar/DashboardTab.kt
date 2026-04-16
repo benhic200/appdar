@@ -450,6 +450,7 @@ fun DashboardContent(
                 WalkthroughStep.WELCOME,
                 WalkthroughStep.WIDGET_EXPLANATION
             )) {
+            Log.d(TAG, "DEBUG creating tapTarget modifier for step: $currentStep")
             Modifier.tapTarget(
                 TapTargetDefinition(
                     precedence = WalkthroughTarget.precedence(currentStep),
@@ -467,9 +468,12 @@ fun DashboardContent(
                     tapTargetStyle = WalkthroughTarget.style(currentStep)
                 )
             )
-        } else Modifier
+        } else {
+            Log.d(TAG, "DEBUG centeredTapTargetModifier is Modifier (showTapTargets=$showTapTargets, currentStep=$currentStep)")
+            Modifier
+        }
 
-        Log.d(TAG, "centeredTapTargetModifier computed: ${centeredTapTargetModifier != Modifier}, currentStep=$currentStep")
+        Log.d(TAG, "DEBUG centeredTapTargetModifier computed")
 
         Box(modifier = Modifier.fillMaxSize()) {
             when (val s = state) {
