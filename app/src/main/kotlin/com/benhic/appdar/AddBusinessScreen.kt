@@ -21,8 +21,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import com.psoffritti.taptargetcompose.TapTargetCoordinator
+import com.psoffritti.taptargetcompose.TapTargetDefinition
+import com.psoffritti.taptargetcompose.TextDefinition
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -43,6 +47,16 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import com.benhic.appdar.WalkthroughState
+import com.benhic.appdar.WalkthroughStep
+
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import kotlin.math.roundToInt
 
 sealed interface OsmValidationState {
     object Idle : OsmValidationState
@@ -221,13 +235,20 @@ class AddBusinessViewModel @Inject constructor(
 
 @Composable
 fun AddBusinessScreen(
-    viewModel: AddBusinessViewModel = hiltViewModel()
+    viewModel: AddBusinessViewModel = hiltViewModel(),
+    walkthroughState: WalkthroughState = WalkthroughState(),
+    walkthroughCompleted: Boolean = true,
+    onWalkthroughNext: () -> Unit = {},
+    onWalkthroughSkip: () -> Unit = {},
+    onChangeScreen: (String) -> Unit = {},
 ) {
     val mappings by viewModel.mappings.collectAsState()
     val installedApps by viewModel.installedApps.collectAsState()
     val currentRegion by viewModel.currentRegion.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    // Coordinates of the "Hide uninstalled" button for walkthrough positioning
+    val hideButtonOffset = remember { mutableStateOf<androidx.compose.ui.geometry.Offset?>(null) }
 
     val installedPackageNames = remember(installedApps) {
         installedApps.map { it.packageName }.toHashSet()
@@ -258,107 +279,141 @@ fun AddBusinessScreen(
         }
     }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    // Tap target integration for walkthrough
+    val showTapTargets = !walkthroughCompleted && walkthroughState.currentStep == WalkthroughStep.PLACES_HIDE_UNINSTALLED
+    val currentStep = walkthroughState.currentStep
+
+        TapTargetCoordinator(
+        showTapTargets = showTapTargets,
+        onComplete = { /* coordinator dismissed, nothing to do */ }
     ) {
-        // ── Search bar ────────────────────────────────────────────────────
-        item {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text("Search places…") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Filled.Clear, contentDescription = "Clear search")
+        // Modifier for the Hide uninstalled button when targeting PLACES_HIDE_UNINSTALLED
+        val hideButtonModifier = if (showTapTargets && currentStep == WalkthroughStep.PLACES_HIDE_UNINSTALLED) {
+            Modifier.tapTarget(
+                TapTargetDefinition(
+                    precedence = WalkthroughTarget.precedence(currentStep),
+                    title = TextDefinition(
+                        text = WalkthroughTarget.message(currentStep),
+                        textStyle = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    ),
+                    description = TextDefinition(
+                        text = "",
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    tapTargetStyle = WalkthroughTarget.style(currentStep)
+                )
+            )
+        } else Modifier
+
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // ── Search bar ────────────────────────────────────────────────────
+                item {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Search places…") },
+                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Filled.Clear, contentDescription = "Clear search")
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                // ── Action row ────────────────────────────────────────────────────
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showAddDialog = true },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Add Place")
+                        }
+                        // Toggle: hide uninstalled apps (or show them again if already hidden)
+                        val hidingMode = uninstalledEnabledCount > 0
+                        OutlinedButton(
+                            onClick = {
+                                if (hidingMode) viewModel.disableUninstalled(uninstalledMappingPackageNames)
+                                else viewModel.enableUninstalled(installedPackageNames)
+                            },
+                            enabled = hidingMode || uninstalledDisabledCount > 0,
+                            modifier = Modifier
+                                .weight(1f)
+                                .then(hideButtonModifier)
+                        ) {
+                            Icon(Icons.Filled.VisibilityOff, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                when {
+                                    hidingMode -> "Hide uninstalled ($uninstalledEnabledCount)"
+                                    uninstalledDisabledCount > 0 -> "Show uninstalled ($uninstalledDisabledCount)"
+                                    else -> "Hide uninstalled"
+                                }
+                            )
                         }
                     }
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        // ── Action row ────────────────────────────────────────────────────
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { showAddDialog = true },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Add Place")
                 }
-                // Toggle: hide uninstalled apps (or show them again if already hidden)
-                val hidingMode = uninstalledEnabledCount > 0
-                OutlinedButton(
-                    onClick = {
-                        if (hidingMode) viewModel.disableUninstalled(uninstalledMappingPackageNames)
-                        else viewModel.enableUninstalled(installedPackageNames)
-                    },
-                    enabled = hidingMode || uninstalledDisabledCount > 0,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Filled.VisibilityOff, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        when {
-                            hidingMode -> "Hide uninstalled ($uninstalledEnabledCount)"
-                            uninstalledDisabledCount > 0 -> "Show uninstalled ($uninstalledDisabledCount)"
-                            else -> "Hide uninstalled"
-                        }
+
+                // ── Empty states ──────────────────────────────────────────────────
+                if (filtered.isEmpty()) {
+                    item {
+                        Text(
+                            text = if (searchQuery.isNotBlank()) "No places match \"$searchQuery\"."
+                                   else "No places yet. Tap Add Place to get started.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 16.dp)
+                        )
+                    }
+                }
+
+                items(filtered, key = { it.id }) { mapping ->
+                    PlaceMappingCard(
+                        mapping = mapping,
+                        iconBitmap = installedApps.find { it.packageName == mapping.packageName }?.iconBitmap,
+                        onToggleEnabled = { viewModel.toggleEnabled(mapping) },
+                        onDelete = { viewModel.deleteBusiness(mapping) }
                     )
                 }
             }
-        }
 
-        // ── Empty states ──────────────────────────────────────────────────
-        if (filtered.isEmpty()) {
-            item {
-                Text(
-                    text = if (searchQuery.isNotBlank()) "No places match \"$searchQuery\"."
-                           else "No places yet. Tap Add Place to get started.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 16.dp)
+            if (showAddDialog) {
+                val osmState by viewModel.osmState.collectAsState()
+                AddBusinessDialog(
+                    installedApps = installedApps,
+                    isSaving = viewModel.isSaving.collectAsState().value,
+                    osmState = osmState,
+                    onBusinessNameChanged = viewModel::onBusinessNameChanged,
+                    onDismiss = {
+                        viewModel.resetOsmState()
+                        showAddDialog = false
+                    },
+                    onConfirm = { name, pkg, appName, category, useLocation, osmBrandTag, radius ->
+                        viewModel.addBusiness(name, pkg, appName, category, useLocation, osmBrandTag, radius) {
+                            showAddDialog = false
+                        }
+                    }
                 )
             }
         }
-
-        items(filtered, key = { it.id }) { mapping ->
-            PlaceMappingCard(
-                mapping = mapping,
-                iconBitmap = installedApps.find { it.packageName == mapping.packageName }?.iconBitmap,
-                onToggleEnabled = { viewModel.toggleEnabled(mapping) },
-                onDelete = { viewModel.deleteBusiness(mapping) }
-            )
-        }
-    }
-
-    if (showAddDialog) {
-        val osmState by viewModel.osmState.collectAsState()
-        AddBusinessDialog(
-            installedApps = installedApps,
-            isSaving = viewModel.isSaving.collectAsState().value,
-            osmState = osmState,
-            onBusinessNameChanged = viewModel::onBusinessNameChanged,
-            onDismiss = {
-                viewModel.resetOsmState()
-                showAddDialog = false
-            },
-            onConfirm = { name, pkg, appName, category, useLocation, osmBrandTag, radius ->
-                viewModel.addBusiness(name, pkg, appName, category, useLocation, osmBrandTag, radius) {
-                    showAddDialog = false
-                }
-            }
-        )
     }
 }
 

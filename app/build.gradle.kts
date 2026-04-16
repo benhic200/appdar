@@ -15,8 +15,8 @@ android {
         applicationId = "com.benhic.appdar"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 149
-        versionName = "1.149"
+        versionCode = 154
+        versionName = "1.154"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -83,6 +83,7 @@ dependencies {
     implementation(project(":feature-settings"))
 
     implementation("com.android.billingclient:billing-ktx:6.2.1")
+    implementation("com.pierfrancescosoffritti.taptargetcompose:core:1.2.1")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

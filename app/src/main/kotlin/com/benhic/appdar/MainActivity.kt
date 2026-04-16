@@ -35,6 +35,9 @@ import androidx.compose.material3.lightColorScheme
 import com.benhic.appdar.data.local.settings.SettingsRepository
 import com.benhic.appdar.data.local.settings.ThemeMode
 import com.benhic.appdar.data.repository.BusinessAppRepository
+import com.benhic.appdar.data.nearby.NearbyBranchFinder
+import com.benhic.appdar.WalkthroughState
+import com.benhic.appdar.WalkthroughStep
 import com.benhic.appdar.feature.settings.SettingsContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
@@ -106,6 +109,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var settingsRepository: SettingsRepository
 
+    @Inject
+    lateinit var nearbyBranchFinder: NearbyBranchFinder
+
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissionsGranted ->
@@ -141,6 +147,50 @@ class MainActivity : ComponentActivity() {
 
     private val _permissionState = mutableStateOf(PermissionState.UNKNOWN)
     private val _isPro = mutableStateOf(false)
+    private val _walkthroughCompleted = mutableStateOf(false)
+    private val _walkthroughState = mutableStateOf(WalkthroughState())
+    private val _currentScreen = mutableStateOf("dashboard")
+
+    /** Advances the walkthrough to the next step, or marks as complete if on the last step. */
+    private fun advanceWalkthroughStep() {
+        val current = _walkthroughState.value.currentStep
+        val nextStep = when (current) {
+            WalkthroughStep.WELCOME -> WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED
+            WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED -> WalkthroughStep.PLACES_HIDE_UNINSTALLED
+            WalkthroughStep.PLACES_HIDE_UNINSTALLED -> WalkthroughStep.WIDGET_EXPLANATION
+            WalkthroughStep.WIDGET_EXPLANATION -> WalkthroughStep.COMPLETE
+            WalkthroughStep.COMPLETE -> WalkthroughStep.COMPLETE
+        }
+        // Automatically navigate to appropriate screen for the next step
+        when (nextStep) {
+            WalkthroughStep.PLACES_HIDE_UNINSTALLED -> _currentScreen.value = "businesses"
+            WalkthroughStep.WIDGET_EXPLANATION -> _currentScreen.value = "dashboard"
+            else -> {}
+        }
+        if (nextStep == WalkthroughStep.COMPLETE) {
+            // Walkthrough finished, persist completion
+            val prefs = getSharedPreferences("appdar_prefs", MODE_PRIVATE)
+            prefs.edit().putBoolean("walkthrough_completed", true).apply()
+            _walkthroughCompleted.value = true
+        }
+        _walkthroughState.value = _walkthroughState.value.copy(currentStep = nextStep)
+    }
+
+    /** Skips the entire walkthrough, marking it as completed. */
+    private fun skipWalkthrough() {
+        val prefs = getSharedPreferences("appdar_prefs", MODE_PRIVATE)
+        prefs.edit().putBoolean("walkthrough_completed", true).apply()
+        _walkthroughCompleted.value = true
+        _walkthroughState.value = WalkthroughState(currentStep = WalkthroughStep.COMPLETE)
+    }
+
+    /** Restarts the walkthrough from the beginning (used from settings). */
+    private fun restartWalkthrough() {
+        val prefs = getSharedPreferences("appdar_prefs", MODE_PRIVATE)
+        prefs.edit().putBoolean("walkthrough_completed", false).apply()
+        _walkthroughCompleted.value = false
+        _walkthroughState.value = WalkthroughState()
+    }
 
     private lateinit var billingManager: BillingManager
 
@@ -164,6 +214,8 @@ class MainActivity : ComponentActivity() {
 
         val appPrefs = getSharedPreferences("appdar_prefs", MODE_PRIVATE)
         val _onboardingComplete = mutableStateOf(appPrefs.getBoolean("onboarding_complete", false))
+        // Initialize walkthrough state from preferences
+        _walkthroughCompleted.value = appPrefs.getBoolean("walkthrough_completed", false)
 
         setContent {
             val prefs by settingsRepository.userPreferences
@@ -174,6 +226,9 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
             }
             val onboardingComplete by _onboardingComplete
+            val walkthroughCompleted by _walkthroughCompleted
+            val walkthroughState by _walkthroughState
+
             MaterialTheme(
                 colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme()
             ) {
@@ -181,6 +236,19 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize().safeDrawingPadding(),
                     color = MaterialTheme.colorScheme.background
                 ) {
+                    // Observe OpenStreetMap download completion to trigger walkthrough
+                    LaunchedEffect(onboardingComplete, walkthroughCompleted) {
+                        if (onboardingComplete && !walkthroughCompleted) {
+                            nearbyBranchFinder.fetchState.collect { fetchState ->
+                                if (!fetchState.isLoading && fetchState.branches.isNotEmpty()) {
+                                    // Download complete, start walkthrough
+                                    // Reset walkthrough state to first step
+                                    _walkthroughState.value = WalkthroughState()
+                                }
+                            }
+                        }
+                    }
+
                     if (!onboardingComplete) {
                         OnboardingScreen(
                             permissionState = _permissionState.value,
@@ -202,7 +270,15 @@ class MainActivity : ComponentActivity() {
                             onRequestPermission = { requestLocationPermission() },
                             onOpenAppSettings = { openAppSettings() },
                             onOpenBatterySettings = { openBatterySettings() },
-                            onFinishSetup = { finish() }
+                            onFinishSetup = { finish() },
+                            currentScreen = _currentScreen.value,
+                            onScreenChange = { screen -> _currentScreen.value = screen },
+                            walkthroughState = walkthroughState,
+                            walkthroughCompleted = walkthroughCompleted,
+                            onWalkthroughNext = { advanceWalkthroughStep() },
+                            onWalkthroughSkip = { skipWalkthrough() },
+                            onRestartWalkthrough = { restartWalkthrough() },
+                            onChangeScreen = { screen -> _currentScreen.value = screen }
                         )
                     }
                 }
@@ -281,7 +357,15 @@ fun TabbedAppScreen(
     onRequestPermission: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenBatterySettings: () -> Unit,
-    onFinishSetup: () -> Unit
+    onFinishSetup: () -> Unit,
+    currentScreen: String = "dashboard",
+    onScreenChange: (String) -> Unit = {},
+    walkthroughState: WalkthroughState,
+    walkthroughCompleted: Boolean,
+    onWalkthroughNext: () -> Unit,
+    onWalkthroughSkip: () -> Unit,
+    onRestartWalkthrough: () -> Unit = {},
+    onChangeScreen: (String) -> Unit
 ) {
     val nearbyViewModel = hiltViewModel<NearbyAppsViewModel>()
     val dashboardViewModel = hiltViewModel<DashboardViewModel>()
@@ -294,8 +378,18 @@ fun TabbedAppScreen(
     val custom2Profile by profileViewModel.profileState(ProfileId.CUSTOM2).collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
-    var currentScreen by remember { mutableStateOf("dashboard") }
+    var currentScreenState by remember { mutableStateOf(currentScreen) }
     val context = LocalContext.current
+
+    // Sync external currentScreen changes into local state
+    LaunchedEffect(currentScreen) {
+        currentScreenState = currentScreen
+    }
+
+    // When local state changes, notify parent via onScreenChange
+    LaunchedEffect(currentScreenState) {
+        onScreenChange(currentScreenState)
+    }
 
     // Manage auto-refresh alarm when low power mode or interval changes
     val settingsPrefs by settingsViewModel.userPreferences.collectAsState()
@@ -307,7 +401,7 @@ fun TabbedAppScreen(
         }
     }
 
-    val screenTitle = when (currentScreen) {
+    val screenTitle = when (currentScreenState) {
         "dashboard" -> "Dashboard"
         "nearby"  -> "Nearby Apps"
         "businesses" -> "Places"
@@ -344,38 +438,38 @@ fun TabbedAppScreen(
                         modifier = Modifier.padding(start = 28.dp, bottom = 4.dp)
                     )
                     NavigationDrawerItem(
-                        icon = { AnimatedNavIcon(selected = currentScreen == "dashboard") { Icon(Icons.Filled.Dashboard, contentDescription = null) } },
+                        icon = { AnimatedNavIcon(selected = currentScreenState == "dashboard") { Icon(Icons.Filled.Dashboard, contentDescription = null) } },
                         label = { Text("Dashboard") },
-                        selected = currentScreen == "dashboard",
+                        selected = currentScreenState == "dashboard",
                         onClick = {
-                            currentScreen = "dashboard"
+                            currentScreenState = "dashboard"
                             coroutineScope.launch { drawerState.close() }
                         }
                     )
                     NavigationDrawerItem(
-                        icon = { AnimatedNavIcon(selected = currentScreen == "nearby") { Icon(Icons.Filled.NearMe, contentDescription = null) } },
+                        icon = { AnimatedNavIcon(selected = currentScreenState == "nearby") { Icon(Icons.Filled.NearMe, contentDescription = null) } },
                         label = { Text("Nearby Apps") },
-                        selected = currentScreen == "nearby",
+                        selected = currentScreenState == "nearby",
                         onClick = {
-                            currentScreen = "nearby"
+                            currentScreenState = "nearby"
                             coroutineScope.launch { drawerState.close() }
                         }
                     )
                     NavigationDrawerItem(
-                        icon = { AnimatedNavIcon(selected = currentScreen == "businesses") { Icon(Icons.Filled.List, contentDescription = null) } },
+                        icon = { AnimatedNavIcon(selected = currentScreenState == "businesses") { Icon(Icons.Filled.List, contentDescription = null) } },
                         label = { Text("Places") },
-                        selected = currentScreen == "businesses",
+                        selected = currentScreenState == "businesses",
                         onClick = {
-                            currentScreen = "businesses"
+                            currentScreenState = "businesses"
                             coroutineScope.launch { drawerState.close() }
                         }
                     )
                     NavigationDrawerItem(
-                        icon = { AnimatedNavIcon(selected = currentScreen == "home") { Icon(Icons.Filled.Home, contentDescription = null) } },
+                        icon = { AnimatedNavIcon(selected = currentScreenState == "home") { Icon(Icons.Filled.Home, contentDescription = null) } },
                         label = { Text(homeProfile.displayName) },
-                        selected = currentScreen == "home",
+                        selected = currentScreenState == "home",
                         onClick = {
-                            currentScreen = "home"
+                            currentScreenState = "home"
                             coroutineScope.launch { drawerState.close() }
                         }
                     )
@@ -391,45 +485,45 @@ fun TabbedAppScreen(
                     )
                     NavigationDrawerItem(
                         modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
-                        icon = { AnimatedNavIcon(selected = currentScreen == "work") { Icon(if (isPro) Icons.Filled.Work else Icons.Filled.Lock, contentDescription = null) } },
+                        icon = { AnimatedNavIcon(selected = currentScreenState == "work") { Icon(if (isPro) Icons.Filled.Work else Icons.Filled.Lock, contentDescription = null) } },
                         label = { Text(workProfile.displayName) },
                         badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
-                        selected = currentScreen == "work",
+                        selected = currentScreenState == "work",
                         onClick = {
-                            if (isPro) { currentScreen = "work" } else { currentScreen = "upgrade" }
+                            if (isPro) { currentScreenState = "work" } else { currentScreenState = "upgrade" }
                             coroutineScope.launch { drawerState.close() }
                         }
                     )
                     NavigationDrawerItem(
                         modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
-                        icon = { AnimatedNavIcon(selected = currentScreen == "gym") { Icon(if (isPro) Icons.Filled.FitnessCenter else Icons.Filled.Lock, contentDescription = null) } },
+                        icon = { AnimatedNavIcon(selected = currentScreenState == "gym") { Icon(if (isPro) Icons.Filled.FitnessCenter else Icons.Filled.Lock, contentDescription = null) } },
                         label = { Text(gymProfile.displayName) },
                         badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
-                        selected = currentScreen == "gym",
+                        selected = currentScreenState == "gym",
                         onClick = {
-                            if (isPro) { currentScreen = "gym" } else { currentScreen = "upgrade" }
+                            if (isPro) { currentScreenState = "gym" } else { currentScreenState = "upgrade" }
                             coroutineScope.launch { drawerState.close() }
                         }
                     )
                     NavigationDrawerItem(
                         modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
-                        icon = { AnimatedNavIcon(selected = currentScreen == "custom1") { Icon(if (isPro) Icons.Filled.Apps else Icons.Filled.Lock, contentDescription = null) } },
+                        icon = { AnimatedNavIcon(selected = currentScreenState == "custom1") { Icon(if (isPro) Icons.Filled.Apps else Icons.Filled.Lock, contentDescription = null) } },
                         label = { Text(custom1Profile.displayName) },
                         badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
-                        selected = currentScreen == "custom1",
+                        selected = currentScreenState == "custom1",
                         onClick = {
-                            if (isPro) { currentScreen = "custom1" } else { currentScreen = "upgrade" }
+                            if (isPro) { currentScreenState = "custom1" } else { currentScreenState = "upgrade" }
                             coroutineScope.launch { drawerState.close() }
                         }
                     )
                     NavigationDrawerItem(
                         modifier = Modifier.alpha(if (isPro) 1f else 0.5f),
-                        icon = { AnimatedNavIcon(selected = currentScreen == "custom2") { Icon(if (isPro) Icons.Filled.Apps else Icons.Filled.Lock, contentDescription = null) } },
+                        icon = { AnimatedNavIcon(selected = currentScreenState == "custom2") { Icon(if (isPro) Icons.Filled.Apps else Icons.Filled.Lock, contentDescription = null) } },
                         label = { Text(custom2Profile.displayName) },
                         badge = if (!isPro) ({ Text("Pro", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }) else null,
-                        selected = currentScreen == "custom2",
+                        selected = currentScreenState == "custom2",
                         onClick = {
-                            if (isPro) { currentScreen = "custom2" } else { currentScreen = "upgrade" }
+                            if (isPro) { currentScreenState = "custom2" } else { currentScreenState = "upgrade" }
                             coroutineScope.launch { drawerState.close() }
                         }
                     )
@@ -437,29 +531,29 @@ fun TabbedAppScreen(
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                     NavigationDrawerItem(
-                        icon = { AnimatedNavIcon(selected = currentScreen == "settings") { Icon(Icons.Filled.Settings, contentDescription = null) } },
+                        icon = { AnimatedNavIcon(selected = currentScreenState == "settings") { Icon(Icons.Filled.Settings, contentDescription = null) } },
                         label = { Text("Settings") },
-                        selected = currentScreen == "settings",
+                        selected = currentScreenState == "settings",
                         onClick = {
-                            currentScreen = "settings"
+                            currentScreenState = "settings"
                             coroutineScope.launch { drawerState.close() }
                         }
                     )
                     NavigationDrawerItem(
-                        icon = { AnimatedNavIcon(selected = currentScreen == "setup") { Icon(Icons.Filled.Info, contentDescription = null) } },
+                        icon = { AnimatedNavIcon(selected = currentScreenState == "setup") { Icon(Icons.Filled.Info, contentDescription = null) } },
                         label = { Text("Setup") },
-                        selected = currentScreen == "setup",
+                        selected = currentScreenState == "setup",
                         onClick = {
-                            currentScreen = "setup"
+                            currentScreenState = "setup"
                             coroutineScope.launch { drawerState.close() }
                         }
                     )
                     NavigationDrawerItem(
-                        icon = { AnimatedNavIcon(selected = currentScreen == "guide") { Icon(Icons.Filled.Help, contentDescription = null) } },
+                        icon = { AnimatedNavIcon(selected = currentScreenState == "guide") { Icon(Icons.Filled.Help, contentDescription = null) } },
                         label = { Text("Guide") },
-                        selected = currentScreen == "guide",
+                        selected = currentScreenState == "guide",
                         onClick = {
-                            currentScreen = "guide"
+                            currentScreenState = "guide"
                             coroutineScope.launch { drawerState.close() }
                         }
                     )
@@ -469,7 +563,7 @@ fun TabbedAppScreen(
                     if (!isPro) {
                         Surface(
                             onClick = {
-                                currentScreen = "upgrade"
+                                currentScreenState = "upgrade"
                                 coroutineScope.launch { drawerState.close() }
                             },
                             color = MaterialTheme.colorScheme.primary,
@@ -529,7 +623,7 @@ fun TabbedAppScreen(
                     },
                     title = { Text(screenTitle) },
                     actions = {
-                        when (currentScreen) {
+                        when (currentScreenState) {
                             "dashboard" -> {
                                 var showWidgetPicker by remember { mutableStateOf(false) }
                                 val awm = AppWidgetManager.getInstance(context)
@@ -626,14 +720,27 @@ fun TabbedAppScreen(
         ) { paddingValues ->
             Box(modifier = Modifier.padding(paddingValues)) {
             AnimatedContent(
-                targetState = currentScreen,
+                targetState = currentScreenState,
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
                 label = "screen_transition"
             ) { screen ->
                 when (screen) {
-                    "dashboard" -> DashboardContent(viewModel = dashboardViewModel)
+                    "dashboard" -> DashboardContent(
+                        viewModel = dashboardViewModel,
+                        walkthroughState = walkthroughState,
+                        walkthroughCompleted = walkthroughCompleted,
+                        onWalkthroughNext = onWalkthroughNext,
+                        onWalkthroughSkip = onWalkthroughSkip,
+                        onChangeScreen = onChangeScreen,
+                    )
                     "nearby"      -> NearbyAppsContent(viewModel = nearbyViewModel, context = context)
-                    "businesses"  -> AddBusinessScreen()
+                    "businesses"  -> AddBusinessScreen(
+                        walkthroughState = walkthroughState,
+                        walkthroughCompleted = walkthroughCompleted,
+                        onWalkthroughNext = onWalkthroughNext,
+                        onWalkthroughSkip = onWalkthroughSkip,
+                        onChangeScreen = onChangeScreen,
+                    )
                     "home"    -> LocationProfileScreen(profileId = ProfileId.HOME)
                     "work"    -> LocationProfileScreen(profileId = ProfileId.WORK)
                     "gym"     -> LocationProfileScreen(profileId = ProfileId.GYM)
@@ -648,9 +755,10 @@ fun TabbedAppScreen(
                     ) {
                         SettingsContent(
                             onNavigateToDashboard = {
-                                currentScreen = "dashboard"
+                                currentScreenState = "dashboard"
                                 dashboardViewModel.refresh(force = true)
-                            }
+                            },
+                            onRestartWalkthrough = onRestartWalkthrough
                         )
                         HorizontalDivider()
                         SetupContent(
@@ -659,7 +767,7 @@ fun TabbedAppScreen(
                             onOpenAppSettings = onOpenAppSettings,
                             onOpenBatterySettings = onOpenBatterySettings,
                             onRestorePurchase = onRestorePurchase,
-                            onFinishSetup = { currentScreen = "dashboard" }
+                            onFinishSetup = { currentScreenState = "dashboard" }
                         )
                     }
                     "setup"   -> Column(
@@ -675,12 +783,19 @@ fun TabbedAppScreen(
                             onOpenAppSettings = onOpenAppSettings,
                             onOpenBatterySettings = onOpenBatterySettings,
                             onRestorePurchase = onRestorePurchase,
-                            onFinishSetup = { currentScreen = "dashboard" }
+                            onFinishSetup = { currentScreenState = "dashboard" }
                         )
                     }
                     "guide"   -> UserGuideScreen()
                     "upgrade" -> ProUpgradeScreen(onUpgradeTapped = onUpgradeTapped)
-                    else -> DashboardContent(viewModel = dashboardViewModel)
+                    else -> DashboardContent(
+                        viewModel = dashboardViewModel,
+                        walkthroughState = walkthroughState,
+                        walkthroughCompleted = walkthroughCompleted,
+                        onWalkthroughNext = onWalkthroughNext,
+                        onWalkthroughSkip = onWalkthroughSkip,
+                        onChangeScreen = onChangeScreen,
+                    )
                 }
             } // AnimatedContent
             }

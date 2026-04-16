@@ -79,17 +79,24 @@ import com.benhic.appdar.data.local.settings.WidgetTheme
 @Composable
 fun SettingsContent(
     viewModel: SettingsViewModel = hiltViewModel(),
-    onNavigateToDashboard: () -> Unit = {}
+    onNavigateToDashboard: () -> Unit = {},
+    onRestartWalkthrough: () -> Unit = {}
 ) {
     val userPreferences by viewModel.userPreferences.collectAsStateWithLifecycle()
-    SettingsCards(userPreferences = userPreferences, viewModel = viewModel, onNavigateToDashboard = onNavigateToDashboard)
+    SettingsCards(
+        userPreferences = userPreferences,
+        viewModel = viewModel,
+        onNavigateToDashboard = onNavigateToDashboard,
+        onRestartWalkthrough = onRestartWalkthrough
+    )
 }
 
 @Composable
 private fun SettingsCards(
     userPreferences: com.benhic.appdar.data.local.settings.UserPreferences,
     viewModel: SettingsViewModel,
-    onNavigateToDashboard: () -> Unit = {}
+    onNavigateToDashboard: () -> Unit = {},
+    onRestartWalkthrough: () -> Unit = {}
 ) {
     // Detection Radius
     val useKm = userPreferences.distanceUnit == DistanceUnit.KILOMETERS
@@ -537,6 +544,13 @@ private fun SettingsCards(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Report a bug on GitHub")
+            }
+            Spacer(modifier = Modifier.padding(4.dp))
+            OutlinedButton(
+                onClick = onRestartWalkthrough,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Restart onboarding walkthrough")
             }
         }
     }
