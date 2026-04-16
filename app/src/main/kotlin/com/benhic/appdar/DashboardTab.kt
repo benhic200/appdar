@@ -418,10 +418,12 @@ fun DashboardContent(
     Log.d(TAG, "showTapTargets=$showTapTargets, walkthroughCompleted=$walkthroughCompleted, currentStep=${walkthroughState.currentStep}")
     val currentStep = walkthroughState.currentStep
 
+    Log.d(TAG, "About to call TapTargetCoordinator, showTapTargets=$showTapTargets, currentStep=$currentStep")
     TapTargetCoordinator(
         showTapTargets = showTapTargets,
-        onComplete = { /* coordinator dismissed, nothing to do */ }
+        onComplete = { Log.d(TAG, "TapTargetCoordinator completed (dismissed)") }
     ) {
+        Log.d(TAG, "TapTargetCoordinator lambda entered, showTapTargets=$showTapTargets")
         // Modifier for the Hide button when targeting DASHBOARD_HIDE_UNINSTALLED
         val hideButtonModifier = if (showTapTargets && currentStep == WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED) {
             Modifier.tapTarget(
