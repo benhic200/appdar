@@ -51,3 +51,13 @@
 
 # Keep Google Play Services location (optional)
 -keep class com.google.android.gms.location.** { *; }
+
+# Keep logging statements for debugging
+-keepattributes SourceFile,LineNumberTable
+-keep class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** e(...);
+}

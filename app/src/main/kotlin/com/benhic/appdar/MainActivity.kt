@@ -251,9 +251,9 @@ class MainActivity : ComponentActivity() {
                             Log.d(TAG, "Waiting for OSM download completion...")
                             nearbyBranchFinder.fetchState.collect { fetchState ->
                                 Log.d(TAG, "fetchState: isLoading=${fetchState.isLoading}, branches.size=${fetchState.branches.size}, isOffline=${fetchState.isOffline}, status=${fetchState.statusMessage}")
-                                if (!fetchState.isLoading && fetchState.branches.isNotEmpty()) {
-                                    Log.d(TAG, "OSM download complete, branches non‑empty, resetting walkthrough state")
-                                    // Download complete, start walkthrough
+                                if (!fetchState.isLoading) {
+                                    Log.d(TAG, "OSM download finished (isLoading=false), resetting walkthrough state. branches.size=${fetchState.branches.size}, isOffline=${fetchState.isOffline}")
+                                    // Download complete (or failed), start walkthrough
                                     // Reset walkthrough state to first step
                                     _walkthroughState.value = WalkthroughState()
                                 }
