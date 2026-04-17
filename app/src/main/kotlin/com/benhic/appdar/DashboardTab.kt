@@ -514,13 +514,18 @@ fun DashboardContent(
                     }
                 }
 
-                // Centered tap target overlay (invisible box that receives tap target)
+                // Centered tap target overlay — small box so the spotlight circle is visible
                 if (centeredTapTargetModifier != Modifier) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .then(centeredTapTargetModifier)
-                    ) {}
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .then(centeredTapTargetModifier)
+                        )
+                    }
                 }
             }
         }
