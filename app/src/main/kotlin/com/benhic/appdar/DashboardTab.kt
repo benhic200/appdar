@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
 import android.location.Location
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -75,8 +74,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import kotlin.math.roundToInt
-
-private const val TAG = "DashboardTab"
 
 // ── UI state ────────────────────────────────────────────────────────────────
 
@@ -419,114 +416,114 @@ fun DashboardContent(
     val currentStep = walkthroughState.currentStep
 
     key(walkthroughState.currentStep) {
-    TapTargetCoordinator(
-        showTapTargets = showTapTargets,
-        onComplete = { onWalkthroughNext() }
-    ) {
-        // Modifier for the Hide button when targeting DASHBOARD_HIDE_UNINSTALLED
-        val hideButtonModifier = if (showTapTargets && currentStep == WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED) {
-            Modifier.tapTarget(
-                TapTargetDefinition(
-                    precedence = WalkthroughTarget.precedence(currentStep),
-                    title = TextDefinition(
-                        text = WalkthroughTarget.message(currentStep),
-                        textStyle = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    ),
-                    description = TextDefinition(
-                        text = "",
-                        textStyle = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
-                    tapTargetStyle = WalkthroughTarget.style(currentStep)
+        TapTargetCoordinator(
+            showTapTargets = showTapTargets,
+            onComplete = { onWalkthroughNext() }
+        ) {
+            // Modifier for the Hide button when targeting DASHBOARD_HIDE_UNINSTALLED
+            val hideButtonModifier = if (showTapTargets && currentStep == WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED) {
+                Modifier.tapTarget(
+                    TapTargetDefinition(
+                        precedence = WalkthroughTarget.precedence(currentStep),
+                        title = TextDefinition(
+                            text = WalkthroughTarget.message(currentStep),
+                            textStyle = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        ),
+                        description = TextDefinition(
+                            text = "",
+                            textStyle = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
+                        tapTargetStyle = WalkthroughTarget.style(currentStep)
+                    )
                 )
-            )
-        } else Modifier
+            } else Modifier
 
-        // Modifier for centered tap targets (WELCOME, DASHBOARD_APPS_CARD, WIDGET_EXPLANATION)
-        val centeredTapTargetModifier = if (showTapTargets && currentStep in setOf(
-                WalkthroughStep.WELCOME,
-                WalkthroughStep.DASHBOARD_APPS_CARD,
-                WalkthroughStep.WIDGET_EXPLANATION
-            )) {
-            Modifier.tapTarget(
-                TapTargetDefinition(
-                    precedence = WalkthroughTarget.precedence(currentStep),
-                    title = TextDefinition(
-                        text = WalkthroughTarget.message(currentStep),
-                        textStyle = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    ),
-                    description = TextDefinition(
-                        text = "",
-                        textStyle = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
-                    tapTargetStyle = WalkthroughTarget.style(currentStep)
+            // Modifier for centered tap targets (WELCOME, DASHBOARD_APPS_CARD, WIDGET_EXPLANATION)
+            val centeredTapTargetModifier = if (showTapTargets && currentStep in setOf(
+                    WalkthroughStep.WELCOME,
+                    WalkthroughStep.DASHBOARD_APPS_CARD,
+                    WalkthroughStep.WIDGET_EXPLANATION
+                )) {
+                Modifier.tapTarget(
+                    TapTargetDefinition(
+                        precedence = WalkthroughTarget.precedence(currentStep),
+                        title = TextDefinition(
+                            text = WalkthroughTarget.message(currentStep),
+                            textStyle = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        ),
+                        description = TextDefinition(
+                            text = "",
+                            textStyle = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
+                        tapTargetStyle = WalkthroughTarget.style(currentStep)
+                    )
                 )
-            )
-        } else {
-            Modifier
-        }
+            } else {
+                Modifier
+            }
 
-        Box(modifier = Modifier.fillMaxSize()) {
-            when (val s = state) {
-                is DashboardState.Loading    -> LoadingContent(branchStatusMessage, branchDownloadProgress)
-                is DashboardState.NoLocation -> LocationUnavailableContent(context)
-                is DashboardState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Error", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error)
-                        Text(s.message, style = MaterialTheme.typography.bodySmall)
-                        Button(onClick = { viewModel.refresh() }) { Text("Retry") }
-                    }
-                }
-                is DashboardState.AtProfile -> DashboardList(
-                    bannerText = "At ${s.profileName.substringBefore(" Apps")} (${s.apps.size})",
-                    items = s.apps,
-                    context = context,
-                    location = s.location,
-                    onHideUninstalled = { installed -> addBusinessViewModel.disableUninstalled(installed) },
-                    hideButtonModifier = hideButtonModifier,
-                    onHideButtonPosition = null
-                )
-                is DashboardState.Nearby -> Column {
-                    if (s.isOffline) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "No internet — showing last known locations",
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (val s = state) {
+                    is DashboardState.Loading    -> LoadingContent(branchStatusMessage, branchDownloadProgress)
+                    is DashboardState.NoLocation -> LocationUnavailableContent(context)
+                    is DashboardState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Error", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error)
+                            Text(s.message, style = MaterialTheme.typography.bodySmall)
+                            Button(onClick = { viewModel.refresh() }) { Text("Retry") }
                         }
                     }
-                    DashboardList(
-                        bannerText = "Nearby (${s.items.size})",
-                        items = s.items,
+                    is DashboardState.AtProfile -> DashboardList(
+                        bannerText = "At ${s.profileName.substringBefore(" Apps")} (${s.apps.size})",
+                        items = s.apps,
                         context = context,
                         location = s.location,
                         onHideUninstalled = { installed -> addBusinessViewModel.disableUninstalled(installed) },
                         hideButtonModifier = hideButtonModifier,
                         onHideButtonPosition = null
                     )
+                    is DashboardState.Nearby -> Column {
+                        if (s.isOffline) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "No internet — showing last known locations",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
+                        DashboardList(
+                            bannerText = "Nearby (${s.items.size})",
+                            items = s.items,
+                            context = context,
+                            location = s.location,
+                            onHideUninstalled = { installed -> addBusinessViewModel.disableUninstalled(installed) },
+                            hideButtonModifier = hideButtonModifier,
+                            onHideButtonPosition = null
+                        )
+                    }
+                }
+
+                // Centered tap target overlay (invisible box that receives tap target)
+                if (centeredTapTargetModifier != Modifier) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(centeredTapTargetModifier)
+                    ) {}
                 }
             }
-
-            // Centered tap target overlay (invisible box that receives tap target)
-            if (centeredTapTargetModifier != Modifier) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .then(centeredTapTargetModifier)
-                ) {}
-            }
         }
-    }
     }
 }
 
