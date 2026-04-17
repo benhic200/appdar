@@ -578,7 +578,7 @@ private fun SettingsCards(
                 onClick = {
                     val intent = Intent(Intent.ACTION_SENDTO).apply {
                         data = Uri.parse("mailto:")
-                        putExtra(Intent.EXTRA_EMAIL, arrayOf("ben.hickie@gmail.com"))
+                        putExtra(Intent.EXTRA_EMAIL, arrayOf("ben.hickie+Appdar@gmail.com"))
                         putExtra(Intent.EXTRA_SUBJECT, "Appdar Feedback")
                         putExtra(Intent.EXTRA_TEXT, "Hi Ben,\n\nHere's my feedback on Appdar:\n\n")
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
