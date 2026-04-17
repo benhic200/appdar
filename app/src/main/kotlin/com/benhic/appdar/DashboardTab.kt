@@ -412,18 +412,17 @@ fun DashboardContent(
     // Determine if tap targets should be shown on this screen
     val showTapTargets = !walkthroughCompleted && walkthroughState.currentStep in setOf(
         WalkthroughStep.WELCOME,
+        WalkthroughStep.DASHBOARD_APPS_CARD,
         WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED,
         WalkthroughStep.WIDGET_EXPLANATION
     )
-    Log.d(TAG, "showTapTargets=$showTapTargets, walkthroughCompleted=$walkthroughCompleted, currentStep=${walkthroughState.currentStep}")
     val currentStep = walkthroughState.currentStep
 
-    Log.d(TAG, "About to call TapTargetCoordinator, showTapTargets=$showTapTargets, currentStep=$currentStep")
+    key(walkthroughState.currentStep) {
     TapTargetCoordinator(
         showTapTargets = showTapTargets,
-        onComplete = { Log.d(TAG, "TapTargetCoordinator completed (dismissed)") }
+        onComplete = { onWalkthroughNext() }
     ) {
-        Log.d(TAG, "TapTargetCoordinator lambda entered, showTapTargets=$showTapTargets")
         // Modifier for the Hide button when targeting DASHBOARD_HIDE_UNINSTALLED
         val hideButtonModifier = if (showTapTargets && currentStep == WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED) {
             Modifier.tapTarget(
@@ -445,12 +444,12 @@ fun DashboardContent(
             )
         } else Modifier
 
-        // Modifier for centered tap targets (WELCOME, WIDGET_EXPLANATION)
+        // Modifier for centered tap targets (WELCOME, DASHBOARD_APPS_CARD, WIDGET_EXPLANATION)
         val centeredTapTargetModifier = if (showTapTargets && currentStep in setOf(
                 WalkthroughStep.WELCOME,
+                WalkthroughStep.DASHBOARD_APPS_CARD,
                 WalkthroughStep.WIDGET_EXPLANATION
             )) {
-            Log.d(TAG, "DEBUG creating tapTarget modifier for step: $currentStep")
             Modifier.tapTarget(
                 TapTargetDefinition(
                     precedence = WalkthroughTarget.precedence(currentStep),
@@ -469,11 +468,8 @@ fun DashboardContent(
                 )
             )
         } else {
-            Log.d(TAG, "DEBUG centeredTapTargetModifier is Modifier (showTapTargets=$showTapTargets, currentStep=$currentStep)")
             Modifier
         }
-
-        Log.d(TAG, "DEBUG centeredTapTargetModifier computed")
 
         Box(modifier = Modifier.fillMaxSize()) {
             when (val s = state) {
@@ -523,7 +519,6 @@ fun DashboardContent(
 
             // Centered tap target overlay (invisible box that receives tap target)
             if (centeredTapTargetModifier != Modifier) {
-                Log.d(TAG, "Adding centered tap target overlay")
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -531,6 +526,7 @@ fun DashboardContent(
                 ) {}
             }
         }
+    }
     }
 }
 
