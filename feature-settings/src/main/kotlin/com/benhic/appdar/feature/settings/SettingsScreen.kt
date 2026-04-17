@@ -552,6 +552,60 @@ private fun SettingsCards(
             ) {
                 Text("Restart onboarding walkthrough")
             }
+            Spacer(modifier = Modifier.padding(4.dp))
+            OutlinedButton(
+                onClick = {
+                    val marketUri = Uri.parse("market://details?id=com.benhic.appdar")
+                    val webUri = Uri.parse("https://play.google.com/store/apps/details?id=com.benhic.appdar")
+                    try {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, marketUri)
+                                .apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                        )
+                    } catch (e: android.content.ActivityNotFoundException) {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, webUri)
+                                .apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Rate Appdar ★")
+            }
+            Spacer(modifier = Modifier.padding(4.dp))
+            OutlinedButton(
+                onClick = {
+                    val intent = Intent(Intent.ACTION_SENDTO).apply {
+                        data = Uri.parse("mailto:")
+                        putExtra(Intent.EXTRA_EMAIL, arrayOf("ben.hickie@gmail.com"))
+                        putExtra(Intent.EXTRA_SUBJECT, "Appdar Feedback")
+                        putExtra(Intent.EXTRA_TEXT, "Hi Ben,\n\nHere's my feedback on Appdar:\n\n")
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    context.startActivity(intent)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Send Feedback")
+            }
+            Spacer(modifier = Modifier.padding(4.dp))
+            OutlinedButton(
+                onClick = {
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(
+                            Intent.EXTRA_TEXT,
+                            "Check out Appdar — nearby apps on your home screen!\nhttps://play.google.com/store/apps/details?id=com.benhic.appdar"
+                        )
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    context.startActivity(Intent.createChooser(intent, "Share Appdar"))
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Share Appdar")
+            }
         }
     }
 
