@@ -243,8 +243,11 @@ class MainActivity : ComponentActivity() {
                 ) {
                     // Observe OpenStreetMap download completion to trigger walkthrough
                     LaunchedEffect(onboardingComplete, walkthroughCompleted) {
+                        Log.d(TAG, "WalkthroughEffect: onboardingComplete=$onboardingComplete walkthroughCompleted=$walkthroughCompleted")
                         if (onboardingComplete && !walkthroughCompleted) {
+                            Log.d(TAG, "WalkthroughEffect: waiting for OSM...")
                             nearbyBranchFinder.fetchState.first { !it.isLoading }
+                            Log.d(TAG, "WalkthroughEffect: OSM done, starting walkthrough")
                             _walkthroughState.value = WalkthroughState()
                         }
                     }
