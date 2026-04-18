@@ -33,14 +33,7 @@ object WalkthroughTarget {
         WalkthroughStep.COMPLETE                  -> ""
     }
 
-    fun precedence(step: WalkthroughStep): Int = when (step) {
-        WalkthroughStep.WELCOME                   -> 100
-        WalkthroughStep.DASHBOARD_APPS_CARD       -> 200
-        WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED -> 300
-        WalkthroughStep.WIDGET_EXPLANATION        -> 400
-        WalkthroughStep.PLACES_HIDE_UNINSTALLED   -> 500
-        WalkthroughStep.COMPLETE                  -> 999
-    }
+    fun precedence(step: WalkthroughStep): Int = 0
 
     @Composable
     fun style(step: WalkthroughStep): TapTargetStyle = TapTargetStyle(
