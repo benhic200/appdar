@@ -158,13 +158,16 @@ class MainActivity : ComponentActivity() {
             WalkthroughStep.WELCOME                    -> WalkthroughStep.DASHBOARD_APPS_CARD
             WalkthroughStep.DASHBOARD_APPS_CARD        -> WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED
             WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED -> WalkthroughStep.WIDGET_EXPLANATION
-            WalkthroughStep.WIDGET_EXPLANATION         -> WalkthroughStep.PLACES_HIDE_UNINSTALLED
-            WalkthroughStep.PLACES_HIDE_UNINSTALLED    -> WalkthroughStep.COMPLETE
+            WalkthroughStep.WIDGET_EXPLANATION         -> WalkthroughStep.NAV_DASHBOARD
+            WalkthroughStep.NAV_DASHBOARD              -> WalkthroughStep.NAV_PLACES
+            WalkthroughStep.NAV_PLACES                 -> WalkthroughStep.NAV_HOME
+            WalkthroughStep.NAV_HOME                   -> WalkthroughStep.PLACES_HIDE_UNINSTALLED
+            WalkthroughStep.PLACES_HIDE_UNINSTALLED    -> WalkthroughStep.PLACES_ADD_BUTTON
+            WalkthroughStep.PLACES_ADD_BUTTON          -> WalkthroughStep.COMPLETE
             WalkthroughStep.COMPLETE                   -> WalkthroughStep.COMPLETE
         }
         when (nextStep) {
             WalkthroughStep.PLACES_HIDE_UNINSTALLED -> _currentScreen.value = "businesses"
-            WalkthroughStep.WIDGET_EXPLANATION      -> _currentScreen.value = "dashboard"
             else -> {}
         }
         if (nextStep == WalkthroughStep.COMPLETE) {
@@ -394,6 +397,18 @@ fun TabbedAppScreen(
         onScreenChange(currentScreenState)
     }
 
+    // Open drawer automatically during nav-explanation walkthrough steps; close it otherwise
+    val navWalkthroughSteps = setOf(
+        WalkthroughStep.NAV_DASHBOARD, WalkthroughStep.NAV_PLACES, WalkthroughStep.NAV_HOME
+    )
+    LaunchedEffect(walkthroughState.currentStep) {
+        if (!walkthroughCompleted && walkthroughState.currentStep in navWalkthroughSteps) {
+            drawerState.open()
+        } else if (drawerState.isOpen && !walkthroughCompleted) {
+            drawerState.close()
+        }
+    }
+
     // Manage auto-refresh alarm when low power mode or interval changes
     val settingsPrefs by settingsViewModel.userPreferences.collectAsState()
     LaunchedEffect(settingsPrefs.lowPowerMode, settingsPrefs.refreshIntervalSeconds) {
@@ -420,6 +435,7 @@ fun TabbedAppScreen(
         else      -> "Dashboard"
     }
 
+    Box(modifier = Modifier.fillMaxSize()) {
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -804,6 +820,21 @@ fun TabbedAppScreen(
             }
         }
     }
+    // Skip button — drawn above all screen content including walkthrough overlay
+    if (!walkthroughCompleted && !walkthroughState.isComplete) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomEnd
+        ) {
+            TextButton(
+                onClick = onWalkthroughSkip,
+                modifier = Modifier.padding(end = 16.dp, bottom = 16.dp)
+            ) {
+                Text("Skip tour")
+            }
+        }
+    }
+    } // end outer Box
 }
 
 @Composable

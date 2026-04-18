@@ -280,14 +280,39 @@ fun AddBusinessScreen(
     }
 
     // Tap target integration for walkthrough
-    val showTapTargets = !walkthroughCompleted && walkthroughState.currentStep == WalkthroughStep.PLACES_HIDE_UNINSTALLED
+    val showTapTargets = !walkthroughCompleted && walkthroughState.currentStep in setOf(
+        WalkthroughStep.PLACES_HIDE_UNINSTALLED,
+        WalkthroughStep.PLACES_ADD_BUTTON
+    )
     val currentStep = walkthroughState.currentStep
 
     key(walkthroughState.currentStep) {
         TapTargetCoordinator(
             showTapTargets = showTapTargets,
-            onComplete = { onWalkthroughNext() }
+            onComplete = { onWalkthroughNext() },
+            contentAlignment = Alignment.BottomCenter
         ) {
+        // Modifier for the Add Place button when targeting PLACES_ADD_BUTTON
+        val addButtonModifier = if (showTapTargets && currentStep == WalkthroughStep.PLACES_ADD_BUTTON) {
+            Modifier.tapTarget(
+                TapTargetDefinition(
+                    precedence = WalkthroughTarget.precedence(currentStep),
+                    title = TextDefinition(
+                        text = WalkthroughTarget.message(currentStep),
+                        textStyle = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    ),
+                    description = TextDefinition(
+                        text = "",
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    tapTargetStyle = WalkthroughTarget.style(currentStep)
+                )
+            )
+        } else Modifier
+
         // Modifier for the Hide uninstalled button when targeting PLACES_HIDE_UNINSTALLED
         val hideButtonModifier = if (showTapTargets && currentStep == WalkthroughStep.PLACES_HIDE_UNINSTALLED) {
             Modifier.tapTarget(
@@ -342,7 +367,7 @@ fun AddBusinessScreen(
                     ) {
                         OutlinedButton(
                             onClick = { showAddDialog = true },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).then(addButtonModifier)
                         ) {
                             Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(4.dp))

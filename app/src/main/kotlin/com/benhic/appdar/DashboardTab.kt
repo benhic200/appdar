@@ -411,14 +411,19 @@ fun DashboardContent(
         WalkthroughStep.WELCOME,
         WalkthroughStep.DASHBOARD_APPS_CARD,
         WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED,
-        WalkthroughStep.WIDGET_EXPLANATION
+        WalkthroughStep.WIDGET_EXPLANATION,
+        WalkthroughStep.NAV_DASHBOARD,
+        WalkthroughStep.NAV_PLACES,
+        WalkthroughStep.NAV_HOME
     )
     val currentStep = walkthroughState.currentStep
 
     key(walkthroughState.currentStep) {
         TapTargetCoordinator(
             showTapTargets = showTapTargets,
-            onComplete = { onWalkthroughNext() }
+            onComplete = { onWalkthroughNext() },
+            contentAlignment = if (currentStep == WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED)
+                Alignment.BottomCenter else Alignment.Center
         ) {
             // Modifier for the Hide button when targeting DASHBOARD_HIDE_UNINSTALLED
             val hideButtonModifier = if (showTapTargets && currentStep == WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED) {
@@ -445,7 +450,10 @@ fun DashboardContent(
             val centeredTapTargetModifier = if (showTapTargets && currentStep in setOf(
                     WalkthroughStep.WELCOME,
                     WalkthroughStep.DASHBOARD_APPS_CARD,
-                    WalkthroughStep.WIDGET_EXPLANATION
+                    WalkthroughStep.WIDGET_EXPLANATION,
+                    WalkthroughStep.NAV_DASHBOARD,
+                    WalkthroughStep.NAV_PLACES,
+                    WalkthroughStep.NAV_HOME
                 )) {
                 Modifier.tapTarget(
                     TapTargetDefinition(
