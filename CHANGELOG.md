@@ -185,3 +185,6 @@ Current Status
 You can now test the walkthrough by opening the app and waiting for the download to complete. The bubble will guide you through the “Hide uninstalled apps” feature on the dashboard and places screens.
 
 Let me know how it behaves, and we can proceed with the remaining polish (coordinates, restart callback, screen navigation).
+## Version 168 (1.168) - 2026-04-18
+
+the walkthrough is now working

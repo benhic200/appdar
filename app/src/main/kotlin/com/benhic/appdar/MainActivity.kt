@@ -80,8 +80,13 @@ import com.benhic.appdar.core.util.BatteryOptimizationHelper
 import com.benhic.appdar.billing.BillingManager
 import com.benhic.appdar.billing.ProManager
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import com.psoffritti.taptargetcompose.TapTargetCoordinator
+import com.psoffritti.taptargetcompose.TapTargetDefinition
+import com.psoffritti.taptargetcompose.TextDefinition
+import androidx.compose.ui.text.font.FontWeight
 import javax.inject.Inject
 
 /**
@@ -383,6 +388,7 @@ fun TabbedAppScreen(
     val custom1Profile by profileViewModel.profileState(ProfileId.CUSTOM1).collectAsState()
     val custom2Profile by profileViewModel.profileState(ProfileId.CUSTOM2).collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    var drawerFullyOpen by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     var currentScreenState by remember { mutableStateOf(currentScreen) }
     val context = LocalContext.current
@@ -402,11 +408,23 @@ fun TabbedAppScreen(
         WalkthroughStep.NAV_DASHBOARD, WalkthroughStep.NAV_PLACES, WalkthroughStep.NAV_HOME
     )
     LaunchedEffect(walkthroughState.currentStep) {
+        drawerFullyOpen = false
         if (!walkthroughCompleted && walkthroughState.currentStep in navWalkthroughSteps) {
             drawerState.open()
+            snapshotFlow { drawerState.currentValue }
+                .filter { it == DrawerValue.Open }
+                .first()
+            drawerFullyOpen = true
         } else if (drawerState.isOpen && !walkthroughCompleted) {
             drawerState.close()
         }
+    }
+
+    val currentStep = walkthroughState.currentStep
+    val effectiveShowTopLevel = !walkthroughCompleted && when (currentStep) {
+        WalkthroughStep.WIDGET_EXPLANATION -> true
+        WalkthroughStep.NAV_DASHBOARD, WalkthroughStep.NAV_PLACES, WalkthroughStep.NAV_HOME -> drawerFullyOpen
+        else -> false
     }
 
     // Manage auto-refresh alarm when low power mode or interval changes
@@ -436,6 +454,88 @@ fun TabbedAppScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+    key(currentStep) {
+        TapTargetCoordinator(
+            showTapTargets = effectiveShowTopLevel,
+            onComplete = { onWalkthroughNext() },
+            contentAlignment = Alignment.BottomCenter
+        ) {
+        val widgetsButtonModifier = if (effectiveShowTopLevel && currentStep == WalkthroughStep.WIDGET_EXPLANATION) {
+            Modifier.tapTarget(
+                TapTargetDefinition(
+                    precedence = WalkthroughTarget.precedence(currentStep),
+                    title = TextDefinition(
+                        text = WalkthroughTarget.message(currentStep),
+                        textStyle = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    ),
+                    description = TextDefinition(
+                        text = "",
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    tapTargetStyle = WalkthroughTarget.style(currentStep)
+                )
+            )
+        } else Modifier
+        val dashboardNavModifier = if (effectiveShowTopLevel && currentStep == WalkthroughStep.NAV_DASHBOARD) {
+            Modifier.tapTarget(
+                TapTargetDefinition(
+                    precedence = WalkthroughTarget.precedence(currentStep),
+                    title = TextDefinition(
+                        text = WalkthroughTarget.message(currentStep),
+                        textStyle = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    ),
+                    description = TextDefinition(
+                        text = "",
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    tapTargetStyle = WalkthroughTarget.style(currentStep)
+                )
+            )
+        } else Modifier
+        val placesNavModifier = if (effectiveShowTopLevel && currentStep == WalkthroughStep.NAV_PLACES) {
+            Modifier.tapTarget(
+                TapTargetDefinition(
+                    precedence = WalkthroughTarget.precedence(currentStep),
+                    title = TextDefinition(
+                        text = WalkthroughTarget.message(currentStep),
+                        textStyle = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    ),
+                    description = TextDefinition(
+                        text = "",
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    tapTargetStyle = WalkthroughTarget.style(currentStep)
+                )
+            )
+        } else Modifier
+        val homeNavModifier = if (effectiveShowTopLevel && currentStep == WalkthroughStep.NAV_HOME) {
+            Modifier.tapTarget(
+                TapTargetDefinition(
+                    precedence = WalkthroughTarget.precedence(currentStep),
+                    title = TextDefinition(
+                        text = WalkthroughTarget.message(currentStep),
+                        textStyle = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    ),
+                    description = TextDefinition(
+                        text = "",
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    tapTargetStyle = WalkthroughTarget.style(currentStep)
+                )
+            )
+        } else Modifier
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -457,6 +557,7 @@ fun TabbedAppScreen(
                         modifier = Modifier.padding(start = 28.dp, bottom = 4.dp)
                     )
                     NavigationDrawerItem(
+                        modifier = dashboardNavModifier,
                         icon = { AnimatedNavIcon(selected = currentScreenState == "dashboard") { Icon(Icons.Filled.Dashboard, contentDescription = null) } },
                         label = { Text("Dashboard") },
                         selected = currentScreenState == "dashboard",
@@ -475,6 +576,7 @@ fun TabbedAppScreen(
                         }
                     )
                     NavigationDrawerItem(
+                        modifier = placesNavModifier,
                         icon = { AnimatedNavIcon(selected = currentScreenState == "businesses") { Icon(Icons.Filled.List, contentDescription = null) } },
                         label = { Text("Places") },
                         selected = currentScreenState == "businesses",
@@ -484,6 +586,7 @@ fun TabbedAppScreen(
                         }
                     )
                     NavigationDrawerItem(
+                        modifier = homeNavModifier,
                         icon = { AnimatedNavIcon(selected = currentScreenState == "home") { Icon(Icons.Filled.Home, contentDescription = null) } },
                         label = { Text(homeProfile.displayName) },
                         selected = currentScreenState == "home",
@@ -647,7 +750,10 @@ fun TabbedAppScreen(
                                 var showWidgetPicker by remember { mutableStateOf(false) }
                                 val awm = AppWidgetManager.getInstance(context)
 
-                                IconButton(onClick = { showWidgetPicker = true }) {
+                                IconButton(
+                                    onClick = { showWidgetPicker = true },
+                                    modifier = widgetsButtonModifier
+                                ) {
                                     Icon(Icons.Filled.Widgets, contentDescription = "Add widget")
                                 }
                                 IconButton(onClick = { dashboardViewModel.refresh(force = true) }) {
@@ -820,6 +926,8 @@ fun TabbedAppScreen(
             }
         }
     }
+        } // TapTargetCoordinator
+    } // key
     // Skip button — drawn above all screen content including walkthrough overlay
     if (!walkthroughCompleted && !walkthroughState.isComplete) {
         Box(
