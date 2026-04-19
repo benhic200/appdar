@@ -83,12 +83,19 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.absoluteOffset
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.psoffritti.taptargetcompose.TapTargetCoordinator
 import com.psoffritti.taptargetcompose.TapTargetDefinition
 import com.psoffritti.taptargetcompose.TextDefinition
 import androidx.compose.ui.text.font.FontWeight
+import kotlin.math.roundToInt
 import javax.inject.Inject
 
 /**
@@ -392,6 +399,7 @@ fun TabbedAppScreen(
     val custom2Profile by profileViewModel.profileState(ProfileId.CUSTOM2).collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var drawerFullyOpen by remember { mutableStateOf(false) }
+    var widgetButtonCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
     val coroutineScope = rememberCoroutineScope()
     var currentScreenState by remember { mutableStateOf(currentScreen) }
     val context = LocalContext.current
@@ -760,7 +768,10 @@ fun TabbedAppScreen(
                                     animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                                     label = "widget_pulse"
                                 )
-                                IconButton(onClick = { showWidgetPicker = true }) {
+                                IconButton(
+                                    onClick = { showWidgetPicker = true },
+                                    modifier = Modifier.onGloballyPositioned { widgetButtonCoords = it }
+                                ) {
                                     Icon(
                                         Icons.Filled.Widgets,
                                         contentDescription = "Add widget",
@@ -939,6 +950,53 @@ fun TabbedAppScreen(
             }
         }
     }
+    // WIDGET_EXPLANATION: spotlight the actual Widgets icon via captured coords
+    val showWidgetTapTarget = !walkthroughCompleted &&
+        currentStep == WalkthroughStep.WIDGET_EXPLANATION &&
+        widgetButtonCoords != null
+    if (showWidgetTapTarget) {
+        key(currentStep) {
+            val coords = widgetButtonCoords!!
+            val density = LocalDensity.current
+            val posInRoot = coords.positionInRoot()
+            TapTargetCoordinator(
+                showTapTargets = true,
+                onComplete = { onWalkthroughNext() },
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                Box(Modifier.fillMaxSize()) {
+                    Box(
+                        Modifier
+                            .absoluteOffset {
+                                IntOffset(posInRoot.x.roundToInt(), posInRoot.y.roundToInt())
+                            }
+                            .size(
+                                width = with(density) { coords.size.width.toDp() },
+                                height = with(density) { coords.size.height.toDp() }
+                            )
+                            .tapTarget(
+                                TapTargetDefinition(
+                                    precedence = WalkthroughTarget.precedence(WalkthroughStep.WIDGET_EXPLANATION),
+                                    title = TextDefinition(
+                                        text = WalkthroughTarget.message(WalkthroughStep.WIDGET_EXPLANATION),
+                                        textStyle = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    ),
+                                    description = TextDefinition(
+                                        text = "",
+                                        textStyle = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    ),
+                                    tapTargetStyle = WalkthroughTarget.style(WalkthroughStep.WIDGET_EXPLANATION)
+                                )
+                            )
+                    )
+                }
+            }
+        }
+    }
+
     // Walkthrough controls — Popup so they render above the tap-target overlay
     if (!walkthroughCompleted && !walkthroughState.isComplete) {
         Popup(

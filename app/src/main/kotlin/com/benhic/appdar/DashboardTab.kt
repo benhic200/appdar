@@ -442,11 +442,10 @@ fun DashboardContent(
                 )
             } else Modifier
 
-            // Modifier for centered tap targets (WELCOME, DASHBOARD_APPS_CARD, WIDGET_EXPLANATION)
+            // Modifier for centered tap targets (WELCOME, DASHBOARD_APPS_CARD)
             val centeredTapTargetModifier = if (showTapTargets && currentStep in setOf(
                     WalkthroughStep.WELCOME,
-                    WalkthroughStep.DASHBOARD_APPS_CARD,
-                    WalkthroughStep.WIDGET_EXPLANATION
+                    WalkthroughStep.DASHBOARD_APPS_CARD
                 )) {
                 Modifier.tapTarget(
                     TapTargetDefinition(
