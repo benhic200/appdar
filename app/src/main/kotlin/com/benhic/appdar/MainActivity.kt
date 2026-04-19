@@ -203,6 +203,7 @@ class MainActivity : ComponentActivity() {
         prefs.edit().putBoolean("walkthrough_completed", false).apply()
         _walkthroughCompleted.value = false
         _walkthroughState.value = WalkthroughState()
+        _currentScreen.value = "dashboard"
         Log.d(TAG, "walkthrough restarted, pref=false, state=WELCOME")
     }
 
@@ -424,6 +425,15 @@ fun TabbedAppScreen(
 
     val currentStep = walkthroughState.currentStep
 
+    // During NAV walkthrough steps, temporarily highlight the spotlighted nav item
+    // instead of the currently open screen, so the user clearly sees what to tap.
+    val effectiveScreen = when {
+        !walkthroughCompleted && currentStep == WalkthroughStep.NAV_DASHBOARD -> "dashboard"
+        !walkthroughCompleted && currentStep == WalkthroughStep.NAV_PLACES -> "businesses"
+        !walkthroughCompleted && currentStep == WalkthroughStep.NAV_HOME -> "home"
+        else -> currentScreenState
+    }
+
     // Manage auto-refresh alarm when low power mode or interval changes
     val settingsPrefs by settingsViewModel.userPreferences.collectAsState()
     LaunchedEffect(settingsPrefs.lowPowerMode, settingsPrefs.refreshIntervalSeconds) {
@@ -539,9 +549,9 @@ fun TabbedAppScreen(
                             Column {
                                 NavigationDrawerItem(
                                     modifier = dashboardNavModifier,
-                                    icon = { AnimatedNavIcon(selected = currentScreenState == "dashboard") { Icon(Icons.Filled.Dashboard, contentDescription = null) } },
+                                    icon = { AnimatedNavIcon(selected = effectiveScreen == "dashboard") { Icon(Icons.Filled.Dashboard, contentDescription = null) } },
                                     label = { Text("Dashboard") },
-                                    selected = currentScreenState == "dashboard",
+                                    selected = effectiveScreen == "dashboard",
                                     onClick = {
                                         currentScreenState = "dashboard"
                                         coroutineScope.launch { drawerState.close() }
@@ -558,9 +568,9 @@ fun TabbedAppScreen(
                                 )
                                 NavigationDrawerItem(
                                     modifier = placesNavModifier,
-                                    icon = { AnimatedNavIcon(selected = currentScreenState == "businesses") { Icon(Icons.Filled.List, contentDescription = null) } },
+                                    icon = { AnimatedNavIcon(selected = effectiveScreen == "businesses") { Icon(Icons.Filled.List, contentDescription = null) } },
                                     label = { Text("Places") },
-                                    selected = currentScreenState == "businesses",
+                                    selected = effectiveScreen == "businesses",
                                     onClick = {
                                         currentScreenState = "businesses"
                                         coroutineScope.launch { drawerState.close() }
@@ -568,9 +578,9 @@ fun TabbedAppScreen(
                                 )
                                 NavigationDrawerItem(
                                     modifier = homeNavModifier,
-                                    icon = { AnimatedNavIcon(selected = currentScreenState == "home") { Icon(Icons.Filled.Home, contentDescription = null) } },
+                                    icon = { AnimatedNavIcon(selected = effectiveScreen == "home") { Icon(Icons.Filled.Home, contentDescription = null) } },
                                     label = { Text(homeProfile.displayName) },
-                                    selected = currentScreenState == "home",
+                                    selected = effectiveScreen == "home",
                                     onClick = {
                                         currentScreenState = "home"
                                         coroutineScope.launch { drawerState.close() }
@@ -734,8 +744,30 @@ fun TabbedAppScreen(
                                 var showWidgetPicker by remember { mutableStateOf(false) }
                                 val awm = AppWidgetManager.getInstance(context)
 
+                                val isWidgetStep = !walkthroughCompleted &&
+                                    currentStep == WalkthroughStep.WIDGET_EXPLANATION
+                                var widgetPulseUp by remember { mutableStateOf(false) }
+                                LaunchedEffect(isWidgetStep) {
+                                    if (isWidgetStep) {
+                                        while (true) {
+                                            widgetPulseUp = !widgetPulseUp
+                                            kotlinx.coroutines.delay(550)
+                                        }
+                                    } else { widgetPulseUp = false }
+                                }
+                                val widgetScale by animateFloatAsState(
+                                    targetValue = if (widgetPulseUp) 1.35f else 1.0f,
+                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                    label = "widget_pulse"
+                                )
                                 IconButton(onClick = { showWidgetPicker = true }) {
-                                    Icon(Icons.Filled.Widgets, contentDescription = "Add widget")
+                                    Icon(
+                                        Icons.Filled.Widgets,
+                                        contentDescription = "Add widget",
+                                        tint = if (isWidgetStep) MaterialTheme.colorScheme.primary
+                                               else LocalContentColor.current,
+                                        modifier = Modifier.scale(widgetScale)
+                                    )
                                 }
                                 IconButton(onClick = { dashboardViewModel.refresh(force = true) }) {
                                     Icon(Icons.Filled.Refresh, contentDescription = "Refresh")

@@ -410,8 +410,7 @@ fun DashboardContent(
     val showTapTargets = !walkthroughCompleted && walkthroughState.currentStep in setOf(
         WalkthroughStep.WELCOME,
         WalkthroughStep.DASHBOARD_APPS_CARD,
-        WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED,
-        WalkthroughStep.WIDGET_EXPLANATION
+        WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED
     )
     val currentStep = walkthroughState.currentStep
 
@@ -488,7 +487,8 @@ fun DashboardContent(
                         location = s.location,
                         onHideUninstalled = { installed -> addBusinessViewModel.disableUninstalled(installed) },
                         hideButtonModifier = hideButtonModifier,
-                        onHideButtonPosition = null
+                        onHideButtonPosition = null,
+                        forceShowHide = showTapTargets && currentStep == WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED
                     )
                     is DashboardState.Nearby -> Column {
                         if (s.isOffline) {
@@ -511,7 +511,8 @@ fun DashboardContent(
                             location = s.location,
                             onHideUninstalled = { installed -> addBusinessViewModel.disableUninstalled(installed) },
                             hideButtonModifier = hideButtonModifier,
-                            onHideButtonPosition = null
+                            onHideButtonPosition = null,
+                            forceShowHide = showTapTargets && currentStep == WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED
                         )
                     }
                 }
@@ -765,7 +766,8 @@ private fun DashboardList(
     location: Location?,
     onHideUninstalled: (installedPackageNames: Set<String>) -> Unit = {},
     hideButtonModifier: Modifier = Modifier,
-    onHideButtonPosition: ((Offset, IntSize) -> Unit)? = null
+    onHideButtonPosition: ((Offset, IntSize) -> Unit)? = null,
+    forceShowHide: Boolean = false
 ) {
     Column(Modifier.fillMaxSize()) {
         Surface(
@@ -811,11 +813,10 @@ private fun DashboardList(
         }
         // Uninstalled-apps hint — only shown when at least one listed app isn't on the device
         val uninstalledCount = items.count { !it.isInstalled }
-        if (uninstalledCount > 0) {
-            val uninstalledPackageNames = remember(items) {
-                items.filter { !it.isInstalled }.map { it.packageName }.toHashSet()
-            }
-
+        val uninstalledPackageNames = remember(items) {
+            items.filter { !it.isInstalled }.map { it.packageName }.toHashSet()
+        }
+        if (uninstalledCount > 0 || forceShowHide) {
             Surface(
                 color = MaterialTheme.colorScheme.tertiaryContainer,
                 modifier = Modifier.fillMaxWidth()
@@ -837,9 +838,12 @@ private fun DashboardList(
                             tint = MaterialTheme.colorScheme.onTertiaryContainer
                         )
                         Text(
-                            text = "$uninstalledCount app${if (uninstalledCount > 1) "s" else ""} shown " +
-                                "here ${if (uninstalledCount > 1) "aren't" else "isn't"} installed. " +
-                                "Go to Places to remove ${if (uninstalledCount > 1) "them" else "it"}.",
+                            text = if (uninstalledCount > 0)
+                                "$uninstalledCount app${if (uninstalledCount > 1) "s" else ""} shown " +
+                                    "here ${if (uninstalledCount > 1) "aren't" else "isn't"} installed. " +
+                                    "Go to Places to remove ${if (uninstalledCount > 1) "them" else "it"}."
+                            else
+                                "Tap Hide to remove apps not installed on this device.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
