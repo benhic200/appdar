@@ -907,17 +907,33 @@ fun TabbedAppScreen(
             }
         }
     }
-    // Skip button — in a Popup so it renders above the tap-target overlay
+    // Walkthrough controls — Popup so they render above the tap-target overlay
     if (!walkthroughCompleted && !walkthroughState.isComplete) {
         Popup(
-            alignment = Alignment.BottomEnd,
+            alignment = Alignment.BottomCenter,
             properties = PopupProperties(focusable = false)
         ) {
-            TextButton(
-                onClick = onWalkthroughSkip,
-                modifier = Modifier.padding(end = 16.dp, bottom = 16.dp)
+            Card(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                Text("Skip tour")
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    Text(
+                        text = WalkthroughTarget.message(walkthroughState.currentStep),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = onWalkthroughSkip) { Text("Skip tour") }
+                        Button(onClick = onWalkthroughNext) { Text("Next →") }
+                    }
+                }
             }
         }
     }
