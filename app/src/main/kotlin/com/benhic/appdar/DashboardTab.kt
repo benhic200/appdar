@@ -410,7 +410,8 @@ fun DashboardContent(
     val showTapTargets = !walkthroughCompleted && walkthroughState.currentStep in setOf(
         WalkthroughStep.WELCOME,
         WalkthroughStep.DASHBOARD_APPS_CARD,
-        WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED
+        WalkthroughStep.DASHBOARD_HIDE_UNINSTALLED,
+        WalkthroughStep.WIDGET_EXPLANATION
     )
     val currentStep = walkthroughState.currentStep
 
@@ -445,7 +446,8 @@ fun DashboardContent(
             // Modifier for centered tap targets (WELCOME, DASHBOARD_APPS_CARD, WIDGET_EXPLANATION)
             val centeredTapTargetModifier = if (showTapTargets && currentStep in setOf(
                     WalkthroughStep.WELCOME,
-                    WalkthroughStep.DASHBOARD_APPS_CARD
+                    WalkthroughStep.DASHBOARD_APPS_CARD,
+                    WalkthroughStep.WIDGET_EXPLANATION
                 )) {
                 Modifier.tapTarget(
                     TapTargetDefinition(

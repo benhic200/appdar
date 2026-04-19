@@ -83,6 +83,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import com.psoffritti.taptargetcompose.TapTargetCoordinator
 import com.psoffritti.taptargetcompose.TapTargetDefinition
 import com.psoffritti.taptargetcompose.TextDefinition
@@ -421,11 +423,6 @@ fun TabbedAppScreen(
     }
 
     val currentStep = walkthroughState.currentStep
-    val effectiveShowTopLevel = !walkthroughCompleted && when (currentStep) {
-        WalkthroughStep.WIDGET_EXPLANATION -> true
-        WalkthroughStep.NAV_DASHBOARD, WalkthroughStep.NAV_PLACES, WalkthroughStep.NAV_HOME -> drawerFullyOpen
-        else -> false
-    }
 
     // Manage auto-refresh alarm when low power mode or interval changes
     val settingsPrefs by settingsViewModel.userPreferences.collectAsState()
@@ -454,88 +451,6 @@ fun TabbedAppScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-    key(currentStep) {
-        TapTargetCoordinator(
-            showTapTargets = effectiveShowTopLevel,
-            onComplete = { onWalkthroughNext() },
-            contentAlignment = Alignment.BottomCenter
-        ) {
-        val widgetsButtonModifier = if (effectiveShowTopLevel && currentStep == WalkthroughStep.WIDGET_EXPLANATION) {
-            Modifier.tapTarget(
-                TapTargetDefinition(
-                    precedence = WalkthroughTarget.precedence(currentStep),
-                    title = TextDefinition(
-                        text = WalkthroughTarget.message(currentStep),
-                        textStyle = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    ),
-                    description = TextDefinition(
-                        text = "",
-                        textStyle = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
-                    tapTargetStyle = WalkthroughTarget.style(currentStep)
-                )
-            )
-        } else Modifier
-        val dashboardNavModifier = if (effectiveShowTopLevel && currentStep == WalkthroughStep.NAV_DASHBOARD) {
-            Modifier.tapTarget(
-                TapTargetDefinition(
-                    precedence = WalkthroughTarget.precedence(currentStep),
-                    title = TextDefinition(
-                        text = WalkthroughTarget.message(currentStep),
-                        textStyle = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    ),
-                    description = TextDefinition(
-                        text = "",
-                        textStyle = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
-                    tapTargetStyle = WalkthroughTarget.style(currentStep)
-                )
-            )
-        } else Modifier
-        val placesNavModifier = if (effectiveShowTopLevel && currentStep == WalkthroughStep.NAV_PLACES) {
-            Modifier.tapTarget(
-                TapTargetDefinition(
-                    precedence = WalkthroughTarget.precedence(currentStep),
-                    title = TextDefinition(
-                        text = WalkthroughTarget.message(currentStep),
-                        textStyle = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    ),
-                    description = TextDefinition(
-                        text = "",
-                        textStyle = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
-                    tapTargetStyle = WalkthroughTarget.style(currentStep)
-                )
-            )
-        } else Modifier
-        val homeNavModifier = if (effectiveShowTopLevel && currentStep == WalkthroughStep.NAV_HOME) {
-            Modifier.tapTarget(
-                TapTargetDefinition(
-                    precedence = WalkthroughTarget.precedence(currentStep),
-                    title = TextDefinition(
-                        text = WalkthroughTarget.message(currentStep),
-                        textStyle = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    ),
-                    description = TextDefinition(
-                        text = "",
-                        textStyle = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
-                    tapTargetStyle = WalkthroughTarget.style(currentStep)
-                )
-            )
-        } else Modifier
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -556,45 +471,114 @@ fun TabbedAppScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 28.dp, bottom = 4.dp)
                     )
-                    NavigationDrawerItem(
-                        modifier = dashboardNavModifier,
-                        icon = { AnimatedNavIcon(selected = currentScreenState == "dashboard") { Icon(Icons.Filled.Dashboard, contentDescription = null) } },
-                        label = { Text("Dashboard") },
-                        selected = currentScreenState == "dashboard",
-                        onClick = {
-                            currentScreenState = "dashboard"
-                            coroutineScope.launch { drawerState.close() }
+                    key(currentStep) {
+                        val navActive = !walkthroughCompleted && drawerFullyOpen &&
+                            currentStep in navWalkthroughSteps
+                        TapTargetCoordinator(
+                            showTapTargets = navActive,
+                            onComplete = { onWalkthroughNext() },
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            val dashboardNavModifier = if (navActive && currentStep == WalkthroughStep.NAV_DASHBOARD) {
+                                Modifier.tapTarget(
+                                    TapTargetDefinition(
+                                        precedence = WalkthroughTarget.precedence(currentStep),
+                                        title = TextDefinition(
+                                            text = WalkthroughTarget.message(currentStep),
+                                            textStyle = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        ),
+                                        description = TextDefinition(
+                                            text = "",
+                                            textStyle = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        ),
+                                        tapTargetStyle = WalkthroughTarget.style(currentStep)
+                                    )
+                                )
+                            } else Modifier
+                            val placesNavModifier = if (navActive && currentStep == WalkthroughStep.NAV_PLACES) {
+                                Modifier.tapTarget(
+                                    TapTargetDefinition(
+                                        precedence = WalkthroughTarget.precedence(currentStep),
+                                        title = TextDefinition(
+                                            text = WalkthroughTarget.message(currentStep),
+                                            textStyle = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        ),
+                                        description = TextDefinition(
+                                            text = "",
+                                            textStyle = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        ),
+                                        tapTargetStyle = WalkthroughTarget.style(currentStep)
+                                    )
+                                )
+                            } else Modifier
+                            val homeNavModifier = if (navActive && currentStep == WalkthroughStep.NAV_HOME) {
+                                Modifier.tapTarget(
+                                    TapTargetDefinition(
+                                        precedence = WalkthroughTarget.precedence(currentStep),
+                                        title = TextDefinition(
+                                            text = WalkthroughTarget.message(currentStep),
+                                            textStyle = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        ),
+                                        description = TextDefinition(
+                                            text = "",
+                                            textStyle = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        ),
+                                        tapTargetStyle = WalkthroughTarget.style(currentStep)
+                                    )
+                                )
+                            } else Modifier
+                            Column {
+                                NavigationDrawerItem(
+                                    modifier = dashboardNavModifier,
+                                    icon = { AnimatedNavIcon(selected = currentScreenState == "dashboard") { Icon(Icons.Filled.Dashboard, contentDescription = null) } },
+                                    label = { Text("Dashboard") },
+                                    selected = currentScreenState == "dashboard",
+                                    onClick = {
+                                        currentScreenState = "dashboard"
+                                        coroutineScope.launch { drawerState.close() }
+                                    }
+                                )
+                                NavigationDrawerItem(
+                                    icon = { AnimatedNavIcon(selected = currentScreenState == "nearby") { Icon(Icons.Filled.NearMe, contentDescription = null) } },
+                                    label = { Text("Nearby Apps") },
+                                    selected = currentScreenState == "nearby",
+                                    onClick = {
+                                        currentScreenState = "nearby"
+                                        coroutineScope.launch { drawerState.close() }
+                                    }
+                                )
+                                NavigationDrawerItem(
+                                    modifier = placesNavModifier,
+                                    icon = { AnimatedNavIcon(selected = currentScreenState == "businesses") { Icon(Icons.Filled.List, contentDescription = null) } },
+                                    label = { Text("Places") },
+                                    selected = currentScreenState == "businesses",
+                                    onClick = {
+                                        currentScreenState = "businesses"
+                                        coroutineScope.launch { drawerState.close() }
+                                    }
+                                )
+                                NavigationDrawerItem(
+                                    modifier = homeNavModifier,
+                                    icon = { AnimatedNavIcon(selected = currentScreenState == "home") { Icon(Icons.Filled.Home, contentDescription = null) } },
+                                    label = { Text(homeProfile.displayName) },
+                                    selected = currentScreenState == "home",
+                                    onClick = {
+                                        currentScreenState = "home"
+                                        coroutineScope.launch { drawerState.close() }
+                                    }
+                                )
+                            }
                         }
-                    )
-                    NavigationDrawerItem(
-                        icon = { AnimatedNavIcon(selected = currentScreenState == "nearby") { Icon(Icons.Filled.NearMe, contentDescription = null) } },
-                        label = { Text("Nearby Apps") },
-                        selected = currentScreenState == "nearby",
-                        onClick = {
-                            currentScreenState = "nearby"
-                            coroutineScope.launch { drawerState.close() }
-                        }
-                    )
-                    NavigationDrawerItem(
-                        modifier = placesNavModifier,
-                        icon = { AnimatedNavIcon(selected = currentScreenState == "businesses") { Icon(Icons.Filled.List, contentDescription = null) } },
-                        label = { Text("Places") },
-                        selected = currentScreenState == "businesses",
-                        onClick = {
-                            currentScreenState = "businesses"
-                            coroutineScope.launch { drawerState.close() }
-                        }
-                    )
-                    NavigationDrawerItem(
-                        modifier = homeNavModifier,
-                        icon = { AnimatedNavIcon(selected = currentScreenState == "home") { Icon(Icons.Filled.Home, contentDescription = null) } },
-                        label = { Text(homeProfile.displayName) },
-                        selected = currentScreenState == "home",
-                        onClick = {
-                            currentScreenState = "home"
-                            coroutineScope.launch { drawerState.close() }
-                        }
-                    )
+                    }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -750,10 +734,7 @@ fun TabbedAppScreen(
                                 var showWidgetPicker by remember { mutableStateOf(false) }
                                 val awm = AppWidgetManager.getInstance(context)
 
-                                IconButton(
-                                    onClick = { showWidgetPicker = true },
-                                    modifier = widgetsButtonModifier
-                                ) {
+                                IconButton(onClick = { showWidgetPicker = true }) {
                                     Icon(Icons.Filled.Widgets, contentDescription = "Add widget")
                                 }
                                 IconButton(onClick = { dashboardViewModel.refresh(force = true) }) {
@@ -926,13 +907,11 @@ fun TabbedAppScreen(
             }
         }
     }
-        } // TapTargetCoordinator
-    } // key
-    // Skip button — drawn above all screen content including walkthrough overlay
+    // Skip button — in a Popup so it renders above the tap-target overlay
     if (!walkthroughCompleted && !walkthroughState.isComplete) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.BottomEnd
+        Popup(
+            alignment = Alignment.BottomEnd,
+            properties = PopupProperties(focusable = false)
         ) {
             TextButton(
                 onClick = onWalkthroughSkip,
