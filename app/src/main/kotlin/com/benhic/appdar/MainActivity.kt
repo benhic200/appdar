@@ -264,7 +264,10 @@ class MainActivity : ComponentActivity() {
                         Log.d(TAG, "WalkthroughEffect: onboardingComplete=$onboardingComplete walkthroughCompleted=$walkthroughCompleted")
                         if (onboardingComplete && !walkthroughCompleted) {
                             Log.d(TAG, "WalkthroughEffect: waiting for OSM...")
-                            nearbyBranchFinder.fetchState.first { !it.isLoading }
+                            // Wait until the dashboard is in a terminal state — branches loaded
+                            // or gave up with an error. The initial BranchFetch() has isLoading=false
+                            // so checking !isLoading resolves instantly and is incorrect here.
+                            nearbyBranchFinder.fetchState.first { it.branches.isNotEmpty() || it.isOffline }
                             Log.d(TAG, "WalkthroughEffect: OSM done, starting walkthrough")
                             _walkthroughState.value = WalkthroughState()
                         }

@@ -709,12 +709,11 @@ class NearbyBranchFinder @Inject constructor(
                         response.code to (response.body?.string() ?: "")
                     }
                 }
-                if (code == 429 || code == 503) {
-                    Log.w(TAG, "Group download: $url rate-limited (HTTP $code) — trying next mirror")
-                    lastException = IOException("HTTP $code")
+                if (code !in 200..299) {
+                    Log.w(TAG, "Group download: $url returned HTTP $code — trying next mirror")
+                    lastException = IOException("Overpass HTTP $code")
                     continue
                 }
-                if (code !in 200..299) throw IOException("Overpass HTTP $code")
                 if (json.isEmpty()) throw IllegalStateException("Empty response body")
                 if (url != OVERPASS_ENDPOINTS.first()) Log.i(TAG, "Group succeeded via mirror: $url")
                 // Log first 300 chars so we can see Overpass errors (runtime errors, empty results) in logcat

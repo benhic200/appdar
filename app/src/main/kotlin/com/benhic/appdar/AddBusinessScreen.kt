@@ -3,7 +3,9 @@ package com.benhic.appdar
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.net.Uri
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,7 +23,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import com.psoffritti.taptargetcompose.TapTargetCoordinator
@@ -569,12 +573,32 @@ private fun AddBusinessDialog(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
-                    is OsmValidationState.NotFound ->
-                        Text(
-                            "Not found on OpenStreetMap — turn on \"Use current location\" below to save your position manually.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
+                    is OsmValidationState.NotFound -> {
+                        val uriHandler = LocalUriHandler.current
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                "No branches found for this name — OpenStreetMap requires an exact match.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                "Look up the correct name on OpenStreetMap →",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                textDecoration = TextDecoration.Underline,
+                                modifier = Modifier.clickable {
+                                    uriHandler.openUri(
+                                        "https://www.openstreetmap.org/search?query=${Uri.encode(businessName)}"
+                                    )
+                                }
+                            )
+                            Text(
+                                "Or enable \"Use current location\" below to pin it manually instead.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                     else -> {}
                 }
 
