@@ -450,6 +450,29 @@ private fun SettingsCards(
                     }
                 }
             }
+            Spacer(modifier = Modifier.padding(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Transparent background",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Remove the card background — wallpaper shows through. Use Dark theme for white text.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = userPreferences.widgetTransparentBackground,
+                    onCheckedChange = { viewModel.toggleWidgetTransparentBackground(it) },
+                    modifier = Modifier.padding(start = 12.dp)
+                )
+            }
         }
     }
 

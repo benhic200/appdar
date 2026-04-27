@@ -7,6 +7,7 @@
     MIUI-safe: no Space, no ?android:attr/, no GridLayout.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/narrow_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"

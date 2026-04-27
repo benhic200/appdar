@@ -83,6 +83,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun toggleWidgetTransparentBackground(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateWidgetTransparentBackground(enabled)
+        }
+    }
+
     fun updateRegionPreference(pref: RegionPreference) {
         viewModelScope.launch {
             settingsRepository.updateRegionPreference(pref)

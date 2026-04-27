@@ -27,7 +27,9 @@ data class UserPreferences(
     val regionPreference: RegionPreference = RegionPreference.AUTO,
     /** When true, widget self-schedules at the user's interval while the screen is on,
      *  and immediately refreshes when the user unlocks their device. */
-    val screenOnRefreshEnabled: Boolean = true
+    val screenOnRefreshEnabled: Boolean = true,
+    /** When true, the widget root background is cleared so the launcher wallpaper shows through. */
+    val widgetTransparentBackground: Boolean = false
 )
 
 /**
@@ -85,6 +87,7 @@ object PreferencesKeys {
     val WIDGET_THEME = stringPreferencesKey("widget_theme")
     val REGION_PREFERENCE = stringPreferencesKey("region_preference")
     val SCREEN_ON_REFRESH_ENABLED = booleanPreferencesKey("screen_on_refresh_enabled")
+    val WIDGET_TRANSPARENT_BACKGROUND = booleanPreferencesKey("widget_transparent_background")
 }
 
 /**
@@ -111,5 +114,6 @@ fun Preferences.toUserPreferences(): UserPreferences = UserPreferences(
     regionPreference = this[PreferencesKeys.REGION_PREFERENCE]?.let { s ->
         RegionPreference.values().find { it.name == s } ?: RegionPreference.AUTO
     } ?: RegionPreference.AUTO,
-    screenOnRefreshEnabled = this[PreferencesKeys.SCREEN_ON_REFRESH_ENABLED] ?: true
+    screenOnRefreshEnabled = this[PreferencesKeys.SCREEN_ON_REFRESH_ENABLED] ?: true,
+    widgetTransparentBackground = this[PreferencesKeys.WIDGET_TRANSPARENT_BACKGROUND] ?: false
 )

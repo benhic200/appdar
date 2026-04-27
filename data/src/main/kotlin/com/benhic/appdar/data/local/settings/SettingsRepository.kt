@@ -120,6 +120,15 @@ class SettingsRepository @Inject constructor(
     }
 
     /**
+     * Enables or disables the transparent widget background.
+     */
+    suspend fun updateWidgetTransparentBackground(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.WIDGET_TRANSPARENT_BACKGROUND] = enabled
+        }
+    }
+
+    /**
      * Resets all preferences to defaults.
      */
     suspend fun resetToDefaults() {

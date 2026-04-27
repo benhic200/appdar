@@ -367,6 +367,9 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     val locProvider = ep.locationProvider()
                     val icons = ep.appIconLoader()
                     val prefs = ep.settingsRepository().getCurrentPreferences()
+                    if (prefs.widgetTransparentBackground) {
+                        applyTransparentBackground(views, WidgetListR.id.narrow_root)
+                    }
                     repo.initialize()
                     val location = withTimeoutOrNull(10000L) { locProvider.getCurrentLocation() }
 
@@ -460,6 +463,9 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     val locProvider = ep.locationProvider()
                     val icons = ep.appIconLoader()
                     val prefs = ep.settingsRepository().getCurrentPreferences()
+                    if (prefs.widgetTransparentBackground) {
+                        applyTransparentBackground(views, R.id.icon_1x1_root)
+                    }
                     repo.initialize()
                     val location = withTimeoutOrNull(10000L) { locProvider.getCurrentLocation() }
 
@@ -574,14 +580,16 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
             // so each gets setOnClickPendingIntent — the same mechanism as the working refresh
             // button. MIUI drops collection-widget item clicks but not regular view clicks.
 
-            // Resolve dark/light before we build RemoteViews so we can pick the right layout XML.
+            // Resolve dark/light (and transparent) before we build RemoteViews so we can pick the right layout XML.
             // All colors come from the XML — zero programmatic color calls to avoid MIUI reflection failures.
+            var transparentBgEarly = false
             val darkThemeEarly = run {
                 try {
                     val ep = EntryPointAccessors.fromApplication(
                         context.applicationContext, WidgetListEntryPoint::class.java
                     )
                     val prefs = runBlocking { ep.settingsRepository().getCurrentPreferences() }
+                    transparentBgEarly = prefs.widgetTransparentBackground
                     resolveWidgetDark(context, prefs.widgetTheme)
                 } catch (_: Exception) { false }
             }
@@ -733,6 +741,9 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                 }
             }
 
+            if (transparentBgEarly) {
+                applyTransparentBackground(views, WidgetListR.id.widget_root)
+            }
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
 
@@ -769,6 +780,9 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     val locProvider = ep.locationProvider()
                     val icons = ep.appIconLoader()
                     val prefs = ep.settingsRepository().getCurrentPreferences()
+                    if (prefs.widgetTransparentBackground) {
+                        applyTransparentBackground(views, WidgetListR.id.nano_root)
+                    }
                     repo.initialize()
                     val location = withTimeoutOrNull(10000L) { locProvider.getCurrentLocation() }
 
@@ -916,6 +930,10 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     val locProvider = ep.locationProvider()
                     val icons = ep.appIconLoader()
                     val prefs = ep.settingsRepository().getCurrentPreferences()
+                    if (prefs.widgetTransparentBackground) {
+                        val rootId = if (isHorizontal) WidgetListR.id.strip_h_root else WidgetListR.id.strip_root
+                        applyTransparentBackground(views, rootId)
+                    }
                     repo.initialize()
                     val location = withTimeoutOrNull(10000L) { locProvider.getCurrentLocation() }
 
@@ -1085,6 +1103,11 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
         private fun scaledForWidget(bmp: android.graphics.Bitmap, maxPx: Int): android.graphics.Bitmap {
             if (bmp.width <= maxPx && bmp.height <= maxPx) return bmp
             return android.graphics.Bitmap.createScaledBitmap(bmp, maxPx, maxPx, true)
+        }
+
+        /** Clears the root background so the launcher wallpaper shows through. */
+        private fun applyTransparentBackground(views: RemoteViews, rootViewId: Int) {
+            views.setInt(rootViewId, "setBackgroundColor", android.graphics.Color.TRANSPARENT)
         }
 
         /** How many item-rows fit in a grid widget of [heightDp] dp (header ~40dp, each compact row ~103dp). */
