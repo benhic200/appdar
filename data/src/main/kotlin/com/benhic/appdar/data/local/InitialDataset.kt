@@ -157,7 +157,7 @@ object InitialDataset {
         // ── AU Pharmacy & Retail ──────────────────────────────────────────────
         createMapping("Chemist Warehouse", "au.com.cwretailservices.cwapp",          "Chemist Warehouse",  "pharmacy",    regionHint = "AU"),
         createMapping("Dan Murphy's",      "au.com.danmurphys",                      "Dan Murphy's",       "retail",      regionHint = "AU"),
-        createMapping("Bunnings",          "com.bunnings.retail",                    "Bunnings",           "retail",      regionHint = "AU"),
+        createMapping("Bunnings", "com.bunnings.retail", "Bunnings", "retail", regionHint = "NZ"),
         createMapping("Myer",              "myer.com.android",                       "Myer",               "retail",      regionHint = "AU"),
 
         // ── AU Fast Food ──────────────────────────────────────────────────────

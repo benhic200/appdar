@@ -196,6 +196,16 @@ def update_entry(original_pkg, updated_entry):
     return True, "OK"
 
 
+def toggle_enabled(package_name, new_state):
+    """Flip isEnabled for a single entry without touching any other fields."""
+    entries = parse_entries()
+    entry = next((e for e in entries if e["packageName"] == package_name), None)
+    if not entry:
+        return False, f"Package '{package_name}' not found"
+    entry["isEnabled"] = new_state
+    return update_entry(package_name, entry)
+
+
 def add_entry(new_entry):
     """Append a new createMapping line to the appropriate region section."""
     with open(DATASET_PATH, "r", encoding="utf-8") as f:
@@ -273,6 +283,7 @@ def delete_entry(package_name):
 def render_html(grouped):
     # Collect all packages for the JS store-check initialiser
     all_packages = []
+    region_packages = {}   # region -> [packageName, ...]
     region_tabs = ""
     region_panels = ""
 
@@ -280,12 +291,16 @@ def render_html(grouped):
         active = "active" if idx == 0 else ""
         region_tabs += (
             f'<button class="tab-btn {active}" onclick="showRegion(\'{region}\')" '
-            f'id="tab-{region}">{region} <span class="count">{len(entries)}</span></button>\n'
+            f'id="tab-{region}">{region} <span class="count">{len(entries)}</span>'
+            f'<span class="tab-ind tab-ind-checking" id="tab-ind-{region}" title="Checking..."></span>'
+            f'</button>\n'
         )
 
         rows = ""
+        region_packages[region] = []
         for e in entries:
             all_packages.append(e["packageName"])
+            region_packages[region].append(e["packageName"])
             verify_badge = '<span class="badge verify">verify</span>' if e["needsVerify"] else ""
             enabled_badge = '' if e["isEnabled"] else '<span class="badge disabled">disabled</span>'
             region_badge = (
@@ -296,12 +311,15 @@ def render_html(grouped):
             play_url = f'https://play.google.com/store/apps/details?id={e["packageName"]}'
             entry_json = json.dumps(e).replace("'", "&#39;").replace('"', '&quot;')
             pkg_safe = e["packageName"].replace(".", "_").replace("-", "_")
+            toggle_cls = "toggle-on" if e["isEnabled"] else "toggle-off"
+            toggle_lbl = "On" if e["isEnabled"] else "Off"
             rows += f"""
-            <tr class="{'disabled-row' if not e['isEnabled'] else ''}{'verify-row' if e['needsVerify'] else ''}">
-              <td><strong>{e['businessName']}</strong>{enabled_badge}{verify_badge}</td>
+            <tr class="{'disabled-row' if not e['isEnabled'] else ''}{'verify-row' if e['needsVerify'] else ''}" id="row-{pkg_safe}">
+              <td><strong>{e['businessName']}</strong>{verify_badge}</td>
               <td class="pkg">{e['packageName']}</td>
               <td>{e['appName']}</td>
               <td>{e['category']}</td>
+              <td class="enabled-cell"><button class="toggle-btn {toggle_cls}" id="toggle-{pkg_safe}" data-pkg="{e['packageName']}" data-enabled="{str(e['isEnabled']).lower()}" onclick="toggleEnabled(this)">{toggle_lbl}</button></td>
               <td>{region_badge}</td>
               <td class="store-cell" id="store-{pkg_safe}"><span class="store-dot dot-checking" title="Checking Play Store..."></span></td>
               <td class="actions">
@@ -323,7 +341,7 @@ def render_html(grouped):
           </div>
           <table id="table-{region}">
             <thead><tr>
-              <th>Business</th><th>Package</th><th>App Name</th><th>Category</th><th>Region</th>
+              <th>Business</th><th>Package</th><th>App Name</th><th>Category</th><th>Enabled</th><th>Region</th>
               <th title="Play Store availability">Store</th><th>Actions</th>
             </tr></thead>
             <tbody>{rows}</tbody>
@@ -331,6 +349,7 @@ def render_html(grouped):
         </div>"""
 
     packages_js = json.dumps(all_packages)
+    region_packages_js = json.dumps(region_packages)
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -386,11 +405,30 @@ def render_html(grouped):
   .btn-edit {{ background: var(--primary); color: #000; margin: 0 4px; }}
   .btn-delete {{ background: var(--red); color: #fff; }}
   .btn-add {{ background: var(--primary); color: #000; padding: 8px 16px; font-size: 13px; }}
+  .enabled-cell {{ text-align: center; width: 58px; }}
+  .toggle-btn {{ border-radius: 12px; padding: 3px 10px; font-size: 11px; font-weight: 700; cursor: pointer; border: none; min-width: 38px; transition: opacity .15s; }}
+  .toggle-btn:hover {{ opacity: .8; }}
+  .toggle-on  {{ background: var(--green); color: #000; }}
+  .toggle-off {{ background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }}
   .badge {{ font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; margin-left: 5px; vertical-align: middle; }}
   .badge.disabled {{ background: #3a2a1a; color: var(--orange); }}
   .badge.verify {{ background: #2d2800; color: #d29922; border: 1px solid #d29922; }}
   .badge.region {{ background: var(--surface2); color: var(--primary); }}
   .badge.global {{ background: #1a2a3a; color: #79c0ff; }}
+  .tab-ind {{
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-left: 7px; font-size: 10px; font-weight: 700; line-height: 1;
+    border-radius: 8px; vertical-align: middle; padding: 0 4px;
+    min-width: 14px; height: 14px;
+  }}
+  .tab-ind-checking {{
+    background: transparent; border: 2px solid var(--border);
+    width: 10px; height: 10px; min-width: 10px; padding: 0; border-radius: 50%;
+    animation: pulse 1.4s ease-in-out infinite;
+  }}
+  .tab-ind-ok      {{ background: var(--green);  color: #000; }}
+  .tab-ind-missing {{ background: var(--red);    color: #fff; }}
+  .tab-ind-warn    {{ background: var(--orange); color: #000; }}
   /* Modal */
   .modal-overlay {{ display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; align-items: center; justify-content: center; }}
   .modal-overlay.open {{ display: flex; }}
@@ -475,6 +513,7 @@ def render_html(grouped):
 
 <script>
 const ALL_PACKAGES = {packages_js};
+const REGION_PACKAGES = {region_packages_js};
 
 function pkgToId(pkg) {{
   return 'store-' + pkg.replace(/\\./g, '_').replace(/-/g, '_');
@@ -582,6 +621,34 @@ function saveEntry() {{
   }});
 }}
 
+function toggleEnabled(btn) {{
+  const pkg = btn.dataset.pkg;
+  const currentState = btn.dataset.enabled === 'true';
+  const newState = !currentState;
+  btn.disabled = true;
+  fetch('/api/toggle_enabled', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{packageName: pkg, isEnabled: newState}})
+  }})
+  .then(r => r.json())
+  .then(data => {{
+    btn.disabled = false;
+    if (data.ok) {{
+      btn.dataset.enabled = String(newState);
+      btn.className = 'toggle-btn ' + (newState ? 'toggle-on' : 'toggle-off');
+      btn.textContent = newState ? 'On' : 'Off';
+      const pkgSafe = pkg.replace(/\./g, '_').replace(/-/g, '_');
+      const row = document.getElementById('row-' + pkgSafe);
+      if (row) row.classList.toggle('disabled-row', !newState);
+      showToast(newState ? pkg + ' enabled' : pkg + ' disabled');
+    }} else {{
+      showToast('Error: ' + (data.error || 'unknown'), true);
+    }}
+  }})
+  .catch(err => {{ btn.disabled = false; showToast('Request failed: ' + err.message, true); }});
+}}
+
 function confirmDelete(pkg) {{
   if (!confirm('Delete entry for package:\\n' + pkg + '?')) return;
   fetch('/api/delete', {{
@@ -622,6 +689,51 @@ function updateStoreDot(pkg, state) {{
   }} else {{
     dot.className = 'store-dot dot-error';
     dot.title = 'Could not check — click Play to verify manually';
+  }}
+  // Update the owning tab indicator
+  for (const [region, pkgs] of Object.entries(REGION_PACKAGES)) {{
+    if (pkgs.includes(pkg)) {{ updateTabIndicator(region); break; }}
+  }}
+}}
+
+function updateTabIndicator(region) {{
+  const pkgs = REGION_PACKAGES[region];
+  if (!pkgs || pkgs.length === 0) return;
+
+  let found = 0, missing = 0, errors = 0, checking = 0;
+  for (const pkg of pkgs) {{
+    const cell = document.getElementById(pkgToId(pkg));
+    if (!cell) {{ checking++; continue; }}
+    const dot = cell.querySelector('.store-dot');
+    if (!dot) {{ checking++; continue; }}
+    if (dot.classList.contains('dot-found'))    found++;
+    else if (dot.classList.contains('dot-missing')) missing++;
+    else if (dot.classList.contains('dot-error'))   errors++;
+    else checking++;
+  }}
+
+  const ind = document.getElementById('tab-ind-' + region);
+  if (!ind) return;
+
+  if (checking > 0 && missing === 0) {{
+    // Still checking, nothing bad yet
+    ind.className = 'tab-ind tab-ind-checking';
+    ind.title = `Checking… (${{found + missing + errors}}/${{pkgs.length}} done)`;
+    ind.textContent = '';
+  }} else if (missing === 0 && errors === 0) {{
+    // All done, all good
+    ind.className = 'tab-ind tab-ind-ok';
+    ind.title = `All ${{pkgs.length}} apps found on Play Store ✓`;
+    ind.textContent = '✓';
+  }} else if (missing > 0) {{
+    const suffix = checking > 0 ? ` (${{checking}} still checking)` : '';
+    ind.className = 'tab-ind tab-ind-missing';
+    ind.title = `${{missing}} app${{missing > 1 ? 's' : ''}} not found on Play Store${{suffix}}`;
+    ind.textContent = missing;
+  }} else {{
+    ind.className = 'tab-ind tab-ind-warn';
+    ind.title = `${{errors}} check error${{errors > 1 ? 's' : ''}} — verify manually`;
+    ind.textContent = '!';
   }}
 }}
 
@@ -744,6 +856,15 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json({"ok": False, "error": "Missing packageName"})
                     return
                 ok, msg = delete_entry(pkg)
+                self.send_json({"ok": ok, "error": msg if not ok else None})
+
+            elif path == "/api/toggle_enabled":
+                pkg = data.get("packageName")
+                new_state = data.get("isEnabled")
+                if not pkg or new_state is None:
+                    self.send_json({"ok": False, "error": "Missing packageName or isEnabled"})
+                    return
+                ok, msg = toggle_enabled(pkg, bool(new_state))
                 self.send_json({"ok": ok, "error": msg if not ok else None})
 
             else:

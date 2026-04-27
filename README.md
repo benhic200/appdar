@@ -1,4 +1,5 @@
 # 📍 Appdar
+https://play.google.com/store/apps/details?id=com.benhic.appdar
 
 > Your location. Your apps. Automatically.
 

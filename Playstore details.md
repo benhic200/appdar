@@ -62,3 +62,4 @@ Add the widget. Go somewhere. Watch it work.
 
 📍 Appdar — Your location. Your apps. Automatically.
 ```
+https://play.google.com/store/apps/details?id=com.benhic.appdar

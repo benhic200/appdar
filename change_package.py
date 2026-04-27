@@ -2,6 +2,9 @@
 """
 Script to change package name from com.example.nearbyappswidget to com.benhic.appdar
 Run from the project root directory.
+eg 
+cd /root/.openclaw/Adroid_Dev/nearby-apps-widget/phase1
+python3 scripts/dataset_editor.py
 """
 
 import os
