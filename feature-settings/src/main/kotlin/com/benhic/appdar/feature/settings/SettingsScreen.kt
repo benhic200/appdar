@@ -98,6 +98,8 @@ private fun SettingsCards(
     onNavigateToDashboard: () -> Unit = {},
     onRestartWalkthrough: () -> Unit = {}
 ) {
+    var pendingRegion by remember { mutableStateOf<RegionPreference?>(null) }
+
     // Detection Radius
     val useKm = userPreferences.distanceUnit == DistanceUnit.KILOMETERS
     val metersPerUnit = if (useKm) 1000f else 1609.344f
@@ -127,7 +129,7 @@ private fun SettingsCards(
                 modifier = Modifier.fillMaxWidth()
             )
             Text(
-                text = "0.5 $unitLabel – 10 $unitLabel  (default ${if (useKm) "5 km" else "~3 miles"})",
+                text = "0.5 $unitLabel – 10 $unitLabel  (default ${if (useKm) "8 km" else "~5 miles"})",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -185,12 +187,29 @@ private fun SettingsCards(
             )
             Spacer(modifier = Modifier.padding(6.dp))
             RegionDropdown(
-                selected = userPreferences.regionPreference,
-                onSelect = { pref ->
-                    viewModel.updateRegionPreference(pref)
-                    onNavigateToDashboard()
-                }
+                selected = pendingRegion ?: userPreferences.regionPreference,
+                onSelect = { pref -> pendingRegion = pref }
             )
+            if (pendingRegion != null && pendingRegion != userPreferences.regionPreference) {
+                Spacer(modifier = Modifier.padding(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { pendingRegion = null },
+                        modifier = Modifier.weight(1f)
+                    ) { Text("Cancel") }
+                    Button(
+                        onClick = {
+                            viewModel.confirmRegionChange(pendingRegion!!)
+                            pendingRegion = null
+                            onNavigateToDashboard()
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) { Text("Confirm & Download") }
+                }
+            }
             Spacer(modifier = Modifier.padding(4.dp))
             Card(
                 colors = CardDefaults.cardColors(

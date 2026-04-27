@@ -86,8 +86,15 @@ class SettingsViewModel @Inject constructor(
     fun updateRegionPreference(pref: RegionPreference) {
         viewModelScope.launch {
             settingsRepository.updateRegionPreference(pref)
-            // Clear branch cache so the correct region's data downloads on next open
             nearbyBranchFinder.clearCache()
+        }
+    }
+
+    /** Saves the new region and wipes the branch DB so the Dashboard does a fresh foreground download. */
+    fun confirmRegionChange(pref: RegionPreference) {
+        viewModelScope.launch {
+            settingsRepository.updateRegionPreference(pref)
+            nearbyBranchFinder.clearCacheAndWipeDb()
         }
     }
 

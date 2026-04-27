@@ -8,14 +8,14 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 /**
  * User preferences for Nearby Apps Widget, stored via DataStore.
  *
- * @property searchRadiusMeters Detection radius in meters (default: 5000)
+ * @property searchRadiusMeters Detection radius in meters (default: 8047 ≈ 5 miles)
  * @property distanceUnit Display unit for distances (default: METERS)
  * @property enableGeocoding Whether to show addresses via geocoding API (default: false)
  * @property enableLocationHistory Whether to cache location history locally (default: false)
  * @property refreshIntervalMinutes How often to refresh widget data in minutes (default: 5)
  */
 data class UserPreferences(
-    val searchRadiusMeters: Int = 5000,
+    val searchRadiusMeters: Int = 8047,
     val distanceUnit: DistanceUnit = DistanceUnit.MILES,
     val enableGeocoding: Boolean = false,
     val enableLocationHistory: Boolean = true,
@@ -91,7 +91,7 @@ object PreferencesKeys {
  * Converts [Preferences] to [UserPreferences].
  */
 fun Preferences.toUserPreferences(): UserPreferences = UserPreferences(
-    searchRadiusMeters = this[PreferencesKeys.SEARCH_RADIUS_METERS] ?: 5000,
+    searchRadiusMeters = this[PreferencesKeys.SEARCH_RADIUS_METERS] ?: 8047,
     distanceUnit = this[PreferencesKeys.DISTANCE_UNIT]?.let { unitString ->
         DistanceUnit.values().find { it.name == unitString } ?: DistanceUnit.MILES
     } ?: DistanceUnit.MILES,
