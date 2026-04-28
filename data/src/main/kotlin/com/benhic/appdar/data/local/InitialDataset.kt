@@ -22,7 +22,7 @@ object InitialDataset {
 
         // ── UK Supermarkets ───────────────────────────────────────────────────
         createMapping("Tesco", "com.tesco.grocery.view", "Tesco", "supermarket", regionHint = "UK"),
-        createMapping("Sainsbury's",  "com.ga.loyalty.android.nectar.activities",  "Sainsbury's Nectar","supermarket", regionHint = "UK"),
+        createMapping("Sainsbury's", "com.ga.loyalty.android.nectar.activities", "Sainsbury's Nectar", "supermarket", regionHint = "UK"),
         createMapping("Asda",         "com.asda.android",                          "Asda Groceries",    "supermarket", regionHint = "UK"),
         createMapping("Morrisons",    "com.morrisons.atm.mobile.android",          "Morrisons Grocery", "supermarket", regionHint = "UK"),
         createMapping("Aldi",         "de.apptiv.business.android.aldi_uk",        "Aldi Offers",       "supermarket", regionHint = "UK"),
@@ -107,7 +107,7 @@ object InitialDataset {
 
         // ── US Fast Food ──────────────────────────────────────────────────────
         createMapping("McDonald's", "com.mcdonalds.app", "McDonald's", "fast_food", regionHint = "US"),
-        createMapping("Burger King", "com.emn8.mobilem8.nativeapp.bk", "Burger King", "fast_food", regionHint = "US,NZ")  // same app used in NZ,
+        createMapping("Burger King", "com.emn8.mobilem8.nativeapp.bk", "Burger King", "fast_food", regionHint = "US,NZ"),  // same app used in NZ
         createMapping("KFC", "com.kfc.us.mobile", "KFC", "fast_food", regionHint = "US"),
         createMapping("Chick-fil-A", "com.chickfila.cfaflagship", "Chick-fil-A", "fast_food", regionHint = "US"),
         createMapping("Wendy's", "com.wendys.nutritiontool", "Wendy's", "fast_food", regionHint = "US"),
@@ -129,22 +129,22 @@ object InitialDataset {
         createMapping("Wingstop", "com.mobilaurus.wingstopandroid", "Wingstop", "fast_food", regionHint = "US"),
 
         // ── US Coffee (new) ───────────────────────────────────────────────────
-        createMapping("Dutch Bros", "com.dutchbros.loyalty", "Dutch Bros", "coffee", regionHint = "US")
+        createMapping("Dutch Bros", "com.dutchbros.loyalty", "Dutch Bros", "coffee", regionHint = "US"),
 
         // ── US Retail (new) ───────────────────────────────────────────────────
         createMapping("Best Buy", "com.bestbuy.android", "Best Buy", "retail", regionHint = "US"),
         createMapping("Home Depot", "com.thehomedepot", "The Home Depot", "retail", regionHint = "US"),
         createMapping("Lowe's", "com.lowes.android", "Lowe's", "retail", regionHint = "US"),
-        createMapping("Dollar General", "com.dollargeneral.android", "Dollar General", "retail", regionHint = "US")
-        createMapping("Dollar Tree", "com.dollartree.consumer", "Dollar Tree", "retail", regionHint = "US")
+        createMapping("Dollar General", "com.dollargeneral.android", "Dollar General", "retail", regionHint = "US"),
+        createMapping("Dollar Tree", "com.dollartree.consumer", "Dollar Tree", "retail", regionHint = "US"),
         createMapping("GameStop", "com.gamestop.powerup.v2", "GameStop", "retail", regionHint = "US"),
-        createMapping("Ulta Beauty", "com.ulta", "Ulta Beauty", "retail", regionHint = "US")
+        createMapping("Ulta Beauty", "com.ulta", "Ulta Beauty", "retail", regionHint = "US"),
 
         // ── US Pharmacy (new) ─────────────────────────────────────────────────
-        createMapping("Rite Aid", "com.riteaid.android", "Rite Aid", "pharmacy", regionHint = "US")
+        createMapping("Rite Aid", "com.riteaid.android", "Rite Aid", "pharmacy", regionHint = "US"),
 
         // ── US Fitness (new) ──────────────────────────────────────────────────
-        createMapping("Planet Fitness", "com.planetfitness", "Planet Fitness", "fitness", regionHint = "US")
+        createMapping("Planet Fitness", "com.planetfitness", "Planet Fitness", "fitness", regionHint = "US"),
 
         // ── Australia ─────────────────────────────────────────────────────────
 
