@@ -264,7 +264,8 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                updateAppWidget(context, appWidgetManager, appWidgetId)
+                // Always force-update on resize — the debounce must not block layout switches.
+                updateAppWidget(context, appWidgetManager, appWidgetId, forceUpdate = true)
             } catch (e: Exception) {
                 Log.e(TAG, "onAppWidgetOptionsChanged widget update failed", e)
             } finally {
@@ -296,10 +297,11 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
         public fun updateAppWidget(
             context: Context,
             appWidgetManager: AppWidgetManager,
-            appWidgetId: Int
+            appWidgetId: Int,
+            forceUpdate: Boolean = false
         ) {
             val now = System.currentTimeMillis()
-            if (now - (lastUpdateMs[appWidgetId] ?: 0L) < MIN_UPDATE_INTERVAL_MS) {
+            if (!forceUpdate && now - (lastUpdateMs[appWidgetId] ?: 0L) < MIN_UPDATE_INTERVAL_MS) {
                 Log.d(TAG, "Debouncing widget update for id=$appWidgetId")
                 return
             }
