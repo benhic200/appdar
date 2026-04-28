@@ -6,6 +6,9 @@ Serves a web UI on 0.0.0.0:9003 for browsing and editing InitialDataset.kt
 Usage:
   /Host_Machine/usr/bin/python3 .../scripts/dataset_editor.py
   Then open http://localhost:9003
+
+  cd /root/.openclaw/Adroid_Dev/nearby-apps-widget/phase1
+python3 scripts/dataset_editor.py
 """
 
 import json
@@ -24,9 +27,27 @@ DATASET_PATH = os.path.join(
 )
 DATASET_PATH = os.path.realpath(DATASET_PATH)
 
-# In-memory cache: packageName -> True/False/None (None = unchecked)
+# Persistent Play Store cache: packageName -> True/False/None (None = unchecked)
+CACHE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), ".store_cache.json")
 _store_cache: dict = {}
 _store_cache_lock = threading.Lock()
+
+def _load_cache():
+    if os.path.exists(CACHE_PATH):
+        try:
+            with open(CACHE_PATH, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def _save_cache():
+    with _store_cache_lock:
+        try:
+            with open(CACHE_PATH, "w") as f:
+                json.dump(_store_cache, f)
+        except Exception as e:
+            print(f"Warning: failed to write cache: {e}")
 
 # ── Parser ─────────────────────────────────────────────────────────────────────
 
@@ -127,6 +148,7 @@ def check_play_store(pkg: str):
 
     with _store_cache_lock:
         _store_cache[pkg] = result
+    _save_cache()
     return result
 
 
@@ -469,7 +491,10 @@ def render_html(grouped):
 <!-- Edit/Add Modal -->
 <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
   <div class="modal" onclick="event.stopPropagation()">
-    <h3 id="modal-title">Edit Entry</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <h3 id="modal-title" style="margin-bottom:0">Edit Entry</h3>
+      <button onclick="closeModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:0 4px" title="Close">&times;</button>
+    </div>
     <input type="hidden" id="field-original-pkg">
     <input type="hidden" id="modal-mode" value="edit">
     <div class="form-row">
@@ -525,6 +550,7 @@ function showRegion(region) {{
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('panel-' + region).style.display = 'block';
   document.getElementById('tab-' + region).classList.add('active');
+  history.replaceState(null, '', '#' + region);
 }}
 
 function filterTable(input, tableId) {{
@@ -604,20 +630,24 @@ function saveEntry() {{
     return r.json();
   }})
   .then(data => {{
+    btn.disabled = false;
+    btn.textContent = 'Save';
     if (data.ok) {{
       showToast(mode === 'add' ? 'Entry added' : 'Entry saved');
       document.getElementById('modal-overlay').classList.remove('open');
-      setTimeout(() => location.reload(), 900);
+      if (mode === 'edit') {{
+        updateRowInPlace(originalPkg, entry);
+      }} else {{
+        setTimeout(() => location.reload(), 700);
+      }}
     }} else {{
       showToast('Error: ' + (data.error || 'unknown'), true);
-      btn.disabled = false;
-      btn.textContent = 'Save';
     }}
   }})
   .catch(err => {{
-    showToast('Request failed: ' + err.message, true);
     btn.disabled = false;
     btn.textContent = 'Save';
+    showToast('Request failed: ' + err.message, true);
   }});
 }}
 
@@ -647,6 +677,82 @@ function toggleEnabled(btn) {{
     }}
   }})
   .catch(err => {{ btn.disabled = false; showToast('Request failed: ' + err.message, true); }});
+}}
+
+function escapeHtml(s) {{
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                  .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}}
+
+function updateRowInPlace(originalPkg, entry) {{
+  const pkgSafe    = originalPkg.replace(/\./g,'_').replace(/-/g,'_');
+  const newPkgSafe = entry.packageName.replace(/\./g,'_').replace(/-/g,'_');
+  const row = document.getElementById('row-' + pkgSafe);
+  if (!row) return;
+
+  const needsVerify = !!(entry.comment && entry.comment.toLowerCase().includes('verify'));
+
+  // Row id + classes
+  row.id = 'row-' + newPkgSafe;
+  row.className = [entry.isEnabled ? '' : 'disabled-row', needsVerify ? 'verify-row' : ''].join(' ').trim();
+
+  const cells = row.querySelectorAll('td');
+
+  // 0 — Business + verify badge
+  cells[0].innerHTML = '<strong>' + escapeHtml(entry.businessName) + '</strong>' +
+    (needsVerify ? '<span class="badge verify">verify</span>' : '');
+
+  // 1 — Package
+  cells[1].textContent = entry.packageName;
+
+  // 2 — App name
+  cells[2].textContent = entry.appName;
+
+  // 3 — Category
+  cells[3].textContent = entry.category;
+
+  // 4 — Enabled toggle
+  const toggleBtn = cells[4].querySelector('.toggle-btn');
+  if (toggleBtn) {{
+    toggleBtn.id           = 'toggle-' + newPkgSafe;
+    toggleBtn.dataset.pkg  = entry.packageName;
+    toggleBtn.dataset.enabled = String(entry.isEnabled);
+    toggleBtn.className    = 'toggle-btn ' + (entry.isEnabled ? 'toggle-on' : 'toggle-off');
+    toggleBtn.textContent  = entry.isEnabled ? 'On' : 'Off';
+  }}
+
+  // 5 — Region badge
+  cells[5].innerHTML = entry.regionHint
+    ? '<span class="badge region">' + escapeHtml(entry.regionHint) + '</span>'
+    : '<span class="badge global">global</span>';
+
+  // 6 — Store dot (re-check if package changed)
+  const storeCell = cells[6];
+  storeCell.id = 'store-' + newPkgSafe;
+  if (originalPkg !== entry.packageName) {{
+    storeCell.innerHTML = '<span class="store-dot dot-checking" title="Checking Play Store..."></span>';
+    checkPackageBrowser(entry.packageName).then(found => updateStoreDot(entry.packageName, found));
+    for (const [, pkgs] of Object.entries(REGION_PACKAGES)) {{
+      const i = pkgs.indexOf(originalPkg);
+      if (i !== -1) {{ pkgs[i] = entry.packageName; break; }}
+    }}
+  }}
+
+  // 7 — Actions: update play link, edit onclick, delete onclick
+  const playBtn = cells[7].querySelector('.btn-play');
+  if (playBtn) playBtn.href = 'https://play.google.com/store/apps/details?id=' + entry.packageName;
+
+  const editEntry = {{
+    lineno: 0, businessName: entry.businessName, packageName: entry.packageName,
+    appName: entry.appName, category: entry.category, isEnabled: entry.isEnabled,
+    regionHint: entry.regionHint || null, comment: entry.comment || '', needsVerify: needsVerify
+  }};
+  const editBtn = cells[7].querySelector('.btn-edit');
+  if (editBtn) editBtn.setAttribute('onclick',
+    'openEdit(' + JSON.stringify(editEntry).replace(/"/g,'&quot;').replace(/'/g,'&#39;') + ')');
+
+  const deleteBtn = cells[7].querySelector('.btn-delete');
+  if (deleteBtn) deleteBtn.setAttribute('onclick', "confirmDelete('" + entry.packageName + "')");
 }}
 
 function confirmDelete(pkg) {{
@@ -758,9 +864,15 @@ function checkPackages(packages) {{
   for (let c = 0; c < concurrency; c++) next();
 }}
 
-// Start checks on page load
+// Start checks on page load; restore active tab from hash if present
 window.addEventListener('DOMContentLoaded', () => {{
+  const hash = location.hash.replace('#', '');
+  if (hash && document.getElementById('tab-' + hash)) showRegion(hash);
   checkPackages(ALL_PACKAGES);
+}});
+
+document.addEventListener('keydown', e => {{
+  if (e.key === 'Escape') closeModal();
 }});
 </script>
 </body>
@@ -883,6 +995,12 @@ if __name__ == "__main__":
     if not os.path.exists(DATASET_PATH):
         print(f"ERROR: Dataset not found at: {DATASET_PATH}")
         sys.exit(1)
+
+    # Load persistent Play Store cache
+    stored = _load_cache()
+    with _store_cache_lock:
+        _store_cache.update(stored)
+    print(f"  Cache   : {len(_store_cache)} entries loaded")
 
     port = 9003
     server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
