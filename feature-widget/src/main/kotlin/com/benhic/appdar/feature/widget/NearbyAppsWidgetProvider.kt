@@ -509,7 +509,7 @@ open class NearbyAppsWidgetProvider : AppWidgetProvider() {
                     if (pkg != null) {
                         icons.preloadIcons(listOf(pkg))
                         val bmp = icons.getIconBitmap(pkg)
-                        if (bmp != null) views.setImageViewBitmap(R.id.icon_1x1, scaledForWidget(bmp, 80))
+                        if (bmp != null) views.setImageViewBitmap(R.id.icon_1x1, scaledForWidget(bmp, 120))
                         else views.setImageViewResource(R.id.icon_1x1, android.R.drawable.sym_def_app_icon)
                         val clickIntent = Intent(WidgetClickReceiver.ACTION_WIDGET_ITEM_CLICK).apply {
                             setPackage(context.packageName)

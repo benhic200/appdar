@@ -6,7 +6,7 @@
     android:background="@drawable/widget_ripple_row"
     android:clickable="true"
     android:focusable="true"
-    android:padding="8dp">
+    android:padding="2dp">
 
     <ImageView
         android:id="@+id/icon_1x1"
