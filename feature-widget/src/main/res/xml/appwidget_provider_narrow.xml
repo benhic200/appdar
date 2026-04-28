@@ -3,7 +3,7 @@
     android:minWidth="40dp"
     android:minHeight="180dp"
     android:minResizeWidth="40dp"
-    android:minResizeHeight="100dp"
+    android:minResizeHeight="40dp"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_narrow_column"
     android:previewImage="@drawable/widget_preview_image_narrow"
