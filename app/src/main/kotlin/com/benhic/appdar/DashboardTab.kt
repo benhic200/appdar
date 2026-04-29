@@ -269,6 +269,9 @@ class DashboardViewModel @Inject constructor(
         // Auto-refreshes (LaunchedEffect) are throttled; manual taps always proceed.
         val now = System.currentTimeMillis()
         if (!force && now - lastRefreshMs < 30_000L && _state.value !is DashboardState.Error) return
+        // Never cancel an active foreground download — it will populate the DB and
+        // transition _state on its own. Cancelling mid-download just resets progress to 0.
+        if (nearbyBranchFinder.fetchState.value.statusMessage != null) return
         lastRefreshMs = now
         refreshJob?.cancel()
         refreshJob = viewModelScope.launch {
