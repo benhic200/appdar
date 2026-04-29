@@ -13,6 +13,11 @@
     <!-- Required for foreground service with location type (Android 14+ API 34+) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
+    <!-- Explicitly remove the AD_ID permission that Firebase Analytics injects.
+         Combined with google_analytics_adid_collection_enabled=false this ensures
+         the app genuinely does not use advertising ID. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove"/>
+
     <!-- Required for Android 11+ package visibility: allows querying whether business apps are installed -->
     <queries>
         <package android:name="com.tesco.grocery.view" />
