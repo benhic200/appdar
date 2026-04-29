@@ -41,6 +41,13 @@
         android:theme="@style/Theme.Appdar"
         tools:targetApi="31">
 
+        <!-- Opt Firebase Analytics out of Advertising ID collection.
+             The app does not use AD_ID — this keeps the Play Console
+             "does not use advertising ID" declaration accurate. -->
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
+
         <!-- Launcher activity (for app icon and explanation) -->
         <activity
             android:name=".MainActivity"
