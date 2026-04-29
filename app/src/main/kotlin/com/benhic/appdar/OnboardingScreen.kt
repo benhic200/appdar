@@ -57,6 +57,9 @@ fun OnboardingScreen(
     val dashboardViewModel: DashboardViewModel = hiltViewModel()
     val branchStatusMessage by dashboardViewModel.branchStatusMessage.collectAsState()
     val branchDownloadProgress by dashboardViewModel.branchDownloadProgress.collectAsState()
+    val dashboardState by dashboardViewModel.state.collectAsState()
+    val downloadStepIndex = 4
+    val downloadComplete = dashboardState !is DashboardState.Loading
 
     val steps = listOf(
         OnboardingStep(
@@ -207,11 +210,13 @@ fun OnboardingScreen(
             }
 
             val isLast = step == totalSteps - 1
+            val nextEnabled = step != downloadStepIndex || downloadComplete
             Button(
                 onClick = {
                     if (isLast) onComplete()
                     else step++
                 },
+                enabled = nextEnabled,
                 colors = if (isLast) ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 ) else ButtonDefaults.buttonColors()

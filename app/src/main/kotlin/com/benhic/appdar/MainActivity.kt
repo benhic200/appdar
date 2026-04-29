@@ -251,6 +251,7 @@ class MainActivity : ComponentActivity() {
             val onboardingComplete by _onboardingComplete
             val walkthroughCompleted by _walkthroughCompleted
             val walkthroughState by _walkthroughState
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
 
             MaterialTheme(
                 colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme()
@@ -259,16 +260,16 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize().safeDrawingPadding(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Observe OpenStreetMap download completion to trigger walkthrough
+                    // Wait for the dashboard to fully populate before starting the walkthrough.
+                    // Gating on fetchState.branches fires too early — branches are set inside
+                    // calculateNearestFromLocalDb but the ViewModel hasn't built DashboardState.Nearby
+                    // yet, so walk-through TapTargets overlay a still-loading screen.
                     LaunchedEffect(onboardingComplete, walkthroughCompleted) {
                         Log.d(TAG, "WalkthroughEffect: onboardingComplete=$onboardingComplete walkthroughCompleted=$walkthroughCompleted")
                         if (onboardingComplete && !walkthroughCompleted) {
-                            Log.d(TAG, "WalkthroughEffect: waiting for OSM...")
-                            // Wait until the dashboard is in a terminal state — branches loaded
-                            // or gave up with an error. The initial BranchFetch() has isLoading=false
-                            // so checking !isLoading resolves instantly and is incorrect here.
-                            nearbyBranchFinder.fetchState.first { it.branches.isNotEmpty() || it.isOffline }
-                            Log.d(TAG, "WalkthroughEffect: OSM done, starting walkthrough")
+                            Log.d(TAG, "WalkthroughEffect: waiting for dashboard to finish loading...")
+                            dashboardViewModel.state.first { it !is DashboardState.Loading }
+                            Log.d(TAG, "WalkthroughEffect: dashboard ready, starting walkthrough")
                             _walkthroughState.value = WalkthroughState()
                         }
                     }
