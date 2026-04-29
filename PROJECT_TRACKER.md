@@ -1393,7 +1393,7 @@ adb logcat -s NearbyAppsWidgetListFactory,RealLocationProvider,MainActivity,Near
 
 **v81 Built (Release‑signed AAB for Google Play) – 2026‑03‑27 13:06 GMT**
 **Features added:**
-- **Release‑signed AAB** – Android App Bundle signed with upload‑keystore.jks (storePassword/keyPassword: android) ready for Google Play beta upload.
+- **Release‑signed AAB** – Android App Bundle signed with upload‑keystore.jks ready for Google Play beta upload.
 - **Signing configuration** – Added signingConfigs block in app/build.gradle.kts, keystore properties in local.properties.
 
 **Build details:**
