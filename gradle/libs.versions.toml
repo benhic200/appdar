@@ -27,7 +27,7 @@ hilt = "2.51"
 hilt-navigation-compose = "1.2.0"
 
 # Play Services
-play-services-location = "21.2.0"
+play-services-location = "21.3.0"
 
 # Testing
 junit = "4.13.2"
