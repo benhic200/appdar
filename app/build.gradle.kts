@@ -17,8 +17,8 @@ android {
         applicationId = "com.benhic.appdar"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 177
-        versionName = "1.177"
+        versionCode = 178
+        versionName = "1.178"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -84,11 +84,11 @@ dependencies {
     implementation(project(":feature-widget-list"))
     implementation(project(":feature-settings"))
 
-    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-crashlytics-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
 
-    implementation("com.android.billingclient:billing-ktx:6.2.1")
+    implementation("com.android.billingclient:billing-ktx:7.1.1")
     implementation("com.pierfrancescosoffritti.taptargetcompose:core:1.2.1")
 
     implementation(libs.androidx.core.ktx)
