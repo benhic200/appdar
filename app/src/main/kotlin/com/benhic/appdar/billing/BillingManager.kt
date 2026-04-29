@@ -62,20 +62,26 @@ class BillingManager(
 
     // ── Restore existing purchase (reinstall / new device) ────────────────────
 
-    fun checkExistingPurchases() {
+    fun checkExistingPurchases(onComplete: ((found: Boolean) -> Unit)? = null) {
         val params = QueryPurchasesParams.newBuilder()
             .setProductType(BillingClient.ProductType.INAPP)
             .build()
         billingClient.queryPurchasesAsync(params) { result, purchases ->
-            if (result.responseCode != BillingClient.BillingResponseCode.OK) return@queryPurchasesAsync
+            if (result.responseCode != BillingClient.BillingResponseCode.OK) {
+                onComplete?.invoke(false)
+                return@queryPurchasesAsync
+            }
+            var found = false
             for (purchase in purchases) {
                 if (purchase.products.contains(PRODUCT_ID) &&
                     purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
                     Log.d(TAG, "Existing Pro purchase found")
                     acknowledgePurchase(purchase)
                     onProUnlocked()
+                    found = true
                 }
             }
+            onComplete?.invoke(found)
         }
     }
 

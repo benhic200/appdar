@@ -291,7 +291,14 @@ class MainActivity : ComponentActivity() {
                             permissionState = _permissionState.value,
                             isPro = _isPro.value,
                             onUpgradeTapped = { billingManager.launchPurchaseFlow(this@MainActivity) },
-                            onRestorePurchase = { billingManager.checkExistingPurchases() },
+                            onRestorePurchase = {
+                                billingManager.checkExistingPurchases { found ->
+                                    runOnUiThread {
+                                        val msg = if (found) "Pro unlocked!" else "No Pro purchase found"
+                                        Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            },
                             onRequestPermission = { requestLocationPermission() },
                             onOpenAppSettings = { openAppSettings() },
                             onOpenBatterySettings = { openBatterySettings() },
