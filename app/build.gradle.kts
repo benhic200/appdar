@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.dagger.hilt)
     alias(libs.plugins.ksp)
+    id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 
 import java.util.Properties
@@ -15,8 +17,8 @@ android {
         applicationId = "com.benhic.appdar"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 175
-        versionName = "1.175"
+        versionCode = 176
+        versionName = "1.176"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -81,6 +83,10 @@ dependencies {
     implementation(project(":feature-location"))
     implementation(project(":feature-widget-list"))
     implementation(project(":feature-settings"))
+
+    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
+    implementation("com.google.firebase:firebase-crashlytics-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx")
 
     implementation("com.android.billingclient:billing-ktx:6.2.1")
     implementation("com.pierfrancescosoffritti.taptargetcompose:core:1.2.1")
