@@ -27,7 +27,9 @@ class BillingManager(
 
     private val billingClient: BillingClient = BillingClient.newBuilder(context)
         .setListener(this)
-        .enablePendingPurchases()
+        .enablePendingPurchases(
+            PendingPurchasesParams.newBuilder().enableOneTimeProducts().build()
+        )
         .build()
 
     /** Stored when launchPurchaseFlow is called before billing is ready; retried on connect. */
