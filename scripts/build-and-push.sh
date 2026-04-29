@@ -3,9 +3,27 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_GRADLE="$PROJECT_DIR/app/build.gradle.kts"
-APK_PATH="$PROJECT_DIR/app/build/outputs/apk/debug/app-debug.apk"
 
-echo "🔧 Building next version of Appdar..."
+# Default: release build. Pass DEBUG=1 for debug build.
+BUILD_TYPE="${DEBUG:-release}"
+if [[ "$BUILD_TYPE" != "release" && "$BUILD_TYPE" != "debug" ]]; then
+    echo "❌ Invalid BUILD_TYPE '$BUILD_TYPE'. Use 'release' or 'debug'."
+    exit 1
+fi
+
+TASK_APK="assemble${BUILD_TYPE^}"
+TASK_AAB="bundle${BUILD_TYPE^}"
+
+# Output paths
+if [[ "$BUILD_TYPE" == "release" ]]; then
+    APK_PATH="$PROJECT_DIR/app/build/outputs/apk/release/app-release.apk"
+    AAB_PATH="$PROJECT_DIR/app/build/outputs/bundle/release/app-release.aab"
+else
+    APK_PATH="$PROJECT_DIR/app/build/outputs/apk/debug/app-debug.apk"
+    AAB_PATH="$PROJECT_DIR/app/build/outputs/bundle/debug/app-debug.aab"
+fi
+
+echo "🔧 Building next ${BUILD_TYPE} version of Appdar..."
 
 # Extract current version code and version name
 CURRENT_VERSION_CODE=$(grep -E "versionCode\s*=" "$BUILD_GRADLE" | grep -oE '[0-9]+')
@@ -24,18 +42,26 @@ rm -f "$BUILD_GRADLE.bak"
 
 echo "✅ Updated version in $BUILD_GRADLE"
 
-# Build debug APK
-echo "🏗️  Building debug APK..."
+# Build
+echo "🏗️  Building ${BUILD_TYPE} APK + AAB..."
 cd "$PROJECT_DIR"
-./gradlew assembleDebug
+./gradlew "$TASK_APK" "$TASK_AAB"
 
+# Check APK exists
 if [[ ! -f "$APK_PATH" ]]; then
     echo "❌ APK not found at $APK_PATH"
+    ls -la "$(dirname "$APK_PATH")" 2>/dev/null || true
     exit 1
 fi
 
 APK_SIZE=$(du -h "$APK_PATH" | cut -f1)
-echo "✅ APK built: $APK_PATH ($APK_SIZE)"
+echo "✅ ${BUILD_TYPE^} APK built: $APK_PATH ($APK_SIZE)"
+
+# Check AAB exists
+if [[ -f "$AAB_PATH" ]]; then
+    AAB_SIZE=$(du -h "$AAB_PATH" | cut -f1)
+    echo "✅ ${BUILD_TYPE^} AAB built: $AAB_PATH ($AAB_SIZE)"
+fi
 
 # Check ADB device
 echo "📱 Checking ADB devices..."
@@ -45,13 +71,15 @@ if [[ $DEVICES -eq 0 ]]; then
     exit 1
 fi
 
+# For release builds, uninstall any existing debug version first
 echo "📲 Installing APK..."
 adb install -r "$APK_PATH"
 
 echo "🎉 Successfully installed version $NEXT_VERSION_NAME ($NEXT_VERSION_CODE) to device."
-echo "📦 APK saved as $APK_PATH"
+echo "📦 APK: $APK_PATH"
+echo "📦 AAB: $AAB_PATH"
 
-# Optional: create symlink to latest APK
+# Create symlink to latest APK
 LINK_PATH="$PROJECT_DIR/Appdar-latest.apk"
 ln -sf "$APK_PATH" "$LINK_PATH"
 echo "🔗 Latest APK symlink updated: $LINK_PATH"
