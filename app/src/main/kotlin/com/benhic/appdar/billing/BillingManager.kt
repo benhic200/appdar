@@ -102,7 +102,8 @@ class BillingManager(
         )
         billingClient.queryProductDetailsAsync(
             QueryProductDetailsParams.newBuilder().setProductList(productList).build()
-        ) { result, productDetailsList ->
+        ) { billingResult, productDetailsResult ->
+            val productDetailsList = productDetailsResult.productDetailsList
             if (productDetailsList.isEmpty()) {
                 Log.e(TAG, "No product details for $PRODUCT_ID — check Play Console: " +
                     "product must be created, active, and app published to at least Internal Testing")
