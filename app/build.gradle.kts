@@ -88,7 +88,7 @@ dependencies {
     implementation("com.google.firebase:firebase-crashlytics-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
 
-    implementation("com.android.billingclient:billing-ktx:7.1.1")
+    implementation("com.android.billingclient:billing-ktx:8.0.0")
     implementation("com.pierfrancescosoffritti.taptargetcompose:core:1.2.1")
 
     implementation(libs.androidx.core.ktx)
