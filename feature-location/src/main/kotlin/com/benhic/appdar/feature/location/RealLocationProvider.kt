@@ -67,8 +67,13 @@ class RealLocationProvider @Inject constructor(
         Log.d(TAG, "Trying getLastLocation from fused client...")
         val lastLocation = suspendCancellableCoroutine<Location?> { continuation ->
             fusedClient.lastLocation.addOnCompleteListener(callbackExecutor) { task ->
-                Log.d(TAG, "lastLocation task completed, isSuccessful=${task.isSuccessful}, result=${task.result}")
-                continuation.resume(if (task.isSuccessful) task.result else null)
+                if (task.isSuccessful) {
+                    Log.d(TAG, "lastLocation task completed, result=${task.result}")
+                    continuation.resume(task.result)
+                } else {
+                    Log.w(TAG, "lastLocation task failed", task.exception)
+                    continuation.resume(null)
+                }
             }
         }
         if (lastLocation != null) {
