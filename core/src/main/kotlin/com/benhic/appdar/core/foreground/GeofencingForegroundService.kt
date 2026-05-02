@@ -84,10 +84,19 @@ class GeofencingForegroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(NOTIFICATION_ID, createNotification())
+        try {
+            startForeground(NOTIFICATION_ID, createNotification())
+        } catch (e: Exception) {
+            // ForegroundServiceStartNotAllowedException on Android 12+ when the system
+            // auto-restarts a killed service into a background context (intent is null).
+            // Abort cleanly — Application.onCreate() restarts us next time the process runs.
+            Log.w(TAG, "startForeground blocked (background restart): ${e.message}")
+            stopSelf()
+            return START_NOT_STICKY
+        }
         startLocationMonitoring()
         registerReceiver(unlockReceiver, IntentFilter(Intent.ACTION_USER_PRESENT))
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     override fun onDestroy() {
